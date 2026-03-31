@@ -1,0 +1,40 @@
+{
+  "name": "@dander/backend",
+  "version": "1.0.0",
+  "description": "Dander backend API — Node.js + Express",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint src/",
+    "migrate": "node db/migrate.js"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.1",
+    "axios": "^1.7.2",
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^2.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "express-validator": "^7.1.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^8.0.3",
+    "pg": "^8.12.0",
+    "qrcode": "^1.5.3",
+    "sharp": "^0.33.4",
+    "socket.io": "^4.7.5",
+    "speakeasy": "^2.0.0",
+    "twilio": "^5.2.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "nodemon": "^3.1.3"
+  }
+}

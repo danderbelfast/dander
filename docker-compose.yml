@@ -1,0 +1,131 @@
+version: '3.9'
+
+# ============================================================
+#  Dander — local development stack
+#
+#  Usage:
+#    docker-compose up          # start everything
+#    docker-compose up -d       # detached
+#    docker-compose down -v     # stop + remove volumes
+#    docker-compose logs -f api # stream API logs
+#
+#  Services:
+#    postgres  → localhost:5432
+#    api       → localhost:4000
+#    adminer   → localhost:8080
+# ============================================================
+
+services:
+
+  # ────────────────────────────────────────────────────────
+  # PostgreSQL 15
+  # ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: dander_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       dander
+      POSTGRES_USER:     dander
+      POSTGRES_PASSWORD: dander_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Run schema.sql automatically on first boot (empty DB only)
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./backend/db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dander -d dander"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dander_net
+
+  # ────────────────────────────────────────────────────────
+  # Node.js API (backend)
+  # ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dander_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV:      development
+      PORT:          4000
+      DATABASE_URL:  postgresql://dander:dander_dev_password@postgres:5432/dander
+
+      # ── Copy real secrets into .env and these will pick them up ──
+      JWT_SECRET:           ${JWT_SECRET:-change_me_in_production_please}
+      ADMIN_SECRET_KEY:     ${ADMIN_SECRET_KEY:-admin_secret_change_me}
+
+      # Twilio (optional — leave blank to skip SMS in dev)
+      TWILIO_ACCOUNT_SID:   ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN:    ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER:   ${TWILIO_FROM_NUMBER:-}
+
+      # Cloudinary (optional — falls back to local /uploads in dev)
+      CLOUDINARY_URL:       ${CLOUDINARY_URL:-}
+
+      # CORS — allow all three frontends in dev
+      FRONTEND_URL:         ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "4000:4000"
+    volumes:
+      # Mount uploads so images persist across container restarts
+      - uploads_data:/app/uploads
+      # Hot-reload: mount source (comment out for prod-like builds)
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - dander_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ────────────────────────────────────────────────────────
+  # Adminer — lightweight DB GUI
+  # Open: http://localhost:8080
+  #   System:   PostgreSQL
+  #   Server:   postgres
+  #   Username: dander
+  #   Password: dander_dev_password
+  #   Database: dander
+  # ────────────────────────────────────────────────────────
+  adminer:
+    image: adminer:4-standalone
+    container_name: dander_adminer
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER:   postgres
+      ADMINER_DESIGN:           pepa-linha-dark
+    networks:
+      - dander_net
+
+# ────────────────────────────────────────────────────────
+# Volumes
+# ────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# ────────────────────────────────────────────────────────
+# Networks
+# ────────────────────────────────────────────────────────
+networks:
+  dander_net:
+    driver: bridge

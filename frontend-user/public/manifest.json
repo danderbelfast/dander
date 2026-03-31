@@ -1,0 +1,15 @@
+{
+  "name": "Dander",
+  "short_name": "Dander",
+  "description": "Premium deals near you in Belfast",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F0E0C",
+  "theme_color": "#E85D26",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "categories": ["lifestyle", "shopping"],
+  "screenshots": []
+}

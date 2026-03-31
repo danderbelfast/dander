@@ -1,0 +1,12 @@
+{
+  "name": "@dander/shared",
+  "version": "1.0.0",
+  "description": "Dander shared constants, types, and utility functions",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

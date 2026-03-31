@@ -1,0 +1,32 @@
+{
+  "name": "dander",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dander monorepo — backend API, user/business/admin frontends, and shared utilities",
+  "workspaces": [
+    "backend",
+    "frontend-user",
+    "frontend-business",
+    "frontend-admin",
+    "shared"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend-user": "npm run dev --workspace=frontend-user",
+    "dev:frontend-business": "npm run dev --workspace=frontend-business",
+    "dev:frontend-admin": "npm run dev --workspace=frontend-admin",
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend-user\" \"npm run dev:frontend-business\" \"npm run dev:frontend-admin\"",
+    "build:frontend-user": "npm run build --workspace=frontend-user",
+    "build:frontend-business": "npm run build --workspace=frontend-business",
+    "build:frontend-admin": "npm run build --workspace=frontend-admin",
+    "build:all": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
