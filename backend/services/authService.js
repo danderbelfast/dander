@@ -272,11 +272,23 @@ async function loginUser(email, password) {
     throw err;
   }
 
-  // Send login OTP
-  await issueOtp(user.id, user.email, 'login');
-  const tempToken = signTempToken(user.id);
+  // Skip OTP — issue tokens directly (re-enable when email domain is set up)
+  const accessToken  = signAccessToken(user);
+  const refreshToken = signRefreshToken(user.id);
 
-  return { requires2FA: true, tempToken };
+  return {
+    requires2FA:  false,
+    accessToken,
+    refreshToken,
+    expiresIn:    ACCESS_TOKEN_TTL,
+    user: {
+      id:        user.id,
+      email:     user.email,
+      firstName: user.first_name,
+      lastName:  user.last_name,
+      role:      user.role,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

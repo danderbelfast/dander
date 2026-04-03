@@ -67,6 +67,15 @@ export default function Login() {
         setTempToken(data.tempToken);
         sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email, tempToken: data.tempToken }));
         setStep(2);
+      } else if (data.accessToken) {
+        sessionStorage.removeItem(SESSION_KEY);
+        const payload = decodeJWT(data.accessToken);
+        authLogin(data.accessToken, data.refreshToken, {
+          id: payload.sub, email: payload.email, role: payload.role,
+          firstName: data.user?.firstName, lastName: data.user?.lastName,
+          avatarUrl: data.user?.avatarUrl ?? null,
+        });
+        navigate('/home', { replace: true });
       } else if (data.setupRequired) {
         navigate('/register?step=setup', { state: { email } });
       }
