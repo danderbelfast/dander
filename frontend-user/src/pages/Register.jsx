@@ -49,9 +49,15 @@ export default function Register() {
     setLoading(true);
     try {
       const data = await register({ email, phone: phone || undefined, firstName, lastName, password });
-      setUserId(data.userId);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId: data.userId, email }));
-      setStep(2);
+      sessionStorage.removeItem(SESSION_KEY);
+      if (data.verified) {
+        setStep(3);
+        setTimeout(() => navigate('/login'), 2000);
+      } else {
+        setUserId(data.userId);
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId: data.userId, email }));
+        setStep(2);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {

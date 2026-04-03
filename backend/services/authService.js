@@ -177,7 +177,7 @@ async function registerUser(email, phone, password, firstName, lastName) {
   const { rows } = await pool.query(
     `INSERT INTO users
        (email, phone, password_hash, first_name, last_name, is_verified, is_active)
-     VALUES ($1, $2, $3, $4, $5, false, true)
+     VALUES ($1, $2, $3, $4, $5, true, true)
      RETURNING id`,
     [
       email.toLowerCase().trim(),
@@ -189,9 +189,7 @@ async function registerUser(email, phone, password, firstName, lastName) {
   );
   const userId = rows[0].id;
 
-  await issueOtp(userId, email, 'register');
-
-  return { userId };
+  return { userId, verified: true };
 }
 
 // ---------------------------------------------------------------------------
