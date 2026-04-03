@@ -1,6 +1,10 @@
 [build]
+  base      = "frontend-business"
   command   = "npm run build"
   publish   = "dist"
+
+[build.environment]
+  VITE_API_URL = "https://web-production-04206.up.railway.app"
 
 [[redirects]]
   from   = "/*"
