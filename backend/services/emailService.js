@@ -1,34 +1,28 @@
 'use strict';
 
 /**
- * emailService.js — Transactional email via nodemailer (SMTP).
+ * emailService.js — Transactional email via Resend.
  *
  * All functions are non-fatal: they log errors but never throw,
  * so a failed email never breaks the request that triggered it.
  *
- * Config (backend/.env):
- *   SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_FROM
+ * Config:
+ *   RESEND_API_KEY  — API key from resend.com (required in production)
+ *   SMTP_FROM       — sender address (must be verified in Resend)
  *
- * If SMTP_HOST is not set, emails are silently skipped (dev mode).
+ * If RESEND_API_KEY is not set, emails are silently skipped (dev mode).
  */
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const pool       = require('../db/pool');
 
-// ── Lazy transporter ────────────────────────────────────────
-let _transporter = null;
+let _resend = null;
 
-function getTransporter() {
-  if (_transporter) return _transporter;
-  const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST) return null;
-  _transporter = nodemailer.createTransport({
-    host:   SMTP_HOST,
-    port:   parseInt(SMTP_PORT || '587', 10),
-    secure: SMTP_SECURE === 'true',
-    auth:   SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-  });
-  return _transporter;
+function getResend() {
+  if (_resend) return _resend;
+  if (!process.env.RESEND_API_KEY) return null;
+  _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
 }
 
 // ── Fetch a setting from the DB ──────────────────────────────
@@ -45,14 +39,14 @@ async function getSetting(key, fallback = '') {
 
 // ── Core send ────────────────────────────────────────────────
 async function sendMail({ to, subject, html, text }) {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.log(`[email] SMTP not configured — skipping email to ${to}: "${subject}"`);
+  const resend = getResend();
+  if (!resend) {
+    console.log(`[email] Resend not configured — skipping email to ${to}: "${subject}"`);
     return;
   }
   const from = process.env.SMTP_FROM || 'noreply@dander.app';
   try {
-    await transporter.sendMail({ from, to, subject, html, text });
+    await resend.emails.send({ from, to, subject, html, text });
     console.log(`[email] Sent "${subject}" to ${to}`);
   } catch (err) {
     console.error(`[email] Failed to send "${subject}" to ${to}:`, err.message);
