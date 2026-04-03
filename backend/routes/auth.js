@@ -54,9 +54,8 @@ router.post(
       const result = await authService.registerUser(email, phone, password, firstName, lastName);
 
       return ok(res, {
-        message: 'Account created. Welcome to Dander!',
+        message: 'Account created. We\'ve sent a 6-digit verification code to your email.',
         userId:  result.userId,
-        verified: result.verified ?? false,
       }, 201);
     } catch (err) {
       if (err.code === 'EMAIL_TAKEN') return fail(res, 409, err.code, err.message);

@@ -177,7 +177,7 @@ async function registerUser(email, phone, password, firstName, lastName) {
   const { rows } = await pool.query(
     `INSERT INTO users
        (email, phone, password_hash, first_name, last_name, is_verified, is_active)
-     VALUES ($1, $2, $3, $4, $5, true, true)
+     VALUES ($1, $2, $3, $4, $5, false, true)
      RETURNING id`,
     [
       email.toLowerCase().trim(),
@@ -189,7 +189,9 @@ async function registerUser(email, phone, password, firstName, lastName) {
   );
   const userId = rows[0].id;
 
-  return { userId, verified: true };
+  await issueOtp(userId, email, 'register');
+
+  return { userId };
 }
 
 // ---------------------------------------------------------------------------
@@ -272,23 +274,11 @@ async function loginUser(email, password) {
     throw err;
   }
 
-  // Skip OTP — issue tokens directly (re-enable when email domain is set up)
-  const accessToken  = signAccessToken(user);
-  const refreshToken = signRefreshToken(user.id);
+  // Send login OTP
+  await issueOtp(user.id, user.email, 'login');
+  const tempToken = signTempToken(user.id);
 
-  return {
-    requires2FA:  false,
-    accessToken,
-    refreshToken,
-    expiresIn:    ACCESS_TOKEN_TTL,
-    user: {
-      id:        user.id,
-      email:     user.email,
-      firstName: user.first_name,
-      lastName:  user.last_name,
-      role:      user.role,
-    },
-  };
+  return { requires2FA: true, tempToken };
 }
 
 // ---------------------------------------------------------------------------
