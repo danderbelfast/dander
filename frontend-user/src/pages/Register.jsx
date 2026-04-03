@@ -43,6 +43,9 @@ export default function Register() {
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (password.length < 8)  { setError('Password must be at least 8 characters.'); return; }
 
+    if (!/[A-Z]/.test(password)) { setError('Password must contain at least one uppercase letter.'); return; }
+    if (!/[0-9]/.test(password)) { setError('Password must contain at least one number.'); return; }
+
     setLoading(true);
     try {
       const data = await register({ email, phone: phone || undefined, firstName, lastName, password });
@@ -128,6 +131,7 @@ export default function Register() {
             <div className="input-group">
               <label className="input-label">Password</label>
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 characters" autoComplete="new-password" required />
+              <p style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: 4 }}>Must be 8+ characters with an uppercase letter and a number.</p>
             </div>
 
             <div className="input-group">
