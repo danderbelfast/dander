@@ -42,7 +42,7 @@ client.interceptors.response.use(
       // Collapse concurrent refresh calls into one
       if (!_refreshPromise) {
         _refreshPromise = axios
-          .post(`/api/auth/refresh`, { refreshToken })
+          .post(`${BASE_URL}/api/auth/refresh`, { refreshToken })
           .then(({ data }) => {
             setAccessToken(data.accessToken);
             return data.accessToken;
