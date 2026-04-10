@@ -70,9 +70,12 @@ function getCloudinary() {
   if (_cloudinary) return _cloudinary;
   const url = process.env.CLOUDINARY_URL;
   if (!url) throw new Error('CLOUDINARY_URL is not set.');
-  // Lazy-require to avoid import errors when running without the package
   const { v2: cloudinary } = require('cloudinary');
-  cloudinary.config({ cloudinary_url: url });
+  // Parse cloudinary://api_key:api_secret@cloud_name manually — the SDK's
+  // cloudinary_url config key is unreliable across versions.
+  const match = url.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
+  if (!match) throw new Error('CLOUDINARY_URL format is invalid.');
+  cloudinary.config({ api_key: match[1], api_secret: match[2], cloud_name: match[3] });
   _cloudinary = cloudinary;
   return _cloudinary;
 }
