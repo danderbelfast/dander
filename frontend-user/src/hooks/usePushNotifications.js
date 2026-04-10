@@ -54,7 +54,8 @@ export function usePushNotifications() {
 
       setIsSubscribed(true);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[push] subscribe failed:', err);
       return false;
     }
   }, [registration]);
