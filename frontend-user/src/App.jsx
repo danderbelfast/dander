@@ -4,6 +4,8 @@ import { useAuth } from './context/AuthContext';
 
 import { AppShell }   from './components/layout/AppShell';
 import { ToastContainer } from './components/ui/Toast';
+import { UpdateBanner } from './components/ui/UpdateBanner';
+import { useSwUpdate } from './hooks/useSwUpdate';
 
 import SplashScreen       from './pages/SplashScreen';
 import UserExplainer      from './pages/UserExplainer';
@@ -27,8 +29,11 @@ function PublicRoute({ children }) {
 }
 
 export default function App() {
+  const { hasUpdate, applyUpdate, dismiss } = useSwUpdate();
+
   return (
     <>
+      {hasUpdate && <UpdateBanner onRefresh={applyUpdate} onDismiss={dismiss} />}
       <ToastContainer />
       <Routes>
         {/* Public */}

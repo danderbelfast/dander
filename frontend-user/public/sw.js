@@ -2,7 +2,10 @@
 
 const CACHE_NAME = 'dander-seen-v1';
 
-self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('install', () => {
+  // Don't skipWaiting automatically — wait for the user to confirm refresh
+  // so the UpdateBanner can be shown first.
+});
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 // ---------------------------------------------------------------------------
@@ -109,6 +112,12 @@ function stopBackgroundPoll() {
 
 self.addEventListener('message', (event) => {
   const { type, lat, lng, token } = event.data || {};
+
+  if (type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+
 
   if (type === 'START_BACKGROUND_POLL') {
     _bgPollState = { lat, lng, token };
