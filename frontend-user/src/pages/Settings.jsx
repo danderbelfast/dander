@@ -1,58 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { usePushNotifications } from '../hooks/usePushNotifications';
 import client from '../api/client';
-
-function Toggle({ checked, onChange }) {
-  return (
-    <label className="toggle">
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <div className="toggle-track" />
-    </label>
-  );
-}
 
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const { toast }        = useToast();
   const navigate         = useNavigate();
-
-  const { permission, isSubscribed, initialized, subscribeToPush, unsubscribeFromPush } = usePushNotifications();
-  const [notifProximity, setNotifProximity] = useState(false);
-  const [notifExpiry, setNotifExpiry]       = useState(true);
-  const [notifNew, setNotifNew]             = useState(false);
-
-  // Sync toggle with actual subscription state
-  useEffect(() => { setNotifProximity(isSubscribed); }, [isSubscribed]);
-
-  // Auto-enable nearby alerts once we know the user is not already subscribed
-  useEffect(() => {
-    if (!initialized) return;
-    if (!isSubscribed && permission !== 'denied') {
-      handleProximityToggle(true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized]); // runs once after subscription state is known
-
-  async function handleProximityToggle(enabled) {
-    if (enabled) {
-      if (permission === 'denied') {
-        toast({ type: 'error', title: 'Notifications blocked', message: 'Allow notifications in your browser settings, then try again.' });
-        return;
-      }
-      const ok = await subscribeToPush();
-      if (ok) {
-        toast({ type: 'success', title: 'Nearby alerts on', message: "You'll be notified when deals are close." });
-      } else {
-        toast({ type: 'error', title: 'Could not enable', message: 'Please allow notifications when prompted.' });
-      }
-    } else {
-      await unsubscribeFromPush();
-      toast({ type: 'info', title: 'Nearby alerts off' });
-    }
-  }
 
   // Password change state
   const [changingPwd, setChangingPwd] = useState(false);
@@ -179,19 +134,12 @@ export default function Settings() {
       <div className="settings-section">
         <div className="settings-section-title">Notifications</div>
         <div>
-          <div className="settings-row" style={{ cursor: 'default' }}>
-            <div className="settings-row-left" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-              <span className="settings-row-label">Nearby alerts</span>
-              <span className="settings-row-value">When a deal is within range</span>
-            </div>
-            <Toggle checked={notifProximity} onChange={(e) => handleProximityToggle(e.target.checked)} />
-          </div>
           <div className="settings-row" onClick={() => navigate('/notification-preferences')}>
             <div className="settings-row-left">
-              <div className="settings-row-icon">🎯</div>
+              <div className="settings-row-icon">🔔</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <span className="settings-row-label">Alert preferences</span>
-                <span className="settings-row-value">Per-category radius settings</span>
+                <span className="settings-row-label">Nearby deal alerts</span>
+                <span className="settings-row-value">Manage alerts and per-category preferences</span>
               </div>
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>

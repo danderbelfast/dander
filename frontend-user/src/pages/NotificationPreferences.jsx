@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getNotificationPreferences, saveNotificationPreferences } from '../api/preferences';
 import { useToast } from '../context/ToastContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { Spinner } from '../components/ui/Spinner';
 
 const CATEGORIES = [
@@ -34,10 +35,12 @@ function Toggle({ checked, onChange }) {
 export default function NotificationPreferences() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { permission, isSubscribed, initialized, subscribeToPush, unsubscribeFromPush } = usePushNotifications();
 
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
-  const [globalOn, setGlobalOn] = useState(true);
+  const [togglingGlobal, setTogglingGlobal] = useState(false);
+  const [globalOn, setGlobalOn] = useState(false);
   const [prefs, setPrefs]       = useState(
     CATEGORIES.map((c) => ({ category: c.key, enabled: true, radius_meters: 1000 }))
   );
@@ -45,7 +48,6 @@ export default function NotificationPreferences() {
   useEffect(() => {
     getNotificationPreferences()
       .then((data) => {
-        setGlobalOn(data.notifications_enabled ?? true);
         // Merge saved prefs with defaults for any missing categories
         setPrefs(CATEGORIES.map((c) => {
           const saved = data.preferences?.find((p) => p.category === c.key);
@@ -56,7 +58,41 @@ export default function NotificationPreferences() {
         toast({ type: 'error', title: 'Could not load preferences' });
       })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Global toggle mirrors the actual push-subscription state once known
+  useEffect(() => {
+    if (initialized) setGlobalOn(isSubscribed);
+  }, [isSubscribed, initialized]);
+
+  async function handleGlobalToggle(enabled) {
+    if (togglingGlobal) return;
+    setTogglingGlobal(true);
+    try {
+      if (enabled) {
+        if (permission === 'denied') {
+          toast({ type: 'error', title: 'Notifications blocked', message: 'Allow notifications in your browser settings, then try again.' });
+          return;
+        }
+        const ok = await subscribeToPush();
+        if (ok) {
+          setGlobalOn(true);
+          await saveNotificationPreferences({ notifications_enabled: true, preferences: prefs }).catch(() => {});
+          toast({ type: 'success', title: 'Notifications on', message: "You'll be notified when deals are close." });
+        } else {
+          toast({ type: 'error', title: 'Could not enable', message: 'Please allow notifications when prompted.' });
+        }
+      } else {
+        await unsubscribeFromPush();
+        setGlobalOn(false);
+        await saveNotificationPreferences({ notifications_enabled: false, preferences: prefs }).catch(() => {});
+        toast({ type: 'info', title: 'Notifications off' });
+      }
+    } finally {
+      setTogglingGlobal(false);
+    }
+  }
 
   function setEnabled(cat, val) {
     setPrefs((prev) => prev.map((p) => p.category === cat ? { ...p, enabled: val } : p));
@@ -78,6 +114,8 @@ export default function NotificationPreferences() {
       setSaving(false);
     }
   }
+
+  const denied = permission === 'denied';
 
   if (loading) {
     return (
@@ -104,14 +142,26 @@ export default function NotificationPreferences() {
 
       {/* Global toggle */}
       <div className="settings-section">
-        <div className="settings-section-title">All notifications</div>
+        <div className="settings-section-title">Nearby deal alerts</div>
         <div className="settings-row" style={{ cursor: 'default' }}>
           <div className="settings-row-left" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
             <span className="settings-row-label">Enable notifications</span>
-            <span className="settings-row-value">Turn off to stop all deal alerts</span>
+            <span className="settings-row-value">
+              {denied
+                ? 'Blocked in browser settings'
+                : 'Get pinged when a deal is within range'}
+            </span>
           </div>
-          <Toggle checked={globalOn} onChange={(e) => setGlobalOn(e.target.checked)} />
+          <Toggle
+            checked={globalOn}
+            onChange={(e) => handleGlobalToggle(e.target.checked)}
+          />
         </div>
+        {denied && (
+          <div style={{ padding: '10px 16px 0', fontSize: '0.78rem', color: 'var(--c-text-muted)', lineHeight: 1.5 }}>
+            Notifications are blocked for this site. Open your browser settings and allow notifications for Dander, then reload.
+          </div>
+        )}
       </div>
 
       {/* Per-category preferences */}
