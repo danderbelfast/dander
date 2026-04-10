@@ -109,7 +109,7 @@ export default function Register() {
       {step === 1 && (
         <>
           <h1 className="auth-title">Create account.</h1>
-          <p className="auth-subtitle">Join thousands finding great deals near you.</p>
+          <p className="auth-subtitle">Great deals are waiting near you.</p>
 
           <form className="auth-form" onSubmit={handleRegister}>
             {error && <div className="form-error">{error}</div>}
@@ -149,12 +149,12 @@ export default function Register() {
             <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={loading}>
               {loading ? <Spinner size="sm" /> : 'Create account'}
             </button>
-          </form>
 
-          <p className="auth-link">
-            Already have an account?{' '}
-            <span onClick={() => navigate('/login')}>Sign in</span>
-          </p>
+            <p className="auth-link">
+              Already have an account?{' '}
+              <span onClick={() => navigate('/login')}>Sign in</span>
+            </p>
+          </form>
         </>
       )}
 
