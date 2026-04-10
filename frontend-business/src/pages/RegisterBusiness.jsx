@@ -162,8 +162,8 @@ export default function RegisterBusiness() {
           {/* ── Step 1: Owner account ── */}
           {step === 1 && (
             <>
-              <div className="register-step-title">Create your owner account</div>
-              <div className="register-step-sub">This is the account you'll use to manage your business on Dander.</div>
+              <div className="register-step-title">Let's get you on the map.</div>
+              <div className="register-step-sub">This is your owner account — the place you'll manage every offer, track every redemption, and grow your business on Dander.</div>
               <form className="register-form" onSubmit={nextStep1}>
                 {error && <div className="form-error-box">{error}</div>}
                 <div className="form-grid">
