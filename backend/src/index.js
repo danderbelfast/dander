@@ -20,7 +20,7 @@ const { Server }       = require('socket.io');
 // ---------------------------------------------------------------------------
 
 const app        = express();
-app.set('trust proxy', 1); // use X-Forwarded-For from ngrok/proxies for per-user rate limiting
+app.set('trust proxy', true); // trust all proxy hops (Railway uses multiple)
 const httpServer = createServer(app);
 const io         = new Server(httpServer, {
   cors: {
