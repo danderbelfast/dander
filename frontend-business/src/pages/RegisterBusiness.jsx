@@ -86,7 +86,7 @@ export default function RegisterBusiness() {
     try {
       const data = await registerBusiness(
         { email, password, firstName, lastName },
-        { name: bizName, category, address, city, website, phone: bizPhone, description }
+        { name: bizName, category, address, city, website, phone: bizPhone, description, logoFile, coverFile }
       );
       setUserId(data.userId);
       setStep(4); // show email OTP entry

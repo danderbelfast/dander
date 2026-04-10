@@ -82,7 +82,7 @@ router.put(
     body('lat').optional().isFloat({ min: -90,  max: 90  }).withMessage('Invalid latitude.'),
     body('lng').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.'),
     body('website').optional().isURL().withMessage('website must be a valid URL.'),
-    body('phone').optional().isMobilePhone().withMessage('Invalid phone number.'),
+    body('phone').optional().trim().isLength({ max: 30 }).withMessage('Invalid phone number.'),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;

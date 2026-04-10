@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS offers (
   category             VARCHAR(100),
   image_url            TEXT,
   offer_type           VARCHAR(20) NOT NULL DEFAULT 'deal'
-                         CHECK (offer_type IN ('deal', 'promotion', 'clearance')),
+                         CHECK (offer_type IN ('deal', 'promotion', 'clearance', 'percentage', 'fixed', 'bogo', 'free_item', 'custom')),
 
   -- Pricing
   original_price       NUMERIC(10, 2),

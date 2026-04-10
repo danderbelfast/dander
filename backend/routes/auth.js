@@ -5,6 +5,12 @@ const { body, validationResult } = require('express-validator');
 
 const authService  = require('../services/authService');
 const emailService = require('../services/emailService');
+const { upload, processImage } = require('../middleware/upload');
+
+const bizRegisterUpload = upload.fields([
+  { name: 'logo',  maxCount: 1 },
+  { name: 'cover', maxCount: 1 },
+]);
 
 const router = Router();
 
@@ -192,6 +198,7 @@ router.post(
 
 router.post(
   '/business/register',
+  bizRegisterUpload,
   [
     body('email').isEmail().normalizeEmail().withMessage('A valid email is required.'),
     body('password')
@@ -229,6 +236,27 @@ router.post(
           phone:    businessPhone,
         }
       );
+
+      // Process and save logo/cover images if provided
+      const imageUpdates = {};
+      if (req.files?.logo?.[0]) {
+        imageUpdates.logo_url = await processImage(
+          req.files.logo[0].buffer, 'logo', req.files.logo[0].originalname
+        );
+      }
+      if (req.files?.cover?.[0]) {
+        imageUpdates.cover_image_url = await processImage(
+          req.files.cover[0].buffer, 'cover', req.files.cover[0].originalname
+        );
+      }
+      if (Object.keys(imageUpdates).length > 0) {
+        const pool = require('../db/pool');
+        const setClauses = Object.keys(imageUpdates).map((col, i) => `${col} = $${i + 2}`);
+        await pool.query(
+          `UPDATE businesses SET ${setClauses.join(', ')} WHERE id = $1`,
+          [result.businessId, ...Object.values(imageUpdates)]
+        );
+      }
 
       // Notify admin of new application (non-fatal)
       emailService.sendNewBusinessAlert({

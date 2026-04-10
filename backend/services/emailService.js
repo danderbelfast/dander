@@ -136,6 +136,10 @@ async function sendBusinessApprovedEmail({ ownerEmail, ownerName, businessName }
 
 // ── OTP email ────────────────────────────────────────────────
 async function sendOtpEmail({ to, code, purpose, appName = 'Dander' }) {
+  // In dev (no Resend key), print the code so login is still possible locally
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`\n[email:dev] OTP for ${to} (${purpose}): ${code}\n`);
+  }
   const isLogin = purpose === 'login';
   const isReset = purpose === 'reset_password';
 
