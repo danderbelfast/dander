@@ -53,7 +53,7 @@ export default function BusinessExplainer() {
           </svg>
         </button>
         <div className="ex-hero-label">For businesses</div>
-        <div className="ex-hero-title">More customers,<br />zero commission.</div>
+        <div className="ex-hero-title">Off Peak Deals,<br />On Time Results.</div>
         <div className="ex-hero-sub">
           Put your offer in front of people already nearby. Pay nothing until you choose to.
         </div>
