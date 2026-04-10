@@ -450,8 +450,8 @@ async function registerBusiness(ownerDetails, businessDetails) {
 
     const userResult = await client.query(
       `INSERT INTO users
-         (email, phone, password_hash, first_name, last_name, is_verified, is_active)
-       VALUES ($1, $2, $3, $4, $5, false, true)
+         (email, phone, password_hash, first_name, last_name, role, is_verified, is_active)
+       VALUES ($1, $2, $3, $4, $5, 'business', false, true)
        RETURNING id`,
       [
         email.toLowerCase().trim(),

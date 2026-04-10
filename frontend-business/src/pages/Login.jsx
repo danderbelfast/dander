@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, verifyLogin2FA } from '../api/auth';
+import { getProfile } from '../api/business';
 import { useAuth } from '../context/AuthContext';
+import { clearAccessToken, setAccessToken } from '../api/client';
 import { Spinner } from '../components/ui/Spinner';
 import danderLogoWhite from '../assets/Dander_Logo_White.png';
 
@@ -34,6 +36,18 @@ export default function Login() {
     try {
       const data    = await verifyLogin2FA(tempToken, totp);
       const payload = decodeJWT(data.accessToken);
+
+      // Verify this account owns a business before granting access
+      setAccessToken(data.accessToken);
+      try {
+        await getProfile();
+      } catch {
+        clearAccessToken();
+        setError('No business account found for these credentials. Please register your business first.');
+        setTotp('');
+        return;
+      }
+
       authLogin(data.accessToken, data.refreshToken, {
         id: payload.sub, email: payload.email, role: payload.role,
         firstName: data.user?.firstName, lastName: data.user?.lastName,
