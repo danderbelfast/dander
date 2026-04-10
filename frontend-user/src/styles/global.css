@@ -1869,18 +1869,15 @@ h3 { font-size: 1.15rem; }
   object-position: left center;
 }
 
-/* Gradient overlays */
-.sp-overlay-side,
+/* Overlays */
+.sp-overlay-dark,
 .sp-overlay-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.sp-half-user .sp-overlay-side {
-  background: linear-gradient(to left, rgba(0,0,0,0.72) 40%, rgba(0,0,0,0.15) 100%);
-}
-.sp-half-business .sp-overlay-side {
-  background: linear-gradient(to right, rgba(0,0,0,0.72) 40%, rgba(0,0,0,0.15) 100%);
+.sp-overlay-dark {
+  background: rgba(0,0,0,0.45);
 }
 .sp-overlay-vignette {
   background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%);
@@ -1901,20 +1898,27 @@ h3 { font-size: 1.15rem; }
 .sp-text {
   position: absolute;
   bottom: 28px;
-  max-width: 200px;
+  max-width: 220px;
   z-index: 3;
+  text-align: left;
 }
-.sp-text-left  { left: 20px;  text-align: left; }
-.sp-text-right { right: 20px; text-align: right; }
+.sp-text-left    { left: 20px; }
+.sp-text-business { left: 28px; bottom: 36px; }
 
-/* Label */
+/* Label pill */
 .sp-label {
+  margin-bottom: 8px;
+}
+.sp-label-pill {
+  display: inline-block;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.65);
-  margin-bottom: 8px;
+  color: #fff;
+  background: rgba(255,255,255,0.20);
+  border-radius: 20px;
+  padding: 3px 10px;
 }
 
 /* Headline */
@@ -1932,7 +1936,25 @@ h3 { font-size: 1.15rem; }
   font-size: 13px;
   color: rgba(255,255,255,0.70);
   line-height: 1.5;
+  margin-bottom: 14px;
 }
+
+/* CTA button */
+.sp-cta {
+  display: inline-block;
+  background: #fff;
+  color: #0F0E0C;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 24px;
+  padding: 9px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  transition: opacity 0.15s;
+}
+.sp-cta:active { opacity: 0.85; }
 
 /* "or" pill */
 .sp-divider {
