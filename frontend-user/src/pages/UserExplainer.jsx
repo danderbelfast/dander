@@ -4,20 +4,20 @@ import { getPublicStats } from '../api/offers';
 
 const STEPS = [
   {
-    title: 'Open Dander when you\'re out',
-    body: 'Dander uses your location to surface live deals within walking distance. No search needed — just open and see what\'s on.',
+    title: 'Just open the app',
+    body: "No searching, no scrolling through irrelevant results. Dander knows where you are and shows you what's live right now within walking distance. The deal comes to you.",
   },
   {
-    title: 'Browse offers around you',
-    body: 'See deals from restaurants, shops, bars, and services nearby. Filter by distance, expiry, or type to find exactly what you want.',
+    title: "See what's on around you",
+    body: "Restaurants, cafés, bars, shops, salons — whatever's nearby has something on. Filter by distance, category or what's ending soonest. Or just let Dander surprise you.",
   },
   {
-    title: 'Tap to claim your coupon',
-    body: 'One tap generates a unique code tied to your account. Each code is single-use and expires with the offer — no double-dipping.',
+    title: 'Claim it in one tap',
+    body: "Tap the offer and your unique code is generated instantly. It's tied to your account, single use, and expires when the offer does. Nobody else gets your code.",
   },
   {
-    title: 'Show the code at the counter',
-    body: 'Open the coupon screen and show the staff. They enter the code and the discount is applied instantly. No printing, no screenshots.',
+    title: 'Show and save',
+    body: "Open your coupon screen at the counter and show the staff. They enter the code, the discount applies, and you're done. No printing, no screenshots, no awkward moments at the till.",
   },
 ];
 
