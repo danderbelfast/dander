@@ -64,7 +64,7 @@ export default function BusinessExplainer() {
 
         {/* Steps */}
         <div>
-          <div className="ex-section-title">How it works</div>
+          <div className="ex-section-title">Rewrite Your Rush Hour</div>
           <div className="ex-steps">
             {STEPS.map((s, i) => (
               <div key={i} className="ex-step">
