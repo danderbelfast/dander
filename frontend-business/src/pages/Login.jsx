@@ -92,7 +92,7 @@ export default function Login() {
                 </button>
               </form>
               <p className="auth-link">
-                No account yet? <span onClick={() => navigate('/register')}>Register your business</span>
+                <span onClick={() => navigate('/register')}>Your next customer is already walking past. Get listed free.</span>
               </p>
             </>
           ) : (
