@@ -65,10 +65,9 @@ export default function Login() {
         <div className="auth-brand">
           <img src={danderLogoWhite} alt="Dander" style={{ height: 32, width: 'auto' }} />
         </div>
-        <h1>Grow your business with smart local offers.</h1>
+        <h1>Turn your quiet hours into your busiest ones.</h1>
         <p style={{ marginTop: 20 }}>
-          Create targeted deals, reach customers the moment they're nearby,
-          and track every redemption in real time.
+          Post a deal in seconds and reach real customers who are already nearby. Track every redemption, tweak what works, and pay nothing until you're ready.
         </p>
       </div>
 
