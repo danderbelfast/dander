@@ -39,6 +39,15 @@ export function usePushNotifications() {
       if (perm !== 'granted') return false;
 
       const vapidKey = await getVapidPublicKey();
+
+      // If there's a stale subscription (e.g. from before VAPID was configured,
+      // or signed with a different key), tear it down before creating a new one.
+      // Otherwise pushManager.subscribe() throws InvalidStateError.
+      const existing = await registration.pushManager.getSubscription();
+      if (existing) {
+        try { await existing.unsubscribe(); } catch { /* ignore */ }
+      }
+
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly:      true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
