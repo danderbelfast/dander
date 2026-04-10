@@ -55,7 +55,7 @@ export default function BusinessExplainer() {
         <div className="ex-hero-label">For businesses</div>
         <div className="ex-hero-title">Off Peak Deals,<br />On Time Results.</div>
         <div className="ex-hero-sub">
-          Put your offer in front of people already nearby. Pay nothing until you choose to.
+          They're already walking past. Give them a reason to stop.
         </div>
       </div>
 
