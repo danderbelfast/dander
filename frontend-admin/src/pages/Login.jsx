@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { login, verifyLogin2FA } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
+import danderLogoWhite from '../assets/Dander_Logo_White.png';
 
 function decodeJWT(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return {}; } }
 
@@ -60,8 +61,8 @@ export default function Login() {
     <div className="auth-wrap">
       <div className="auth-panel">
         <div className="auth-logo">
-          <div className="auth-logo-mark">🔥</div>
-          Dander Admin
+          <img src={danderLogoWhite} alt="Dander" style={{ height: 28, width: 'auto' }} />
+          <span style={{ opacity: 0.5, fontWeight: 400, fontSize: '0.95rem' }}>Admin</span>
         </div>
         <h1>Platform control centre.</h1>
         <p style={{ marginTop: 14 }}>

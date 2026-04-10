@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import danderLogoWhite from '../../assets/Dander_Logo_White.png';
 
 const NAV = [
   {
@@ -75,8 +76,15 @@ export function Sidebar({ collapsed, onToggle }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-mark">🔥</div>
-        {!collapsed && <span className="sidebar-logo-text">Dander <span style={{ opacity: 0.35, fontWeight: 400 }}>Admin</span></span>}
+        {collapsed
+          ? <img src={danderLogoWhite} alt="Dander" style={{ height: 18, width: 'auto' }} />
+          : (
+            <>
+              <img src={danderLogoWhite} alt="Dander" style={{ height: 20, width: 'auto' }} />
+              <span className="sidebar-logo-text" style={{ opacity: 0.4, fontWeight: 400 }}>Admin</span>
+            </>
+          )
+        }
       </div>
 
       <button className="sidebar-collapse-btn" onClick={onToggle} title={collapsed ? 'Expand' : 'Collapse'}>

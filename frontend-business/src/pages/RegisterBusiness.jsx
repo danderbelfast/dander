@@ -5,6 +5,7 @@ import { updateProfile } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
 import { Spinner } from '../components/ui/Spinner';
+import danderLogoBlack from '../assets/Dander_Logo_Black.png';
 
 const CATEGORIES = ['Food & Drink', 'Beauty & Wellness', 'Health & Fitness', 'Entertainment', 'Retail & Shopping', 'Services', 'Experiences & Leisure', 'Other'];
 const TOTAL_STEPS = 4;
@@ -121,7 +122,7 @@ export default function RegisterBusiness() {
     return (
       <div className="register-wrap">
         <header className="register-header">
-          <div className="register-brand"><span>🔥</span> Dander for Business</div>
+          <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ height: 24, width: 'auto' }} /></div>
         </header>
         <div className="register-body">
           <div className="register-card">

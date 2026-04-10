@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register, verifySetup2FA, resendOtp } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
+import danderLogoBlack from '../assets/Dander_Logo_Black.png';
 
 const SESSION_KEY = 'dander_register_otp';
 
@@ -97,7 +98,13 @@ export default function Register() {
 
   return (
     <div className="auth-page page-full" style={{ overflowY: 'auto' }}>
-      <div className="auth-logo">Dander</div>
+      <button className="auth-back" onClick={() => navigate('/for-users')}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </button>
+      <img src={danderLogoBlack} alt="Dander" className="auth-logo" />
 
       {step === 1 && (
         <>

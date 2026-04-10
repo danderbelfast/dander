@@ -7,6 +7,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { SectionIcon } from '../components/ui/CategoryIcon';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { getSavedOffers } from '../api/offers';
+import danderLogoBlack from '../assets/Dander_Logo_Black.png';
 
 const ALL_CATS = [
   { key: 'Food & Drink',          match: ['food & drink', 'food', 'drinks', 'restaurant', 'café', 'cafe', 'bakery', 'bar & pub', 'bar', 'pub'] },
@@ -149,7 +150,7 @@ export default function Home() {
       {/* Header */}
       <header className="home-header">
         <div>
-          <div className="home-logo">Dander</div>
+          <img src={danderLogoBlack} alt="Dander" className="home-logo" />
           {location && (
             <div className="home-greeting">
               {user?.firstName ? `Hi ${user.firstName} 👋` : 'Deals near you'}
