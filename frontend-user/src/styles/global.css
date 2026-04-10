@@ -7,14 +7,14 @@
 
 /* ── Design tokens ───────────────────────────────────────── */
 :root {
-  --c-primary:        #FF385C;
-  --c-primary-dim:    rgba(255, 56, 92, 0.10);
-  --c-primary-hover:  #E31C5F;
+  --c-primary:        #E85D26;
+  --c-primary-dim:    rgba(232, 93, 38, 0.10);
+  --c-primary-hover:  #d14f1f;
   --c-bg:             #FFFFFF;
   --c-surface:        #F7F7F7;
   --c-surface-raised: #FFFFFF;
   --c-border:         #EBEBEB;
-  --c-border-focus:   rgba(255, 56, 92, 0.45);
+  --c-border-focus:   rgba(232, 93, 38, 0.45);
   --c-text:           #222222;
   --c-text-muted:     #717171;
   --c-text-dim:       #B0B0B0;
@@ -515,10 +515,8 @@ h3 { font-size: 1.15rem; }
 .auth-logo { height: 24px; width: auto; display: block; margin-bottom: 40px; margin-top: 0; }
 .auth-page .btn-primary,
 .auth-page .btn-ghost { font-family: 'Syne', sans-serif; border-radius: 16px; }
-.auth-page .btn-primary { background: #E85D26; }
-.auth-page .btn-primary:hover { background: #d14f1f; }
 .auth-link { margin-top: 20px; font-size: 0.85rem; color: var(--c-text-muted); text-align: center; }
-.auth-link span { color: #E85D26; font-weight: 600; cursor: pointer; }
+.auth-link span { color: var(--c-primary); font-weight: 600; cursor: pointer; }
 .auth-title { font-family: var(--f-head); font-size: 1.75rem; font-weight: 700; margin-bottom: 6px; }
 .auth-subtitle { color: var(--c-text-muted); font-size: 0.9rem; margin-bottom: 32px; }
 .auth-form { display: flex; flex-direction: column; gap: 16px; }
