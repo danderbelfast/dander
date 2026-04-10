@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { getDashboard, getMyOffers } from '../api/business';
+import { resolveImageUrl } from '../utils/imageUrl';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
 
@@ -154,7 +155,7 @@ export default function Dashboard() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {o.image_url
-                      ? <img src={o.image_url} alt={o.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ? <img src={resolveImageUrl(o.image_url)} alt={o.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <span style={{ fontSize: '1.8rem' }}>🏷️</span>
                     }
                   </div>

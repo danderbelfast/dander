@@ -3,6 +3,7 @@ import { getProfile, updateProfile, getStaff, addStaff, removeStaff } from '../a
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
+import { resolveImageUrl } from '../utils/imageUrl';
 import { Spinner } from '../components/ui/Spinner';
 import { LoadingBlock } from '../components/ui/Spinner';
 import { LocationPicker } from '../components/ui/LocationPicker';
@@ -54,8 +55,8 @@ export default function BusinessProfile() {
         setPhone(biz.phone || '');
         setWebsite(biz.website || '');
         setDesc(biz.description || '');
-        setLogoPreview(biz.logo_url || '');
-        setCoverPreview(biz.cover_image_url || '');
+        setLogoPreview(resolveImageUrl(biz.logo_url));
+        setCoverPreview(resolveImageUrl(biz.cover_image_url));
         if (biz.lat) setLat(parseFloat(biz.lat));
         if (biz.lng) setLng(parseFloat(biz.lng));
         setStaffList(staff || []);

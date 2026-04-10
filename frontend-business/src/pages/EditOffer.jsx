@@ -4,6 +4,7 @@ import { getOffer, updateOffer } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
+import { resolveImageUrl } from '../utils/imageUrl';
 import { Spinner } from '../components/ui/Spinner';
 import { OfferPreviewCard } from '../components/ui/OfferPreviewCard';
 import { RadiusMapPicker } from '../components/ui/RadiusMapPicker';
@@ -67,8 +68,8 @@ export default function EditOffer() {
         setRedemptionCap(offer.max_redemptions != null ? String(offer.max_redemptions) : '');
         setPerUserLimit('1');
         setRadiusMeters(offer.radius_meters || 500);
-        setExistingImageUrl(offer.image_url || '');
-        setImagePreview(offer.image_url || '');
+        setExistingImageUrl(resolveImageUrl(offer.image_url));
+        setImagePreview(resolveImageUrl(offer.image_url));
       })
       .catch(() => setFetchError('Could not load offer.'))
       .finally(() => setFetching(false));
