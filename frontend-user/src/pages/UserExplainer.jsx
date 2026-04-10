@@ -52,11 +52,12 @@ export default function UserExplainer() {
             <polyline points="12 19 5 12 12 5"/>
           </svg>
         </button>
-        <div className="ex-hero-label">For shoppers</div>
-        <div className="ex-hero-title">Save money<br />every day.</div>
+        <div className="ex-hero-label"><span className="ex-label-pill">For Shoppers</span></div>
+        <div className="ex-hero-title">Your next great deal<br />is already nearby.</div>
         <div className="ex-hero-sub">
-          Hyper-local deals from real businesses around you. Claimed in one tap, redeemed in seconds.
+          Real offers from real businesses, surfaced the moment you're close enough to use them.
         </div>
+        <button className="ex-hero-cta" onClick={() => navigate('/register')}>Get the app free</button>
       </div>
 
       {/* ── Body ── */}
@@ -99,13 +100,12 @@ export default function UserExplainer() {
 
       </div>
 
-      {/* ── CTA ── */}
-      <div className="ex-cta">
-        <button
-          className="ex-cta-btn ex-cta-btn-user"
-          onClick={() => navigate('/register')}
-        >
-          Create free account
+      {/* ── Final CTA ── */}
+      <div className="ex-final-cta">
+        <div className="ex-final-cta-heading">Ready to start saving?</div>
+        <div className="ex-final-cta-sub">Free to download. No catches.</div>
+        <button className="ex-cta-btn ex-cta-btn-user" onClick={() => navigate('/register')}>
+          Download Dander
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
@@ -113,10 +113,7 @@ export default function UserExplainer() {
         </button>
         <div className="ex-cta-note">
           Already have an account?{' '}
-          <span
-            style={{ color: '#E85D26', cursor: 'pointer', fontWeight: 600 }}
-            onClick={() => navigate('/login')}
-          >
+          <span style={{ color: '#E85D26', cursor: 'pointer', fontWeight: 600 }} onClick={() => navigate('/login')}>
             Log in
           </span>
         </div>

@@ -1989,17 +1989,8 @@ h3 { font-size: 1.15rem; }
   padding: calc(var(--safe-top) + 16px) 24px 40px;
   overflow: hidden;
 }
-.ex-hero::after {
-  content: '';
-  position: absolute;
-  width: 320px; height: 320px; border-radius: 50%;
-  right: -100px; top: -100px;
-  pointer-events: none;
-}
 .ex-hero-user               { background: #0F0E0C; }
-.ex-hero-user::after        { background: rgba(232,93,38,0.12); }
 .ex-hero-business           { background: #E85D26; }
-.ex-hero-business::after    { background: rgba(0,0,0,0.08); }
 
 .ex-back {
   width: 38px; height: 38px; border-radius: 50%;
@@ -2013,12 +2004,17 @@ h3 { font-size: 1.15rem; }
 .ex-back-business { background: rgba(255,255,255,0.25); color: #fff; }
 
 .ex-hero-label {
-  font-size: 0.65rem; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase;
   margin-bottom: 10px; position: relative; z-index: 1;
 }
-.ex-hero-user .ex-hero-label     { color: rgba(255,255,255,0.4); }
-.ex-hero-business .ex-hero-label { color: rgba(255,255,255,0.7); }
+.ex-label-pill {
+  display: inline-block;
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: #fff;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
 
 .ex-hero-title {
   font-family: 'Syne', sans-serif;
@@ -2035,9 +2031,23 @@ h3 { font-size: 1.15rem; }
 .ex-hero-user .ex-hero-sub     { color: rgba(255,255,255,0.5); }
 .ex-hero-business .ex-hero-sub { color: rgba(255,255,255,0.8); }
 
+.ex-hero-cta {
+  margin-top: 20px;
+  display: inline-block;
+  background: #E85D26;
+  color: #fff;
+  font-size: 0.9rem; font-weight: 700;
+  border: none; border-radius: 24px;
+  padding: 11px 22px;
+  cursor: pointer;
+  position: relative; z-index: 1;
+  transition: opacity 0.15s;
+}
+.ex-hero-cta:active { opacity: 0.85; }
+
 /* Body */
 .ex-body {
-  flex: 1; padding: 32px 24px;
+  flex: 1; padding: 16px 24px;
   display: flex; flex-direction: column; gap: 32px;
 }
 .ex-page-user .ex-body     { background: #0F0E0C; }
@@ -2124,6 +2134,22 @@ h3 { font-size: 1.15rem; }
 .ex-table-cell.ex-col-dander      { font-weight: 700; color: #1A1714; }
 
 /* CTA footer */
+.ex-final-cta {
+  padding: 32px 24px calc(var(--safe-bot) + 24px);
+  text-align: center;
+}
+.ex-page-user .ex-final-cta { background: #1A1714; }
+.ex-final-cta-heading {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem; font-weight: 800;
+  color: #fff; margin-bottom: 8px;
+}
+.ex-final-cta-sub {
+  font-size: 0.88rem; color: rgba(255,255,255,0.45);
+  margin-bottom: 20px;
+}
+.ex-final-cta .ex-cta-btn { width: 100%; justify-content: center; }
+
 .ex-cta { padding: 20px 24px calc(var(--safe-bot) + 20px); }
 .ex-page-user .ex-cta     { background: #0F0E0C; }
 .ex-page-business .ex-cta { background: #fff; border-top: 1px solid #E8E6E0; }
