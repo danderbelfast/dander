@@ -3,20 +3,20 @@ import { useNavigate } from 'react-router-dom';
 
 const STEPS = [
   {
-    title: 'Create your business profile',
-    body: 'Set up in minutes. Add your name, location, logo, and a description. Your business appears on the map the moment you go live.',
+    title: "You're open for business in minutes",
+    body: "Add your name, location, logo and a quick description. The moment you hit publish, you're on the map and visible to everyone nearby.",
   },
   {
-    title: 'Post an offer in seconds',
-    body: 'Choose a deal type — free item, percentage off, or fixed price — set a redemption cap, and publish. Offers go live instantly.',
+    title: 'Post a deal before your next coffee goes cold',
+    body: 'Pick your offer type — free item, percentage off, fixed price deal. Set how many you want to give out. Hit publish. Done. It takes less time than updating your Facebook page.',
   },
   {
-    title: 'Customers walk through your door',
-    body: 'Dander shows your offer to nearby users in real time. When they claim it, they get a unique code and directions to you.',
+    title: 'Watch them walk through the door',
+    body: 'Dander puts your offer in front of real people who are already nearby. They claim a unique code on their phone and get directions straight to you. No printing. No vouchers. No faff.',
   },
   {
-    title: 'Track every redemption',
-    body: 'Staff scan or enter the code via the business portal. You see live redemption counts, peak times, and savings data — all free.',
+    title: "Know exactly what's working",
+    body: "Every redemption is tracked. See how many people viewed your offer, how many claimed it, when your busiest periods are, and how much you've saved customers. Real numbers, not guesswork.",
   },
 ];
 
