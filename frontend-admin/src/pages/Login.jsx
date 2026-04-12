@@ -61,7 +61,7 @@ export default function Login() {
     <div className="auth-wrap">
       <div className="auth-panel">
         <div className="auth-logo">
-          <img src={danderLogoWhite} alt="Dander" style={{ height: 28, width: 'auto' }} />
+          <img src={danderLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
           <span style={{ opacity: 0.5, fontWeight: 400, fontSize: '0.95rem' }}>Admin</span>
         </div>
         <h1>Platform control centre.</h1>

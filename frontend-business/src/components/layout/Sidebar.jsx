@@ -68,7 +68,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <img src={danderLogoWhite} alt="Dander" style={{ height: 22, width: 'auto' }} />
+        <img src={danderLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
         <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400, fontSize: '0.9rem' }}>Biz</span>
       </div>
 

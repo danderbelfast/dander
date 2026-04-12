@@ -122,7 +122,7 @@ export default function RegisterBusiness() {
     return (
       <div className="register-wrap">
         <header className="register-header">
-          <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ height: 24, width: 'auto' }} /></div>
+          <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ width: 140, height: 'auto' }} /></div>
         </header>
         <div className="register-body">
           <div className="register-card">
@@ -152,7 +152,7 @@ export default function RegisterBusiness() {
   return (
     <div className="register-wrap">
       <header className="register-header">
-        <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ height: 22, width: 'auto', verticalAlign: 'middle', marginRight: 6 }} /> Dander for Business</div>
+        <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ width: 140, height: 'auto', verticalAlign: 'middle', marginRight: 6 }} /> Dander for Business</div>
         <StepIndicator current={Math.min(step, 4)} />
       </header>
 

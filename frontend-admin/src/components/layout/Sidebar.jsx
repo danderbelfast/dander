@@ -77,10 +77,10 @@ export function Sidebar({ collapsed, onToggle }) {
     <aside className="sidebar">
       <div className="sidebar-logo">
         {collapsed
-          ? <img src={danderLogoWhite} alt="Dander" style={{ height: 18, width: 'auto' }} />
+          ? <img src={danderLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
           : (
             <>
-              <img src={danderLogoWhite} alt="Dander" style={{ height: 20, width: 'auto' }} />
+              <img src={danderLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
               <span className="sidebar-logo-text" style={{ opacity: 0.4, fontWeight: 400 }}>Admin</span>
             </>
           )
