@@ -67,4 +67,22 @@ router.post('/test', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/push/fcm-token — save FCM token for the authenticated user
+router.post('/fcm-token', requireAuth, async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, message: 'token is required.' });
+  try {
+    await savePushSubscription(req.user.id, {
+      endpoint: `fcm:${token}`,
+      p256dh: 'fcm',
+      auth: 'fcm',
+      userAgent: req.headers['user-agent'],
+    });
+    return res.status(201).json({ success: true });
+  } catch (err) {
+    console.error('[push/fcm-token]', err);
+    return res.status(500).json({ success: false, message: 'Failed to save FCM token.' });
+  }
+});
+
 module.exports = router;

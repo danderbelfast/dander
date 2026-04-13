@@ -137,10 +137,7 @@ export default function Settings() {
           <div className="settings-row" onClick={() => navigate('/notification-preferences')}>
             <div className="settings-row-left">
               <div className="settings-row-icon">🔔</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <span className="settings-row-label">Nearby deal alerts</span>
-                <span className="settings-row-value">Manage alerts and per-category preferences</span>
-              </div>
+              <span className="settings-row-label">Notifications</span>
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>

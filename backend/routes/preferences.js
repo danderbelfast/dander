@@ -12,9 +12,9 @@ const router = Router();
 // ---------------------------------------------------------------------------
 (async () => {
   try {
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE
-    `);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_types JSONB DEFAULT '{"nearby_deals":true,"new_offers":true,"expiring_offers":true,"coupon_reminders":true}'::jsonb`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS quiet_hours JSONB DEFAULT '{"enabled":false,"from":"22:00","until":"08:00"}'::jsonb`);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_notification_preferences (
         id            SERIAL PRIMARY KEY,
@@ -48,6 +48,7 @@ const CATEGORIES = [
   'Retail & Shopping',
   'Services',
   'Experiences & Leisure',
+  'Other',
 ];
 
 const DEFAULT_RADIUS = 1000; // 1 km
@@ -62,14 +63,15 @@ router.get('/notifications', requireAuth, async (req, res) => {
   const userId = req.user.id;
   try {
     const [userResult, prefsResult] = await Promise.all([
-      pool.query('SELECT notifications_enabled FROM users WHERE id = $1', [userId]),
+      pool.query('SELECT notifications_enabled, notification_types, quiet_hours FROM users WHERE id = $1', [userId]),
       pool.query(
         'SELECT category, enabled, radius_meters FROM user_notification_preferences WHERE user_id = $1',
         [userId]
       ),
     ]);
 
-    const notificationsEnabled = userResult.rows[0]?.notifications_enabled ?? true;
+    const userRow = userResult.rows[0] || {};
+    const notificationsEnabled = userRow.notifications_enabled ?? true;
     const savedMap = {};
     for (const row of prefsResult.rows) {
       savedMap[row.category] = { enabled: row.enabled, radius_meters: row.radius_meters };
@@ -81,7 +83,13 @@ router.get('/notifications', requireAuth, async (req, res) => {
       radius_meters: savedMap[cat]?.radius_meters ?? DEFAULT_RADIUS,
     }));
 
-    return res.json({ success: true, notifications_enabled: notificationsEnabled, preferences });
+    return res.json({
+      success: true,
+      notifications_enabled: notificationsEnabled,
+      preferences,
+      notification_types: userRow.notification_types || { nearby_deals: true, new_offers: true, expiring_offers: true, coupon_reminders: true },
+      quiet_hours: userRow.quiet_hours || { enabled: false, from: '22:00', until: '08:00' },
+    });
   } catch (err) {
     console.error('[preferences/notifications GET]', err);
     return res.status(500).json({ success: false, message: 'Failed to load notification preferences.' });
@@ -95,13 +103,27 @@ router.get('/notifications', requireAuth, async (req, res) => {
 
 router.put('/notifications', requireAuth, async (req, res) => {
   const userId = req.user.id;
-  const { notifications_enabled, preferences } = req.body;
+  const { notifications_enabled, preferences, notification_types, quiet_hours } = req.body;
 
   try {
     if (notifications_enabled != null) {
       await pool.query(
         'UPDATE users SET notifications_enabled = $1 WHERE id = $2',
         [Boolean(notifications_enabled), userId]
+      );
+    }
+
+    if (notification_types != null && typeof notification_types === 'object') {
+      await pool.query(
+        'UPDATE users SET notification_types = $1 WHERE id = $2',
+        [JSON.stringify(notification_types), userId]
+      );
+    }
+
+    if (quiet_hours != null && typeof quiet_hours === 'object') {
+      await pool.query(
+        'UPDATE users SET quiet_hours = $1 WHERE id = $2',
+        [JSON.stringify(quiet_hours), userId]
       );
     }
 

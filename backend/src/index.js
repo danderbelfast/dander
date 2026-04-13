@@ -165,9 +165,11 @@ io.on('connection', (socket) => {
 
 const { scheduleOfferExpiry } = require('../services/offerService');
 const { expireCoupons }       = require('../services/couponService');
+const { scheduleNotificationReminders } = require('../services/notificationCron');
 
-scheduleOfferExpiry();   // every 15 minutes — deactivates expired offers + their coupons
-expireCoupons();         // every 30 minutes — belt-and-suspenders coupon expiry
+scheduleOfferExpiry();              // every 15 minutes — deactivates expired offers + their coupons
+expireCoupons();                    // every 30 minutes — belt-and-suspenders coupon expiry
+scheduleNotificationReminders();    // every 30 minutes — expiring-offer + coupon-reminder pushes
 
 // ---------------------------------------------------------------------------
 // Start
