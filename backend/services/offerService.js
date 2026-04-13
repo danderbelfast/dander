@@ -23,6 +23,7 @@ const MUTABLE_FIELDS = [
   'original_price', 'offer_price', 'discount_percent', 'cost_price', 'selling_price',
   'lat', 'lng', 'radius_meters',
   'max_redemptions', 'starts_at', 'expires_at', 'is_active', 'icon_color',
+  'show_when_closed', 'show_countdown',
 ];
 
 const REQUIRED_ON_CREATE = ['title', 'offer_type'];

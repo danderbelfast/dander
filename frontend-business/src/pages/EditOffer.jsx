@@ -49,6 +49,8 @@ export default function EditOffer() {
   const [redemptionCap, setRedemptionCap] = useState('');
   const [perUserLimit, setPerUserLimit]   = useState('1');
   const [radiusMeters, setRadiusMeters]   = useState(500);
+  const [showWhenClosed, setShowWhenClosed] = useState(false);
+  const [showCountdown, setShowCountdown]   = useState(true);
   const [costPrice, setCostPrice]         = useState('');
   const [sellingPrice, setSellingPrice]   = useState('');
   const [imageFile, setImageFile]         = useState(null);
@@ -70,6 +72,8 @@ export default function EditOffer() {
         setRedemptionCap(offer.max_redemptions != null ? String(offer.max_redemptions) : '');
         setPerUserLimit('1');
         setRadiusMeters(offer.radius_meters || 500);
+        setShowWhenClosed(offer.show_when_closed ?? false);
+        setShowCountdown(offer.show_countdown ?? true);
         setCostPrice(offer.cost_price != null ? String(offer.cost_price) : '');
         setSellingPrice(offer.selling_price != null ? String(offer.selling_price) : '');
         setExistingImageUrl(resolveImageUrl(offer.image_url));
@@ -113,6 +117,8 @@ export default function EditOffer() {
       if (expiresAt) formData.append('expires_at', new Date(expiresAt).toISOString());
       if (redemptionCap) formData.append('max_redemptions', redemptionCap);
       formData.append('radius_meters', radiusMeters);
+      formData.append('show_when_closed', showWhenClosed);
+      formData.append('show_countdown', showCountdown);
       if (costPrice)    formData.append('cost_price', costPrice);
       if (sellingPrice) formData.append('selling_price', sellingPrice);
       if (discountedPrice) formData.append('offer_price', discountedPrice);
@@ -220,6 +226,23 @@ export default function EditOffer() {
                 <input className="input" type="number" min="1" value={perUserLimit}
                   onChange={(e) => setPerUserLimit(e.target.value)} />
               </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: '0.88rem' }}>
+                <input type="checkbox" checked={showWhenClosed} onChange={e => setShowWhenClosed(e.target.checked)} />
+                <div>
+                  <div style={{ fontWeight: 500 }}>Show offer outside opening hours</div>
+                  <div className="field-hint" style={{ marginTop: 2 }}>When off, offer is hidden when your business is closed</div>
+                </div>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: '0.88rem' }}>
+                <input type="checkbox" checked={showCountdown} onChange={e => setShowCountdown(e.target.checked)} />
+                <div>
+                  <div style={{ fontWeight: 500 }}>Show countdown timer</div>
+                  <div className="field-hint" style={{ marginTop: 2 }}>Shows customers how long until the deal expires or you close</div>
+                </div>
+              </label>
             </div>
           </div>
         </div>

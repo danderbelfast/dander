@@ -90,6 +90,10 @@ export const getProfitReports = (from, to) =>
 export const exportProfitCSV = (from, to) =>
   client.get('/api/admin/export/profit', { params: { from, to }, responseType: 'blob' });
 
+// ── Business Hours ──────────────────────────────────────────
+export const getBusinessHoursAdmin = (id) =>
+  client.get(`/api/admin/businesses/${id}/hours`).then((r) => r.data).catch(() => null);
+
 // ── Settings ────────────────────────────────────────────────
 export const getSettings = () =>
   client.get('/api/admin/settings').then((r) => r.data);

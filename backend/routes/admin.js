@@ -798,6 +798,25 @@ router.get('/export/profit', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/admin/businesses/:id/hours
+// ---------------------------------------------------------------------------
+
+router.get('/businesses/:id/hours', async (req, res) => {
+  try {
+    const hoursService = require('../services/hoursService');
+    const [hours, special, status] = await Promise.all([
+      hoursService.getBusinessHours(parseInt(req.params.id, 10)),
+      hoursService.getSpecialHours(parseInt(req.params.id, 10)),
+      hoursService.isBusinessOpen(parseInt(req.params.id, 10)),
+    ]);
+    return ok(res, { hours, special, status });
+  } catch (err) {
+    console.error('[admin/businesses/:id/hours]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch hours.');
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/admin/export/:type   (CSV download: users | businesses | redemptions)
 // ---------------------------------------------------------------------------
 

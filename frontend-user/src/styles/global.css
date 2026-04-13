@@ -761,6 +761,12 @@ h3 { font-size: 1.15rem; }
 .offer-pill-left  { left: 8px; }
 .offer-pill-right { right: 8px; }
 .offer-pill-urgent { background: rgba(201,138,0,0.82); }
+.offer-pill-green  { background: rgba(22,163,74,0.85); }
+.offer-pill-amber  { background: rgba(201,138,0,0.85); }
+.offer-pill-red    { background: rgba(220,38,38,0.88); font-weight: 700; }
+.offer-pill-pulse  { background: rgba(220,38,38,0.92); font-weight: 700; animation: pill-pulse 1s ease-in-out infinite; }
+@keyframes pill-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+.offer-pill-closed { background: rgba(100,100,100,0.8); }
 
 /* ── "N deals near you" banner ───────────────────────────── */
 .deals-banner {

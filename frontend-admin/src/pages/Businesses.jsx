@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { getBusinesses, getBusiness, approveBusiness, suspendBusiness, getBusinessProfit } from '../api/admin';
+import { getBusinesses, getBusiness, approveBusiness, suspendBusiness, getBusinessProfit, getBusinessHoursAdmin } from '../api/admin';
 import { useToast } from '../context/ToastContext';
 import { Spinner, LoadingBlock } from '../components/ui/Spinner';
 import { ConfirmModal, Drawer } from '../components/ui/Modal';
@@ -17,14 +17,18 @@ function fmt(n) { return `£${Number(n || 0).toFixed(2)}`; }
 function BusinessDrawer({ id, onClose, onAction }) {
   const [data, setData]     = useState(null);
   const [profitData, setProfitData] = useState(null);
+  const [hoursData, setHoursData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   useEffect(() => {
     Promise.all([
       getBusiness(id),
       getBusinessProfit(id).catch(() => null),
+      getBusinessHoursAdmin(id),
     ])
-      .then(([biz, profit]) => { setData(biz); setProfitData(profit?.offers || null); })
+      .then(([biz, profit, hours]) => { setData(biz); setProfitData(profit?.offers || null); setHoursData(hours); })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, [id]);
@@ -65,6 +69,36 @@ function BusinessDrawer({ id, onClose, onAction }) {
         </div>
         {business.description && (
           <p style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--c-text-muted)', lineHeight: 1.6 }}>{business.description}</p>
+        )}
+      </div>
+
+      {/* Opening hours */}
+      <div>
+        <div className="drawer-section-title">Opening hours</div>
+        {hoursData?.status ? (
+          <div style={{ marginBottom: 8, fontSize: '0.82rem' }}>
+            Currently: <strong style={{ color: hoursData.status.isOpen ? '#16a34a' : '#dc2626' }}>
+              {hoursData.status.isOpen ? 'OPEN' : 'CLOSED'}
+            </strong>
+            {!hoursData.status.isOpen && hoursData.status.nextOpenTime && (
+              <span style={{ color: 'var(--c-text-muted)' }}> — opens {hoursData.status.nextOpenTime}</span>
+            )}
+          </div>
+        ) : (
+          <div style={{ fontSize: '0.78rem', color: '#d97706', marginBottom: 8 }}>Hours not configured</div>
+        )}
+        {hoursData?.hours?.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr', gap: '4px 10px', fontSize: '0.78rem' }}>
+            {[1,2,3,4,5,6,0].map(d => {
+              const h = hoursData.hours.find(r => r.day_of_week === d);
+              return (
+                <React.Fragment key={d}>
+                  <span style={{ fontWeight: 500, color: 'var(--c-text-muted)' }}>{DAYS[d]}</span>
+                  <span>{h ? (h.is_closed ? 'Closed' : `${h.opens_at} – ${h.closes_at}`) : '—'}</span>
+                </React.Fragment>
+              );
+            })}
+          </div>
         )}
       </div>
 

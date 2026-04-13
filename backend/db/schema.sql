@@ -369,6 +369,41 @@ FROM offers o
 WHERE o.cost_price IS NOT NULL AND o.offer_price IS NOT NULL;
 
 -- =============================================================================
+-- BUSINESS HOURS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS business_hours (
+  id           SERIAL PRIMARY KEY,
+  business_id  INTEGER NOT NULL REFERENCES businesses (id) ON DELETE CASCADE,
+  day_of_week  SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Sunday
+  opens_at     TIME,
+  closes_at    TIME,
+  is_closed    BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_biz_day UNIQUE (business_id, day_of_week)
+);
+
+CREATE INDEX IF NOT EXISTS idx_business_hours_biz ON business_hours (business_id);
+
+CREATE TABLE IF NOT EXISTS special_hours (
+  id           SERIAL PRIMARY KEY,
+  business_id  INTEGER NOT NULL REFERENCES businesses (id) ON DELETE CASCADE,
+  date         DATE NOT NULL,
+  opens_at     TIME,
+  closes_at    TIME,
+  is_closed    BOOLEAN NOT NULL DEFAULT FALSE,
+  label        VARCHAR(100),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_biz_special_date UNIQUE (business_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_special_hours_biz ON special_hours (business_id);
+
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS show_when_closed BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS show_countdown   BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- =============================================================================
 -- PLATFORM SETTINGS
 -- =============================================================================
 

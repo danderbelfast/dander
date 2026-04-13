@@ -152,8 +152,11 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
     } catch {}
   }
 
+  const isClosed = offer.business_is_open === false;
+
   return (
-    <div className="offer-card" onClick={() => navigate(`/offer/${offer.id}`)} role="button" tabIndex={0}>
+    <div className="offer-card" onClick={() => navigate(`/offer/${offer.id}`)} role="button" tabIndex={0}
+      style={isClosed ? { opacity: 0.65, filter: 'saturate(0.5)' } : undefined}>
       <div className="offer-card-img">
         {offer.image_url
           ? <img src={offer.image_url} alt={offer.title} loading="lazy" />
@@ -193,15 +196,23 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
           </span>
         )}
 
-        {/* Bottom-right: expiry pill */}
-        {countdown && !countdown.expired && (
+        {/* Bottom-right: countdown/closed pill */}
+        {isClosed ? (
+          <span className="offer-pill offer-pill-right offer-pill-closed">
+            {offer.business_next_open ? `Opens ${offer.business_next_open}` : 'Closed'}
+          </span>
+        ) : offer.countdown_label && offer.show_countdown !== false ? (
+          <span className={`offer-pill offer-pill-right offer-pill-${offer.countdown_urgency || 'green'}`}>
+            {offer.countdown_label}
+          </span>
+        ) : countdown && !countdown.expired ? (
           <span className={`offer-pill offer-pill-right${countdown.urgent ? ' offer-pill-urgent' : ''}`}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
             {countdown.label}
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="offer-card-body">
@@ -218,18 +229,24 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
             </span>
           )}
 
-          {countdown && !countdown.expired && (
+          {isClosed ? (
+            <span className="offer-card-meta-item" style={{ color: 'var(--c-text-dim)' }}>
+              {offer.business_next_open ? `Opens ${offer.business_next_open}` : 'Closed'}
+            </span>
+          ) : offer.countdown_label && offer.show_countdown !== false ? (
+            <span className={`offer-card-meta-item ${offer.countdown_urgency === 'red' || offer.countdown_urgency === 'pulse' ? 'offer-card-expiry-urgent' : ''}`}>
+              {offer.countdown_label}
+            </span>
+          ) : countdown && !countdown.expired ? (
             <span className={`offer-card-meta-item ${countdown.urgent ? 'offer-card-expiry-urgent' : ''}`}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
               {countdown.label}
             </span>
-          )}
-
-          {countdown?.expired && (
+          ) : countdown?.expired ? (
             <span className="offer-card-meta-item text-dim">Expired</span>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

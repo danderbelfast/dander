@@ -55,6 +55,19 @@ export const getProfitReports = (from, to) =>
 export const exportProfitCSV = (from, to) =>
   client.get('/api/business/reports/profit/csv', { params: { from, to }, responseType: 'blob' });
 
+// ── Opening Hours ───────────────────────────────────────────
+export const getBusinessHours = () =>
+  client.get('/api/business/hours').then((r) => r.data);
+
+export const saveBusinessHours = (hours) =>
+  client.put('/api/business/hours', { hours }).then((r) => r.data);
+
+export const addSpecialHours = (data) =>
+  client.post('/api/business/hours/special', data).then((r) => r.data);
+
+export const deleteSpecialHours = (id) =>
+  client.delete(`/api/business/hours/special/${id}`).then((r) => r.data);
+
 // ── Staff ───────────────────────────────────────────────────
 export const getStaff = () =>
   client.get('/api/business/staff').then((r) => r.data);

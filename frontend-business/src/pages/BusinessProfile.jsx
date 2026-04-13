@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProfile, updateProfile, getStaff, addStaff, removeStaff } from '../api/business';
+import { getProfile, updateProfile, getStaff, addStaff, removeStaff, getBusinessHours, saveBusinessHours as saveHoursApi, addSpecialHours as addSpecialApi, deleteSpecialHours as deleteSpecialApi } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
@@ -45,9 +45,31 @@ export default function BusinessProfile() {
   const [staffLoading, setStaffLoading]   = useState(false);
   const [staffError, setStaffError]       = useState('');
 
+  // Opening hours
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const defaultHours = DAYS.map((_, i) => ({ day_of_week: i, opens_at: '09:00', closes_at: '17:00', is_closed: i === 0 }));
+  const [hours, setHours]               = useState(defaultHours);
+  const [specialList, setSpecialList]   = useState([]);
+  const [hoursStatus, setHoursStatus]   = useState(null);
+  const [hoursSaving, setHoursSaving]   = useState(false);
+  const [specialDate, setSpecialDate]   = useState('');
+  const [specialLabel, setSpecialLabel] = useState('');
+  const [specialClosed, setSpecialClosed] = useState(true);
+  const [specialOpens, setSpecialOpens] = useState('09:00');
+  const [specialCloses, setSpecialCloses] = useState('17:00');
+
   useEffect(() => {
-    Promise.all([getProfile(), getStaff()])
-      .then(([{ business: biz }, { staff }]) => {
+    Promise.all([getProfile(), getStaff(), getBusinessHours()])
+      .then(([{ business: biz }, { staff }, hoursData]) => {
+        // Hours
+        if (hoursData.hours && hoursData.hours.length > 0) {
+          setHours(DAYS.map((_, i) => {
+            const saved = hoursData.hours.find(h => h.day_of_week === i);
+            return saved || { day_of_week: i, opens_at: '09:00', closes_at: '17:00', is_closed: false };
+          }));
+        }
+        setSpecialList(hoursData.special || []);
+        setHoursStatus(hoursData.status || null);
         setName(biz.name || '');
         setCategory(biz.category || '');
         setAddress(biz.address || '');
@@ -118,6 +140,59 @@ export default function BusinessProfile() {
     } catch {
       toast({ message: 'Failed to remove staff member.', type: 'error' });
     }
+  }
+
+  function updateHour(dayIdx, field, val) {
+    setHours(prev => prev.map(h => h.day_of_week === dayIdx ? { ...h, [field]: val } : h));
+  }
+
+  function copyMonToWeekdays() {
+    const mon = hours.find(h => h.day_of_week === 1);
+    if (!mon) return;
+    setHours(prev => prev.map(h => (h.day_of_week >= 1 && h.day_of_week <= 5) ? { ...h, opens_at: mon.opens_at, closes_at: mon.closes_at, is_closed: mon.is_closed } : h));
+  }
+
+  function copyToWeekend() {
+    const mon = hours.find(h => h.day_of_week === 1);
+    if (!mon) return;
+    setHours(prev => prev.map(h => (h.day_of_week === 0 || h.day_of_week === 6) ? { ...h, opens_at: mon.opens_at, closes_at: mon.closes_at, is_closed: mon.is_closed } : h));
+  }
+
+  async function handleSaveHours() {
+    setHoursSaving(true);
+    try {
+      await saveHoursApi(hours);
+      const updated = await getBusinessHours();
+      setHoursStatus(updated.status || null);
+      toast({ type: 'success', title: 'Opening hours saved' });
+    } catch {
+      toast({ type: 'error', title: 'Failed to save hours' });
+    } finally { setHoursSaving(false); }
+  }
+
+  async function handleAddSpecial(e) {
+    e.preventDefault();
+    try {
+      const result = await addSpecialApi({
+        date: specialDate,
+        is_closed: specialClosed,
+        opens_at: specialClosed ? null : specialOpens,
+        closes_at: specialClosed ? null : specialCloses,
+        label: specialLabel,
+      });
+      setSpecialList(prev => [...prev, result.special]);
+      setSpecialDate(''); setSpecialLabel('');
+      toast({ type: 'success', title: 'Special date added' });
+    } catch {
+      toast({ type: 'error', title: 'Failed to add special date' });
+    }
+  }
+
+  async function handleDeleteSpecial(id) {
+    try {
+      await deleteSpecialApi(id);
+      setSpecialList(prev => prev.filter(s => s.id !== id));
+    } catch { toast({ type: 'error', title: 'Failed to delete' }); }
   }
 
   if (fetching) return <LoadingBlock label="Loading profile…" />;
@@ -291,6 +366,93 @@ export default function BusinessProfile() {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      {/* Opening Hours */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Opening hours</span></div>
+        <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Status preview */}
+          {hoursStatus && (
+            <div style={{ padding: '10px 14px', background: hoursStatus.isOpen ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', borderRadius: 'var(--r-md)', fontSize: '0.85rem' }}>
+              Your business currently shows as: <strong style={{ color: hoursStatus.isOpen ? '#16a34a' : '#dc2626' }}>{hoursStatus.isOpen ? 'OPEN' : 'CLOSED'}</strong>
+              {!hoursStatus.isOpen && hoursStatus.nextOpenTime && <span style={{ color: 'var(--c-text-muted)' }}> — opens {hoursStatus.nextOpenTime}</span>}
+            </div>
+          )}
+
+          {/* 7-day grid */}
+          {[1,2,3,4,5,6,0].map(dayIdx => {
+            const h = hours.find(r => r.day_of_week === dayIdx) || { day_of_week: dayIdx, opens_at: '09:00', closes_at: '17:00', is_closed: false };
+            return (
+              <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ width: 90, fontWeight: 500, fontSize: '0.88rem', flexShrink: 0 }}>{DAYS[dayIdx]}</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer', flexShrink: 0 }}>
+                  <input type="checkbox" checked={h.is_closed} onChange={e => updateHour(dayIdx, 'is_closed', e.target.checked)} /> Closed
+                </label>
+                {!h.is_closed && (
+                  <>
+                    <input type="time" className="input" style={{ width: 120, padding: '6px 8px', fontSize: '0.82rem' }}
+                      value={h.opens_at || '09:00'} onChange={e => updateHour(dayIdx, 'opens_at', e.target.value)} />
+                    <span style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)' }}>to</span>
+                    <input type="time" className="input" style={{ width: 120, padding: '6px 8px', fontSize: '0.82rem' }}
+                      value={h.closes_at || '17:00'} onChange={e => updateHour(dayIdx, 'closes_at', e.target.value)} />
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={copyMonToWeekdays}>Copy Monday to all weekdays</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={copyToWeekend}>Copy to weekend</button>
+          </div>
+
+          {/* Special hours */}
+          <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 14 }}>
+            <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 10 }}>Special hours</div>
+            {specialList.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                {specialList.map(s => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', padding: '6px 10px', background: 'var(--c-bg-muted)', borderRadius: 'var(--r-sm)' }}>
+                    <span style={{ fontWeight: 500 }}>{s.date}</span>
+                    {s.label && <span style={{ color: 'var(--c-text-muted)' }}>({s.label})</span>}
+                    <span>{s.is_closed ? 'Closed' : `${s.opens_at} – ${s.closes_at}`}</span>
+                    <button className="btn btn-ghost" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--c-danger, #dc2626)', padding: '2px 8px' }}
+                      onClick={() => handleDeleteSpecial(s.id)}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <form onSubmit={handleAddSpecial} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label className="label" style={{ fontSize: '0.75rem' }}>Date</label>
+                <input type="date" className="input" style={{ padding: '6px 8px', fontSize: '0.82rem' }}
+                  value={specialDate} onChange={e => setSpecialDate(e.target.value)} required />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label className="label" style={{ fontSize: '0.75rem' }}>Label</label>
+                <input className="input" style={{ padding: '6px 8px', fontSize: '0.82rem', width: 140 }}
+                  value={specialLabel} onChange={e => setSpecialLabel(e.target.value)} placeholder="Bank Holiday" />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer', paddingBottom: 4 }}>
+                <input type="checkbox" checked={specialClosed} onChange={e => setSpecialClosed(e.target.checked)} /> Closed
+              </label>
+              {!specialClosed && (
+                <>
+                  <input type="time" className="input" style={{ width: 110, padding: '6px 8px', fontSize: '0.82rem' }}
+                    value={specialOpens} onChange={e => setSpecialOpens(e.target.value)} />
+                  <input type="time" className="input" style={{ width: 110, padding: '6px 8px', fontSize: '0.82rem' }}
+                    value={specialCloses} onChange={e => setSpecialCloses(e.target.value)} />
+                </>
+              )}
+              <button className="btn btn-secondary btn-sm" type="submit" disabled={!specialDate}>Add</button>
+            </form>
+          </div>
+
+          <button className="btn btn-primary" onClick={handleSaveHours} disabled={hoursSaving} style={{ alignSelf: 'flex-start' }}>
+            {hoursSaving ? <Spinner white /> : 'Save opening hours'}
+          </button>
         </div>
       </div>
     </div>

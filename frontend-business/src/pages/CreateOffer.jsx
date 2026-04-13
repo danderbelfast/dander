@@ -69,6 +69,10 @@ export default function CreateOffer() {
   // Category icon colour
   const [iconColor, setIconColor]     = useState('#000000');
 
+  // Hours/visibility toggles
+  const [showWhenClosed, setShowWhenClosed] = useState(false);
+  const [showCountdown, setShowCountdown]   = useState(true);
+
   // Pricing & cost (profit tracking)
   const [costPrice, setCostPrice]         = useState('');
   const [sellingPrice, setSellingPrice]   = useState('');
@@ -114,6 +118,8 @@ export default function CreateOffer() {
       if (redemptionCap) formData.append('max_redemptions', redemptionCap);
       formData.append('radius_meters', radiusMeters);
       formData.append('icon_color', iconColor);
+      formData.append('show_when_closed', showWhenClosed);
+      formData.append('show_countdown', showCountdown);
       if (costPrice)    formData.append('cost_price', costPrice);
       if (sellingPrice) formData.append('selling_price', sellingPrice);
       if (discountedPrice) formData.append('offer_price', discountedPrice);
@@ -280,6 +286,23 @@ export default function CreateOffer() {
                 <input className="input" type="number" min="1" max="99" value={perUserLimit}
                   onChange={(e) => setPerUserLimit(e.target.value)} placeholder="1" />
               </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: '0.88rem' }}>
+                <input type="checkbox" checked={showWhenClosed} onChange={e => setShowWhenClosed(e.target.checked)} />
+                <div>
+                  <div style={{ fontWeight: 500 }}>Show offer outside opening hours</div>
+                  <div className="field-hint" style={{ marginTop: 2 }}>When off, offer is hidden when your business is closed</div>
+                </div>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: '0.88rem' }}>
+                <input type="checkbox" checked={showCountdown} onChange={e => setShowCountdown(e.target.checked)} />
+                <div>
+                  <div style={{ fontWeight: 500 }}>Show countdown timer</div>
+                  <div className="field-hint" style={{ marginTop: 2 }}>Shows customers how long until the deal expires or you close</div>
+                </div>
+              </label>
             </div>
           </div>
         </div>

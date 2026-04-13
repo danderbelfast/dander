@@ -6,6 +6,7 @@ const { body, param, validationResult } = require('express-validator');
 const pool           = require('../db/pool');
 const offerService   = require('../services/offerService');
 const profitService  = require('../services/profitService');
+const hoursService   = require('../services/hoursService');
 const { requireBusiness } = require('../middleware/auth');
 const { upload, processImage } = require('../middleware/upload');
 
@@ -586,5 +587,61 @@ router.get('/reports/profit/csv', async (req, res) => {
     return fail(res, 500, 'SERVER_ERROR', 'CSV export failed.');
   }
 });
+
+// ---------------------------------------------------------------------------
+// Opening Hours endpoints
+// ---------------------------------------------------------------------------
+
+router.get('/hours', async (req, res) => {
+  try {
+    const [hours, special, status] = await Promise.all([
+      hoursService.getBusinessHours(req.business.id),
+      hoursService.getSpecialHours(req.business.id),
+      hoursService.isBusinessOpen(req.business.id),
+    ]);
+    return ok(res, { hours, special, status });
+  } catch (err) {
+    console.error('[business/hours GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch hours.');
+  }
+});
+
+router.put('/hours', async (req, res) => {
+  try {
+    const { hours } = req.body;
+    if (!Array.isArray(hours)) return fail(res, 400, 'VALIDATION_ERROR', 'hours must be an array.');
+    await hoursService.saveBusinessHours(req.business.id, hours);
+    return ok(res, { message: 'Hours saved.' });
+  } catch (err) {
+    console.error('[business/hours PUT]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to save hours.');
+  }
+});
+
+router.post('/hours/special', async (req, res) => {
+  try {
+    const row = await hoursService.addSpecialHours(req.business.id, req.body);
+    return ok(res, { special: row }, 201);
+  } catch (err) {
+    console.error('[business/hours/special POST]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to add special hours.');
+  }
+});
+
+router.delete(
+  '/hours/special/:id',
+  [param('id').isInt({ min: 1 })],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const deleted = await hoursService.deleteSpecialHours(req.business.id, req.params.id);
+      if (!deleted) return fail(res, 404, 'NOT_FOUND', 'Special hours not found.');
+      return ok(res, { message: 'Deleted.' });
+    } catch (err) {
+      console.error('[business/hours/special DELETE]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to delete special hours.');
+    }
+  }
+);
 
 module.exports = router;

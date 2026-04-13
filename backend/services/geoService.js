@@ -128,12 +128,16 @@ async function getOffersNearLocation(lat, lng, radiusMeters, filters = {}) {
       o.expires_at,
       o.is_active,
       o.icon_color,
+      o.show_when_closed,
+      o.show_countdown,
       o.created_at,
       o.updated_at,
       b.name        AS business_name,
       b.logo_url    AS business_logo_url,
       b.address     AS business_address,
       b.city        AS business_city,
+      b.lat         AS business_lat,
+      b.lng         AS business_lng,
       ROUND(${distanceExpr}::numeric, 1) AS distance_meters
     FROM  offers     o
     JOIN  businesses b ON b.id = o.business_id
@@ -143,6 +147,28 @@ async function getOffersNearLocation(lat, lng, radiusMeters, filters = {}) {
   `;
 
   const { rows } = await pool.query(sql, params);
+
+  // Enrich each offer with business hours status + countdown
+  const hoursService = require('./hoursService');
+  const businessCache = {};
+
+  for (const offer of rows) {
+    const bizId = offer.business_id;
+    if (!businessCache[bizId]) {
+      businessCache[bizId] = await hoursService.isBusinessOpen(bizId);
+    }
+    const status = businessCache[bizId];
+    offer.business_is_open      = status.isOpen;
+    offer.business_closes_at    = status.closesAt;
+    offer.minutes_until_close   = status.minutesUntilClose;
+    offer.business_next_open    = status.nextOpenTime;
+    offer.hours_configured      = status.hoursConfigured;
+
+    const countdown = hoursService.buildCountdownLabel(offer, status);
+    offer.countdown_label   = countdown?.text || null;
+    offer.countdown_urgency = countdown?.urgency || null;
+  }
+
   return rows;
 }
 
