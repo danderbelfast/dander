@@ -345,6 +345,7 @@ CREATE TRIGGER trg_user_notif_prefs_updated_at
 
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS cost_price    NUMERIC(10, 2);
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS selling_price NUMERIC(10, 2);
+ALTER TABLE users  ADD COLUMN IF NOT EXISTS fcm_token     TEXT;
 
 CREATE OR REPLACE VIEW offer_profit_summary AS
 SELECT

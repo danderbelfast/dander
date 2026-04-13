@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getVapidPublicKey, subscribePush, unsubscribePush } from '../api/push';
+import { getVapidPublicKey, subscribePush, unsubscribePush, saveFcmToken } from '../api/push';
+import { getFcmToken } from '../firebase';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -22,7 +23,6 @@ export function usePushNotifications() {
     navigator.serviceWorker.register('/sw.js')
       .then((reg) => {
         setRegistration(reg);
-        // Check if already subscribed
         return reg.pushManager.getSubscription();
       })
       .then((sub) => { if (sub) setIsSubscribed(true); })
@@ -40,9 +40,7 @@ export function usePushNotifications() {
 
       const vapidKey = await getVapidPublicKey();
 
-      // If there's a stale subscription (e.g. from before VAPID was configured,
-      // or signed with a different key), tear it down before creating a new one.
-      // Otherwise pushManager.subscribe() throws InvalidStateError.
+      // Tear down any stale subscription before creating a new one
       const existing = await registration.pushManager.getSubscription();
       if (existing) {
         try { await existing.unsubscribe(); } catch { /* ignore */ }
@@ -60,6 +58,16 @@ export function usePushNotifications() {
           auth:   btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')))),
         },
       });
+
+      // Also register FCM token for background delivery when browser is closed
+      try {
+        const fcmToken = await getFcmToken();
+        if (fcmToken) {
+          await saveFcmToken(fcmToken);
+        }
+      } catch (err) {
+        console.warn('[push] FCM token registration failed (non-critical):', err.message);
+      }
 
       setIsSubscribed(true);
       return true;

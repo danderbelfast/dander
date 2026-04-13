@@ -1,6 +1,7 @@
 'use strict';
 
 const pool = require('../db/pool');
+const fcmService = require('./fcmService');
 
 // ---------------------------------------------------------------------------
 // Web Push (VAPID)
@@ -122,6 +123,14 @@ async function sendPushToUser(userId, payload) {
       failed++;
     }
   }
+
+  // Also try FCM
+  const fcmResult = await fcmService.sendFcmToUser(userId, {
+    title: payload.title || 'Dander',
+    body:  payload.body || '',
+    data:  payload.data || {},
+  });
+  sent += fcmResult.sent || 0;
 
   return { sent, failed };
 }

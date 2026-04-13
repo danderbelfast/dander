@@ -9,5 +9,8 @@ export const subscribePush = (subscription) =>
 export const unsubscribePush = (endpoint) =>
   client.delete('/api/push/subscribe', { data: { endpoint } }).then((r) => r.data);
 
+export const saveFcmToken = (token) =>
+  client.post('/api/push/fcm-token', { token }).then((r) => r.data);
+
 export const updateLocation = (lat, lng) =>
   client.post('/api/users/location', { lat, lng }).then((r) => r.data);

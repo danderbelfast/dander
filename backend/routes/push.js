@@ -72,12 +72,8 @@ router.post('/fcm-token', requireAuth, async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ success: false, message: 'token is required.' });
   try {
-    await savePushSubscription(req.user.id, {
-      endpoint: `fcm:${token}`,
-      p256dh: 'fcm',
-      auth: 'fcm',
-      userAgent: req.headers['user-agent'],
-    });
+    const fcmService = require('../services/fcmService');
+    await fcmService.saveFcmToken(req.user.id, token);
     return res.status(201).json({ success: true });
   } catch (err) {
     console.error('[push/fcm-token]', err);
