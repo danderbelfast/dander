@@ -18,8 +18,16 @@ function getAdmin() {
   if (_initFailed) return null;
   try {
     const admin = require('firebase-admin');
-    const serviceAccountPath = path.resolve(__dirname, '..', 'firebase-service-account.json');
-    const serviceAccount = require(serviceAccountPath);
+    let serviceAccount;
+
+    // Prefer env var (Railway), fall back to local file (dev)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } else {
+      const serviceAccountPath = path.resolve(__dirname, '..', 'firebase-service-account.json');
+      serviceAccount = require(serviceAccountPath);
+    }
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
