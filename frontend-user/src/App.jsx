@@ -5,8 +5,10 @@ import { useAuth } from './context/AuthContext';
 import { AppShell }   from './components/layout/AppShell';
 import { ToastContainer } from './components/ui/Toast';
 import { UpdateBanner } from './components/ui/UpdateBanner';
+import { InstallBanner } from './components/ui/InstallBanner';
 import { useSwUpdate } from './hooks/useSwUpdate';
 import { useFcmForeground } from './hooks/useFcmForeground';
+import { usePwa } from './context/PwaInstallContext';
 
 import SplashScreen       from './pages/SplashScreen';
 import UserExplainer      from './pages/UserExplainer';
@@ -31,11 +33,13 @@ function PublicRoute({ children }) {
 
 export default function App() {
   const { hasUpdate, applyUpdate, dismiss } = useSwUpdate();
+  const { showBanner, isIosDevice, promptInstall, dismissBanner } = usePwa();
   useFcmForeground();
 
   return (
     <>
       {hasUpdate && <UpdateBanner onRefresh={applyUpdate} onDismiss={dismiss} />}
+      {showBanner && <InstallBanner isIos={isIosDevice} onInstall={promptInstall} onDismiss={dismissBanner} />}
       <ToastContainer />
       <Routes>
         {/* Public */}

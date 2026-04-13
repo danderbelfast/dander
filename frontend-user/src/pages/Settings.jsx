@@ -2,12 +2,15 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePwa } from '../context/PwaInstallContext';
 import client from '../api/client';
 
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const { toast }        = useToast();
   const navigate         = useNavigate();
+  const { installed, isIosDevice, canPrompt, promptInstall } = usePwa();
+  const [showIosModal, setShowIosModal] = useState(false);
 
   // Password change state
   const [changingPwd, setChangingPwd] = useState(false);
@@ -148,6 +151,28 @@ export default function Settings() {
       <div className="settings-section">
         <div className="settings-section-title">App</div>
         <div>
+          <div
+            className="settings-row"
+            style={{ cursor: installed ? 'default' : 'pointer' }}
+            onClick={() => {
+              if (installed) return;
+              if (isIosDevice) { setShowIosModal(true); return; }
+              if (canPrompt) promptInstall();
+            }}
+          >
+            <div className="settings-row-left">
+              <div className="settings-row-icon">{installed ? '✅' : '📲'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span className="settings-row-label">{installed ? 'App installed' : 'Install app'}</span>
+                <span className="settings-row-value">
+                  {installed ? "You're using the installed app" : 'Add Dander to your home screen'}
+                </span>
+              </div>
+            </div>
+            {!installed && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            )}
+          </div>
           <div className="settings-row" style={{ cursor: 'default' }}>
             <div className="settings-row-left">
               <div className="settings-row-icon">ℹ️</div>
@@ -173,6 +198,37 @@ export default function Settings() {
       </div>
 
       <div style={{ height: 16 }} />
+
+      {/* iOS install instructions modal */}
+      {showIosModal && (
+        <div style={{
+          position: 'fixed', inset: 0, z: 9999, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          zIndex: 9999,
+        }} onClick={() => setShowIosModal(false)}>
+          <div style={{
+            background: 'var(--c-surface)', borderRadius: '20px 20px 0 0',
+            padding: '28px 24px calc(24px + var(--safe-bot))', width: '100%', maxWidth: 'var(--max-w)',
+            textAlign: 'center',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '2rem', marginBottom: 12 }}>📲</div>
+            <div style={{ fontFamily: 'var(--f-head)', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>
+              Install Dander
+            </div>
+            <div style={{ fontSize: '0.88rem', color: 'var(--c-text-muted)', lineHeight: 1.6, marginBottom: 20 }}>
+              Tap the <strong>share button</strong> <span style={{ fontSize: '1.1em' }}>⎋</span> at the bottom of Safari, then tap <strong>"Add to Home Screen"</strong>
+            </div>
+            <div style={{ color: 'var(--c-primary)', animation: 'ios-bounce 1.2s ease-in-out infinite' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+              </svg>
+            </div>
+            <button className="btn btn-ghost btn-block" style={{ marginTop: 16 }} onClick={() => setShowIosModal(false)}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCountdown } from '../hooks/useCountdown';
 import { ExpandableSection } from '../components/ui/ExpandableSection';
 import { Spinner } from '../components/ui/Spinner';
+import { usePwa } from '../context/PwaInstallContext';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,6 +54,7 @@ export default function OfferDetail() {
   const { location } = useLocation();
   const { toast }    = useToast();
   const { isAuth }   = useAuth();
+  const { trackOfferView, trackCouponClaim } = usePwa();
 
   const [offer, setOffer]             = useState(null);
   const [loading, setLoading]         = useState(true);
@@ -75,6 +77,7 @@ export default function OfferDetail() {
           setSaved(data.offer.is_saved ?? false);
         }
         recordView(id).catch(() => {});
+        trackOfferView();
       } catch {
         if (!cancelled) setError('Offer not found.');
       } finally {
@@ -92,6 +95,7 @@ export default function OfferDetail() {
         lat: location?.lat,
         lng: location?.lng,
       });
+      trackCouponClaim();
       navigate('/coupons/claimed', {
         state: {
           coupon:      data.coupon,
