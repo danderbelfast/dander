@@ -4,11 +4,24 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
   BarChart, Bar,
 } from 'recharts';
-import { getReports, exportCSV } from '../api/admin';
+import { getReports, exportCSV, getProfitReports, exportProfitCSV } from '../api/admin';
 import { LoadingBlock, Spinner } from '../components/ui/Spinner';
 import { useToast } from '../context/ToastContext';
+import { DateRangePicker } from '../components/ui/DateRangePicker';
 
 const PALETTE = ['#E85D26', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+
+function fmt(n) { return `£${Number(n || 0).toFixed(2)}`; }
+
+function StatCard({ label, value, sub, accent }) {
+  return (
+    <div className={`stat-card${accent ? ' stat-accent' : ''}`}>
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value ?? '—'}</div>
+      {sub && <div className="stat-sub">{sub}</div>}
+    </div>
+  );
+}
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -44,6 +57,13 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState('');
 
+  // Profit report state
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const monthStart = (() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); })();
+  const [profitFrom, setProfitFrom] = useState(monthStart);
+  const [profitTo, setProfitTo]     = useState(todayStr);
+  const [profitData, setProfitData] = useState(null);
+
   useEffect(() => {
     getReports()
       .then(setData)
@@ -51,10 +71,22 @@ export default function Reports() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    getProfitReports(profitFrom, profitTo)
+      .then(setProfitData)
+      .catch(() => {});
+  }, [profitFrom, profitTo]);
+
   async function handleExport(type, filename) {
     setExporting(type);
     try {
-      const blob = await exportCSV(type);
+      let blob;
+      if (type === 'profit') {
+        const resp = await exportProfitCSV(profitFrom, profitTo);
+        blob = new Blob([resp.data], { type: 'text/csv' });
+      } else {
+        blob = await exportCSV(type);
+      }
       downloadBlob(blob, filename);
       addToast(`${filename} downloaded.`, 'success');
     } catch {
@@ -94,6 +126,7 @@ export default function Reports() {
             { type: 'users',        label: 'Export users',        file: 'dander-users.csv' },
             { type: 'businesses',   label: 'Export businesses',   file: 'dander-businesses.csv' },
             { type: 'redemptions',  label: 'Export redemptions',  file: 'dander-redemptions.csv' },
+          { type: 'profit', label: 'Export profit', file: 'dander-platform-profit.csv' },
           ].map(({ type, label, file }) => (
             <button
               key={type}
@@ -212,6 +245,77 @@ export default function Reports() {
                 </BarChart>
               </ResponsiveContainer>
             )}
+        </div>
+      </div>
+
+      {/* Platform Profit Report */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Platform Profit</span></div>
+        <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <DateRangePicker from={profitFrom} to={profitTo} onChange={(f, t) => { setProfitFrom(f); setProfitTo(t); }} />
+          {profitData ? (
+            <>
+              <div className="stats-grid">
+                <StatCard label="Businesses with active offers" value={profitData.businesses?.filter(b => b.offer_count > 0).length ?? 0} />
+                <StatCard label="Total redemptions" value={profitData.summary?.total_redemptions?.toLocaleString() ?? 0} />
+                <StatCard label="Revenue generated" value={fmt(profitData.summary?.total_revenue)} />
+                <StatCard label="Profit generated" value={fmt(profitData.summary?.total_profit)} accent />
+              </div>
+
+              {profitData.chart?.length > 0 && (
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={profitData.chart} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--c-border)" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--c-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => v.slice(5)} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--c-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `£${v}`} />
+                    <Tooltip content={<ChartTip />} />
+                    <Line type="monotone" dataKey="profit" name="Profit" stroke="var(--c-accent)" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+
+              {profitData.businesses?.length > 0 && (
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr><th>Business</th><th>Category</th><th style={{ textAlign: 'right' }}>Redeemed</th><th style={{ textAlign: 'right' }}>Revenue</th><th style={{ textAlign: 'right' }}>Profit</th><th style={{ textAlign: 'right' }}>Offers</th><th>Joined</th></tr>
+                    </thead>
+                    <tbody>
+                      {profitData.businesses.map(b => (
+                        <tr key={b.id}>
+                          <td style={{ fontWeight: 500 }}>{b.name}</td>
+                          <td style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>{b.category || '—'}</td>
+                          <td className="table-mono" style={{ textAlign: 'right' }}>{b.redemptions}</td>
+                          <td className="table-mono" style={{ textAlign: 'right' }}>{fmt(b.revenue)}</td>
+                          <td className="table-mono" style={{ textAlign: 'right', color: 'var(--c-accent)', fontWeight: 600 }}>{fmt(b.profit)}</td>
+                          <td className="table-mono" style={{ textAlign: 'right' }}>{b.offer_count}</td>
+                          <td style={{ fontSize: '0.76rem', color: 'var(--c-text-muted)' }}>{b.created_at ? new Date(b.created_at).toISOString().slice(0, 10) : '—'}</td>
+                        </tr>
+                      ))}
+                      {(() => {
+                        const tots = profitData.businesses.reduce((a, b) => ({
+                          redemptions: a.redemptions + b.redemptions,
+                          revenue: a.revenue + b.revenue,
+                          profit: a.profit + b.profit,
+                          offers: a.offers + b.offer_count,
+                        }), { redemptions: 0, revenue: 0, profit: 0, offers: 0 });
+                        return (
+                          <tr style={{ background: 'rgba(255,255,255,0.04)', fontWeight: 700 }}>
+                            <td>Total</td><td /><td style={{ textAlign: 'right' }}>{tots.redemptions}</td>
+                            <td style={{ textAlign: 'right' }}>{fmt(tots.revenue)}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--c-accent)' }}>{fmt(tots.profit)}</td>
+                            <td style={{ textAlign: 'right' }}>{tots.offers}</td><td />
+                          </tr>
+                        );
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="empty-state">No profit data yet.</div>
+          )}
         </div>
       </div>
 

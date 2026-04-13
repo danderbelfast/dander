@@ -4,7 +4,7 @@ import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { getOfferStats } from '../api/business';
+import { getOfferStats, getOfferProfit } from '../api/business';
 import { Spinner } from '../components/ui/Spinner';
 
 function StatCard({ label, value, sub }) {
@@ -34,12 +34,16 @@ export default function CampaignStats() {
   const navigate = useNavigate();
 
   const [data, setData]       = useState(null);
+  const [profit, setProfit]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
   useEffect(() => {
-    getOfferStats(id)
-      .then(setData)
+    Promise.all([
+      getOfferStats(id),
+      getOfferProfit(id).catch(() => null),
+    ])
+      .then(([statsData, profitData]) => { setData(statsData); setProfit(profitData?.profit || null); })
       .catch(() => setError('Failed to load stats.'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -215,6 +219,44 @@ export default function CampaignStats() {
               </button>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Profit breakdown */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Profit breakdown</span></div>
+        <div className="card-body">
+          {profit && profit.has_pricing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="stats-grid">
+                <StatCard label="Revenue generated" value={`£${profit.revenue_generated.toFixed(2)}`} />
+                <StatCard label="Cost of offers" value={`£${profit.cost_of_offers.toFixed(2)}`} />
+                <StatCard label="Gross profit" value={`£${profit.gross_profit.toFixed(2)}`} />
+                <StatCard label="Per redemption" value={`£${profit.profit_per_redemption.toFixed(2)}`} />
+              </div>
+              <div style={{ display: 'flex', height: 24, borderRadius: 6, overflow: 'hidden', background: 'var(--c-bg-muted)' }}>
+                {profit.revenue_generated > 0 && (
+                  <>
+                    <div style={{ width: `${(profit.cost_of_offers / profit.revenue_generated) * 100}%`, background: 'var(--c-border)', transition: 'width 0.3s' }} title="Cost" />
+                    <div style={{ flex: 1, background: 'var(--c-primary)', transition: 'width 0.3s' }} title="Profit" />
+                  </>
+                )}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>
+                <span>Cost: £{profit.cost_of_offers.toFixed(2)}</span>
+                <span style={{ color: 'var(--c-primary)', fontWeight: 600 }}>Profit: £{profit.gross_profit.toFixed(2)}</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginBottom: 12 }}>
+                Add your cost and pricing data to see profit reports for this offer
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={() => navigate(`/offers/${id}/edit`)}>
+                Edit offer pricing
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

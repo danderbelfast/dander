@@ -168,6 +168,8 @@ CREATE TABLE IF NOT EXISTS offers (
   original_price       NUMERIC(10, 2),
   offer_price          NUMERIC(10, 2),
   discount_percent     NUMERIC(5, 2),
+  cost_price           NUMERIC(10, 2),     -- business cost to provide the item
+  selling_price        NUMERIC(10, 2),     -- normal full price of the item
 
   -- Geographic targeting
   lat                  DOUBLE PRECISION,
@@ -336,6 +338,34 @@ CREATE INDEX IF NOT EXISTS idx_user_notif_prefs_user_id ON user_notification_pre
 CREATE TRIGGER trg_user_notif_prefs_updated_at
   BEFORE UPDATE ON user_notification_preferences
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- PROFIT TRACKING — idempotent column additions + computed view
+-- =============================================================================
+
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS cost_price    NUMERIC(10, 2);
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS selling_price NUMERIC(10, 2);
+
+CREATE OR REPLACE VIEW offer_profit_summary AS
+SELECT
+  o.id                  AS offer_id,
+  o.business_id,
+  o.title,
+  o.cost_price,
+  o.selling_price,
+  o.offer_price,
+  o.original_price,
+  o.current_redemptions AS total_redemptions,
+  -- Revenue = offer_price × redemptions
+  COALESCE(o.offer_price, 0) * o.current_redemptions                        AS revenue_generated,
+  -- Cost    = cost_price  × redemptions
+  COALESCE(o.cost_price, 0)  * o.current_redemptions                        AS cost_of_offer,
+  -- Gross profit = revenue − cost
+  (COALESCE(o.offer_price, 0) - COALESCE(o.cost_price, 0)) * o.current_redemptions AS gross_profit,
+  -- Additional profit vs not running the deal
+  (COALESCE(o.offer_price, 0) - COALESCE(o.cost_price, 0)) * o.current_redemptions AS profit_vs_no_offer
+FROM offers o
+WHERE o.cost_price IS NOT NULL AND o.offer_price IS NOT NULL;
 
 -- =============================================================================
 -- PLATFORM SETTINGS

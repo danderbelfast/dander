@@ -3,8 +3,9 @@
 const { Router } = require('express');
 const { body, param, validationResult } = require('express-validator');
 
-const pool         = require('../db/pool');
-const offerService = require('../services/offerService');
+const pool           = require('../db/pool');
+const offerService   = require('../services/offerService');
+const profitService  = require('../services/profitService');
 const { requireBusiness } = require('../middleware/auth');
 const { upload, processImage } = require('../middleware/upload');
 
@@ -254,6 +255,8 @@ router.post(
     body('original_price').optional().isFloat({ min: 0 }),
     body('offer_price').optional().isFloat({ min: 0 }),
     body('discount_percent').optional().isFloat({ min: 0, max: 100 }),
+    body('cost_price').optional().isFloat({ min: 0 }),
+    body('selling_price').optional().isFloat({ min: 0 }),
     body('radius_meters').optional().isInt({ min: 100 }),
     body('max_redemptions').optional().isInt({ min: 1 }),
     body('expires_at').optional().isISO8601().withMessage('expires_at must be a valid date.'),
@@ -269,7 +272,7 @@ router.post(
       const offerData = { ...req.body };
 
       // Coerce numeric strings sent via multipart form
-      for (const f of ['original_price', 'offer_price', 'discount_percent', 'lat', 'lng']) {
+      for (const f of ['original_price', 'offer_price', 'discount_percent', 'cost_price', 'selling_price', 'lat', 'lng']) {
         if (offerData[f] != null) offerData[f] = parseFloat(offerData[f]);
       }
       for (const f of ['radius_meters', 'max_redemptions']) {
@@ -332,14 +335,15 @@ router.post(
       const { rows } = await pool.query(
         `INSERT INTO offers (
            business_id, title, description, terms, category, image_url, offer_type,
-           original_price, offer_price, discount_percent,
+           original_price, offer_price, discount_percent, cost_price, selling_price,
            lat, lng, radius_meters, max_redemptions, starts_at, expires_at, is_active
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,false)
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,false)
          RETURNING *`,
         [
           o.business_id, `${o.title} (copy)`, o.description, o.terms,
           o.category, o.image_url, o.offer_type,
           o.original_price, o.offer_price, o.discount_percent,
+          o.cost_price, o.selling_price,
           o.lat, o.lng, o.radius_meters, o.max_redemptions,
           o.starts_at, o.expires_at,
         ]
@@ -366,6 +370,8 @@ router.put(
     body('original_price').optional().isFloat({ min: 0 }),
     body('offer_price').optional().isFloat({ min: 0 }),
     body('discount_percent').optional().isFloat({ min: 0, max: 100 }),
+    body('cost_price').optional().isFloat({ min: 0 }),
+    body('selling_price').optional().isFloat({ min: 0 }),
     body('radius_meters').optional().isInt({ min: 100 }),
     body('max_redemptions').optional().isInt({ min: 1 }),
     body('expires_at').optional().isISO8601(),
@@ -378,7 +384,7 @@ router.put(
     try {
       const updates = { ...req.body };
 
-      for (const f of ['original_price', 'offer_price', 'discount_percent', 'lat', 'lng']) {
+      for (const f of ['original_price', 'offer_price', 'discount_percent', 'cost_price', 'selling_price', 'lat', 'lng']) {
         if (updates[f] != null) updates[f] = parseFloat(updates[f]);
       }
       for (const f of ['radius_meters', 'max_redemptions']) {
@@ -522,5 +528,63 @@ router.delete(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// Profit & ROI endpoints
+// ---------------------------------------------------------------------------
+
+router.get('/dashboard/roi', async (req, res) => {
+  try {
+    const data = await profitService.getBusinessROI(req.business.id, {
+      from: req.query.from, to: req.query.to,
+    });
+    return ok(res, { roi: data });
+  } catch (err) {
+    console.error('[business/dashboard/roi]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch ROI data.');
+  }
+});
+
+router.get('/offers/:id/profit', async (req, res) => {
+  try {
+    const data = await profitService.getOfferProfitBreakdown(
+      parseInt(req.params.id, 10), req.business.id
+    );
+    return ok(res, { profit: data });
+  } catch (err) {
+    if (err.status === 404) return fail(res, 404, 'NOT_FOUND', err.message);
+    console.error('[business/offers/:id/profit]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch offer profit.');
+  }
+});
+
+router.get('/reports/profit', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const [summary, offers, chart] = await Promise.all([
+      profitService.getBusinessROI(req.business.id, { from, to }),
+      profitService.getOfferProfitTable(req.business.id, { from, to }),
+      profitService.getDailyProfitChart(req.business.id, { from, to }),
+    ]);
+    return ok(res, { summary, offers, chart });
+  } catch (err) {
+    console.error('[business/reports/profit]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to build profit report.');
+  }
+});
+
+router.get('/reports/profit/csv', async (req, res) => {
+  try {
+    const csv = await profitService.generateBusinessProfitCSV(req.business.id, {
+      from: req.query.from, to: req.query.to,
+    });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="dander-profit-report.csv"');
+    return res.send(csv);
+  } catch (err) {
+    console.error('[business/reports/profit/csv]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'CSV export failed.');
+  }
+});
 
 module.exports = router;

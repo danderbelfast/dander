@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { getBusinesses, getBusiness, approveBusiness, suspendBusiness } from '../api/admin';
+import { getBusinesses, getBusiness, approveBusiness, suspendBusiness, getBusinessProfit } from '../api/admin';
 import { useToast } from '../context/ToastContext';
 import { Spinner, LoadingBlock } from '../components/ui/Spinner';
 import { ConfirmModal, Drawer } from '../components/ui/Modal';
@@ -12,13 +12,19 @@ function StatusBadge({ status }) {
 
 const TABS = ['all', 'pending', 'active', 'suspended'];
 
+function fmt(n) { return `£${Number(n || 0).toFixed(2)}`; }
+
 function BusinessDrawer({ id, onClose, onAction }) {
   const [data, setData]     = useState(null);
+  const [profitData, setProfitData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getBusiness(id)
-      .then(setData)
+    Promise.all([
+      getBusiness(id),
+      getBusinessProfit(id).catch(() => null),
+    ])
+      .then(([biz, profit]) => { setData(biz); setProfitData(profit?.offers || null); })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, [id]);
@@ -128,6 +134,44 @@ function BusinessDrawer({ id, onClose, onAction }) {
           </div>
         </div>
       )}
+      {/* Sales & Profit */}
+      {profitData && profitData.length > 0 && (() => {
+        const totals = profitData.reduce((a, o) => {
+          a.redemptions += o.redemptions;
+          if (o.has_pricing) { a.revenue += o.revenue; a.cost += o.cost; a.profit += o.gross_profit; }
+          return a;
+        }, { redemptions: 0, revenue: 0, cost: 0, profit: 0 });
+        return (
+          <div>
+            <div className="drawer-section-title">Sales & Profit</div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Offer</th><th style={{ textAlign: 'right' }}>Redeemed</th><th style={{ textAlign: 'right' }}>Revenue</th><th style={{ textAlign: 'right' }}>Cost</th><th style={{ textAlign: 'right' }}>Profit</th><th>Status</th></tr></thead>
+                <tbody>
+                  {profitData.map(o => (
+                    <tr key={o.id}>
+                      <td style={{ fontWeight: 500 }}>{o.title}</td>
+                      <td className="table-mono" style={{ textAlign: 'right' }}>{o.redemptions}</td>
+                      <td className="table-mono" style={{ textAlign: 'right' }}>{o.has_pricing ? fmt(o.revenue) : '—'}</td>
+                      <td className="table-mono" style={{ textAlign: 'right' }}>{o.has_pricing ? fmt(o.cost) : '—'}</td>
+                      <td className="table-mono" style={{ textAlign: 'right', color: 'var(--c-accent)', fontWeight: 600 }}>{o.has_pricing ? fmt(o.gross_profit) : '—'}</td>
+                      <td><StatusBadge status={o.is_active ? 'active' : 'inactive'} /></td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: 'rgba(255,255,255,0.04)', fontWeight: 700 }}>
+                    <td>Total</td>
+                    <td style={{ textAlign: 'right' }}>{totals.redemptions}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(totals.revenue)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(totals.cost)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--c-accent)' }}>{fmt(totals.profit)}</td>
+                    <td />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
     </Drawer>
   );
 }

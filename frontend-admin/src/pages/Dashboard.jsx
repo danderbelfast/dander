@@ -2,8 +2,9 @@ import React, { useEffect, useState, lazy, Suspense } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { getPlatformStats, getMapData } from '../api/admin';
+import { getPlatformStats, getMapData, getPlatformProfitStats, getPlatformProfitChart } from '../api/admin';
 import { LoadingBlock, Spinner } from '../components/ui/Spinner';
+import { DateRangePicker } from '../components/ui/DateRangePicker';
 
 const BusinessMap = lazy(() => import('../components/ui/BusinessMap'));
 
@@ -63,12 +64,26 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [mapData, setMapData] = useState([]);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const [roiFrom, setRoiFrom] = useState(yearStart);
+  const [roiTo, setRoiTo]     = useState(todayStr);
+  const [roi, setRoi]         = useState(null);
+  const [roiChart, setRoiChart] = useState([]);
+
   useEffect(() => {
     Promise.all([getPlatformStats(), getMapData()])
       .then(([s, m]) => { setStats(s); setMapData(m.businesses || []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    Promise.all([
+      getPlatformProfitStats(roiFrom, roiTo).catch(() => null),
+      getPlatformProfitChart(roiFrom, roiTo).catch(() => null),
+    ]).then(([p, c]) => { setRoi(p?.profit || null); setRoiChart(c?.chart || []); });
+  }, [roiFrom, roiTo]);
 
   if (loading) return <LoadingBlock label="Loading dashboard…" />;
   if (!stats)  return <div className="form-error-box" style={{ maxWidth: 480 }}>Failed to load dashboard data.</div>;
@@ -100,6 +115,35 @@ export default function Dashboard() {
         <StatCard label="This week"            value={newBizWeek.toLocaleString()} sub="new businesses" />
         <StatCard label="This month"           value={newBizMonth.toLocaleString()} sub="new businesses" />
       </div>
+
+      {/* Platform ROI */}
+      {roi && (
+        <div className="card">
+          <div className="card-header"><span className="card-title">Platform ROI</span></div>
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <DateRangePicker from={roiFrom} to={roiTo} onChange={(f, t) => { setRoiFrom(f); setRoiTo(t); }} />
+            <div className="stats-grid">
+              <StatCard label="Total redemptions" value={roi.total_redemptions?.toLocaleString()} />
+              <StatCard label="Revenue for businesses" value={`£${(roi.total_revenue || 0).toFixed(2)}`} />
+              <StatCard label="Profit for businesses" value={`£${(roi.total_profit || 0).toFixed(2)}`} accent />
+              <StatCard label="Avg profit/redemption" value={`£${(roi.avg_profit_per_redemption || 0).toFixed(2)}`} />
+              <StatCard label="Best business" value={roi.best_business?.name || '—'} sub={roi.best_business ? `£${roi.best_business.profit.toFixed(2)}` : null} />
+              <StatCard label="Best offer" value={roi.best_offer?.name || '—'} sub={roi.best_offer ? `£${roi.best_offer.profit.toFixed(2)}` : null} />
+            </div>
+            {roiChart.length > 0 && (
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={roiChart} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} tickFormatter={v => v.slice(5)} />
+                  <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} tickFormatter={v => `£${v}`} />
+                  <Tooltip content={<ChartTip />} />
+                  <Line type="monotone" dataKey="profit" name="Profit" stroke="#E85D26" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="charts-row">

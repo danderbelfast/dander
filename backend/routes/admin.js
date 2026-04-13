@@ -731,6 +731,73 @@ router.get('/reports', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Profit & ROI endpoints
+// ---------------------------------------------------------------------------
+
+const profitService = require('../services/profitService');
+
+router.get('/stats/profit', async (req, res) => {
+  try {
+    const data = await profitService.getPlatformROI({ from: req.query.from, to: req.query.to });
+    return ok(res, { profit: data });
+  } catch (err) {
+    console.error('[admin/stats/profit]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch platform profit stats.');
+  }
+});
+
+router.get('/stats/profit/chart', async (req, res) => {
+  try {
+    const chart = await profitService.getDailyPlatformProfitChart({ from: req.query.from, to: req.query.to });
+    return ok(res, { chart });
+  } catch (err) {
+    console.error('[admin/stats/profit/chart]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch profit chart.');
+  }
+});
+
+router.get('/businesses/:id/profit', async (req, res) => {
+  try {
+    const offers = await profitService.getBusinessOfferProfit(
+      parseInt(req.params.id, 10), { from: req.query.from, to: req.query.to }
+    );
+    return ok(res, { offers });
+  } catch (err) {
+    console.error('[admin/businesses/:id/profit]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch business profit.');
+  }
+});
+
+router.get('/reports/profit', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const [summary, businesses, chart] = await Promise.all([
+      profitService.getPlatformROI({ from, to }),
+      profitService.getPlatformBusinessTable({ from, to }),
+      profitService.getDailyPlatformProfitChart({ from, to }),
+    ]);
+    return ok(res, { summary, businesses, chart });
+  } catch (err) {
+    console.error('[admin/reports/profit]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to build profit report.');
+  }
+});
+
+router.get('/export/profit', async (req, res) => {
+  try {
+    const csv = await profitService.generatePlatformProfitCSV({
+      from: req.query.from, to: req.query.to,
+    });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="dander-platform-profit.csv"');
+    return res.send(csv);
+  } catch (err) {
+    console.error('[admin/export/profit]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'CSV export failed.');
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/admin/export/:type   (CSV download: users | businesses | redemptions)
 // ---------------------------------------------------------------------------
 

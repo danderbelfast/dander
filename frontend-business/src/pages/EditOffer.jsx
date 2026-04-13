@@ -49,6 +49,8 @@ export default function EditOffer() {
   const [redemptionCap, setRedemptionCap] = useState('');
   const [perUserLimit, setPerUserLimit]   = useState('1');
   const [radiusMeters, setRadiusMeters]   = useState(500);
+  const [costPrice, setCostPrice]         = useState('');
+  const [sellingPrice, setSellingPrice]   = useState('');
   const [imageFile, setImageFile]         = useState(null);
   const [imagePreview, setImagePreview]   = useState('');
   const [existingImageUrl, setExistingImageUrl] = useState('');
@@ -68,6 +70,8 @@ export default function EditOffer() {
         setRedemptionCap(offer.max_redemptions != null ? String(offer.max_redemptions) : '');
         setPerUserLimit('1');
         setRadiusMeters(offer.radius_meters || 500);
+        setCostPrice(offer.cost_price != null ? String(offer.cost_price) : '');
+        setSellingPrice(offer.selling_price != null ? String(offer.selling_price) : '');
         setExistingImageUrl(resolveImageUrl(offer.image_url));
         setImagePreview(resolveImageUrl(offer.image_url));
       })
@@ -109,6 +113,9 @@ export default function EditOffer() {
       if (expiresAt) formData.append('expires_at', new Date(expiresAt).toISOString());
       if (redemptionCap) formData.append('max_redemptions', redemptionCap);
       formData.append('radius_meters', radiusMeters);
+      if (costPrice)    formData.append('cost_price', costPrice);
+      if (sellingPrice) formData.append('selling_price', sellingPrice);
+      if (discountedPrice) formData.append('offer_price', discountedPrice);
       if (imageFile) formData.append('image', imageFile);
 
       await updateOffer(id, formData);
@@ -214,6 +221,36 @@ export default function EditOffer() {
                   onChange={(e) => setPerUserLimit(e.target.value)} />
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><span className="card-title">Pricing & cost</span></div>
+          <div className="card-body">
+            <div className="form-grid">
+              <div className="field">
+                <label className="label">Normal selling price (£)</label>
+                <input className="input" type="number" min="0" step="0.01"
+                  value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="9.99" />
+                <div className="field-hint">What you normally charge for this item</div>
+              </div>
+              <div className="field">
+                <label className="label">Your cost price (£)</label>
+                <input className="input" type="number" min="0" step="0.01"
+                  value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="3.50" />
+                <div className="field-hint">We use this to calculate your profit. It's never shown to customers.</div>
+              </div>
+            </div>
+            {costPrice && discountedPrice && (
+              <div style={{ background: 'var(--c-bg-muted)', border: '1px solid var(--c-border)', borderRadius: 'var(--r-md)', padding: '12px 16px', fontSize: '0.85rem', lineHeight: 1.7, marginTop: 4 }}>
+                <strong>Profit per redemption:</strong> £{(parseFloat(discountedPrice) - parseFloat(costPrice)).toFixed(2)}
+              </div>
+            )}
+            {!costPrice && !sellingPrice && (
+              <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', fontStyle: 'italic', marginTop: 4 }}>
+                Add your pricing to unlock profit reports for this offer
+              </div>
+            )}
           </div>
         </div>
 

@@ -20,7 +20,7 @@ const pool = require('../db/pool');
 
 const MUTABLE_FIELDS = [
   'title', 'description', 'terms', 'category', 'image_url', 'offer_type',
-  'original_price', 'offer_price', 'discount_percent',
+  'original_price', 'offer_price', 'discount_percent', 'cost_price', 'selling_price',
   'lat', 'lng', 'radius_meters',
   'max_redemptions', 'starts_at', 'expires_at', 'is_active', 'icon_color',
 ];
@@ -54,6 +54,14 @@ function validateOfferData(data, { requireAll = false } = {}) {
 
   if (data.offer_price != null && Number(data.offer_price) < 0) {
     errors.push('offer_price must not be negative.');
+  }
+
+  if (data.cost_price != null && Number(data.cost_price) < 0) {
+    errors.push('cost_price must not be negative.');
+  }
+
+  if (data.selling_price != null && Number(data.selling_price) < 0) {
+    errors.push('selling_price must not be negative.');
   }
 
   if (
@@ -122,14 +130,14 @@ async function createOffer(businessId, offerData) {
   const { rows } = await pool.query(
     `INSERT INTO offers (
        business_id, title, description, terms, category, image_url, offer_type,
-       original_price, offer_price, discount_percent,
+       original_price, offer_price, discount_percent, cost_price, selling_price,
        lat, lng, radius_meters,
        max_redemptions, starts_at, expires_at, is_active, icon_color
      ) VALUES (
        $1,  $2,  $3,  $4,  $5,  $6,  $7,
-       $8,  $9,  $10,
-       $11, $12, $13,
-       $14, $15, $16, $17, $18
+       $8,  $9,  $10, $11, $12,
+       $13, $14, $15,
+       $16, $17, $18, $19, $20
      )
      RETURNING *`,
     [
@@ -143,6 +151,8 @@ async function createOffer(businessId, offerData) {
       offerData.original_price ?? null,
       offerData.offer_price    ?? null,
       offerData.discount_percent ?? null,
+      offerData.cost_price     ?? null,
+      offerData.selling_price  ?? null,
       lat,
       lng,
       offerData.radius_meters  ?? 1000,

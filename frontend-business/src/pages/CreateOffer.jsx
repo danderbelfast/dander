@@ -69,6 +69,10 @@ export default function CreateOffer() {
   // Category icon colour
   const [iconColor, setIconColor]     = useState('#000000');
 
+  // Pricing & cost (profit tracking)
+  const [costPrice, setCostPrice]         = useState('');
+  const [sellingPrice, setSellingPrice]   = useState('');
+
   // Image
   const [imageFile, setImageFile]     = useState(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -110,6 +114,9 @@ export default function CreateOffer() {
       if (redemptionCap) formData.append('max_redemptions', redemptionCap);
       formData.append('radius_meters', radiusMeters);
       formData.append('icon_color', iconColor);
+      if (costPrice)    formData.append('cost_price', costPrice);
+      if (sellingPrice) formData.append('selling_price', sellingPrice);
+      if (discountedPrice) formData.append('offer_price', discountedPrice);
       if (imageFile) formData.append('image', imageFile);
 
       await createOffer(formData);
@@ -274,6 +281,38 @@ export default function CreateOffer() {
                   onChange={(e) => setPerUserLimit(e.target.value)} placeholder="1" />
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><span className="card-title">Pricing & cost</span></div>
+          <div className="card-body">
+            <div className="form-grid">
+              <div className="field">
+                <label className="label">Normal selling price (£)</label>
+                <input className="input" type="number" min="0" step="0.01"
+                  value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)}
+                  placeholder="9.99" />
+                <div className="field-hint">What you normally charge for this item</div>
+              </div>
+              <div className="field">
+                <label className="label">Your cost price (£)</label>
+                <input className="input" type="number" min="0" step="0.01"
+                  value={costPrice} onChange={(e) => setCostPrice(e.target.value)}
+                  placeholder="3.50" />
+                <div className="field-hint">We use this to calculate your profit. It's never shown to customers.</div>
+              </div>
+            </div>
+            {costPrice && discountedPrice && (
+              <div style={{ background: 'var(--c-bg-muted)', border: '1px solid var(--c-border)', borderRadius: 'var(--r-md)', padding: '12px 16px', fontSize: '0.85rem', lineHeight: 1.7, marginTop: 4 }}>
+                <strong>Profit per redemption:</strong> £{(parseFloat(discountedPrice) - parseFloat(costPrice)).toFixed(2)}
+              </div>
+            )}
+            {!costPrice && !sellingPrice && (
+              <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', fontStyle: 'italic', marginTop: 4 }}>
+                Add your pricing to unlock profit reports for this offer
+              </div>
+            )}
           </div>
         </div>
 

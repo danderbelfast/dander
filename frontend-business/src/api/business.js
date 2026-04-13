@@ -42,6 +42,19 @@ export const duplicateOffer = (id) =>
 export const getOfferStats = (id) =>
   client.get(`/api/business/offers/${id}/stats`).then((r) => r.data);
 
+// ── Profit & ROI ────────────────────────────────────────────
+export const getDashboardROI = (from, to) =>
+  client.get('/api/business/dashboard/roi', { params: { from, to } }).then((r) => r.data);
+
+export const getOfferProfit = (id) =>
+  client.get(`/api/business/offers/${id}/profit`).then((r) => r.data);
+
+export const getProfitReports = (from, to) =>
+  client.get('/api/business/reports/profit', { params: { from, to } }).then((r) => r.data);
+
+export const exportProfitCSV = (from, to) =>
+  client.get('/api/business/reports/profit/csv', { params: { from, to }, responseType: 'blob' });
+
 // ── Staff ───────────────────────────────────────────────────
 export const getStaff = () =>
   client.get('/api/business/staff').then((r) => r.data);

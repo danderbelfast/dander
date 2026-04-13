@@ -74,6 +74,22 @@ export const getReports = () =>
 export const exportCSV = (type) =>
   client.get(`/api/admin/export/${type}`, { responseType: 'blob' }).then((r) => r.data);
 
+// ── Profit & ROI ────────────────────────────────────────────
+export const getPlatformProfitStats = (from, to) =>
+  client.get('/api/admin/stats/profit', { params: { from, to } }).then((r) => r.data);
+
+export const getPlatformProfitChart = (from, to) =>
+  client.get('/api/admin/stats/profit/chart', { params: { from, to } }).then((r) => r.data);
+
+export const getBusinessProfit = (id, from, to) =>
+  client.get(`/api/admin/businesses/${id}/profit`, { params: { from, to } }).then((r) => r.data);
+
+export const getProfitReports = (from, to) =>
+  client.get('/api/admin/reports/profit', { params: { from, to } }).then((r) => r.data);
+
+export const exportProfitCSV = (from, to) =>
+  client.get('/api/admin/export/profit', { params: { from, to }, responseType: 'blob' });
+
 // ── Settings ────────────────────────────────────────────────
 export const getSettings = () =>
   client.get('/api/admin/settings').then((r) => r.data);

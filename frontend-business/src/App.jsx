@@ -14,6 +14,7 @@ import CampaignStats    from './pages/CampaignStats';
 import RedeemCoupon     from './pages/RedeemCoupon';
 import BusinessProfile  from './pages/BusinessProfile';
 import Guide            from './pages/Guide';
+import Reports          from './pages/Reports';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/offers/new"       element={<CreateOffer />} />
           <Route path="/offers/:id/edit"  element={<EditOffer />} />
           <Route path="/offers/:id/stats" element={<CampaignStats />} />
+          <Route path="/reports"          element={<Reports />} />
           <Route path="/redeem"           element={<RedeemCoupon />} />
           <Route path="/profile"          element={<BusinessProfile />} />
           <Route path="/guide"            element={<Guide />} />
