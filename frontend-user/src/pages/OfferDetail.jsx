@@ -253,12 +253,11 @@ export default function OfferDetail() {
             </div>
           )}
           {offer.max_redemptions != null && (
-            <div className={`detail-stat${capReached ? ' detail-stat-urgent' : ''}`}>
-              <div className="detail-stat-icon">🎟</div>
-              <div className="detail-stat-label">Left</div>
-              <div className="detail-stat-value">
-                {capReached ? 'None' : `${offer.max_redemptions - offer.current_redemptions}`}
+            <div className="detail-stat">
+              <div className="detail-stat-value" style={{ fontSize: '1.2rem' }}>
+                {capReached ? '0' : `${offer.max_redemptions - offer.current_redemptions}`}
               </div>
+              <div className="detail-stat-label">Coupons remaining</div>
             </div>
           )}
           {distLabel && (
