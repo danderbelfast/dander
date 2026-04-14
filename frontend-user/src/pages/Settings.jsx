@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePwa } from '../context/PwaInstallContext';
+import { resolveImageUrl } from '../utils/imageUrl';
 import client from '../api/client';
 
 export default function Settings() {
@@ -84,7 +85,7 @@ export default function Settings() {
           aria-label="Change profile photo"
         >
           {user?.avatarUrl
-            ? <img src={user.avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={resolveImageUrl(user.avatarUrl)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontSize: '1.6rem', fontFamily: 'var(--f-head)', fontWeight: 700, color: 'var(--c-primary)' }}>{initials}</span>
           }
           <div style={{

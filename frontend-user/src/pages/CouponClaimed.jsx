@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCountdown } from '../hooks/useCountdown';
 import { useToast } from '../context/ToastContext';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -142,7 +143,7 @@ export default function CouponClaimed() {
               <div className="cc-logo-row">
                 <div className="cc-logo-wrap">
                   {business.logo_url
-                    ? <img src={business.logo_url} alt={business.name} />
+                    ? <img src={resolveImageUrl(business.logo_url)} alt={business.name} />
                     : <div className="cc-logo-placeholder">🏪</div>
                   }
                 </div>

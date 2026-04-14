@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCountdown } from '../../hooks/useCountdown';
+import { resolveImageUrl } from '../../utils/imageUrl';
 import { CategoryIcon } from '../ui/CategoryIcon';
 import { saveOffer, unsaveOffer } from '../../api/offers';
 
@@ -84,7 +85,7 @@ export function OfferCardH({ offer, saved, onSaveToggle }) {
     >
       <div className="offer-card-h-img">
         {offer.image_url
-          ? <img src={offer.image_url} alt={offer.title} loading="lazy" />
+          ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} loading="lazy" />
           : <div className="offer-card-h-placeholder">{getEmoji(offer.category)}</div>
         }
 
@@ -159,13 +160,13 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
       style={isClosed ? { opacity: 0.65, filter: 'saturate(0.5)' } : undefined}>
       <div className="offer-card-img">
         {offer.image_url
-          ? <img src={offer.image_url} alt={offer.title} loading="lazy" />
+          ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} loading="lazy" />
           : <div className="offer-card-img-placeholder">{getEmoji(offer.category)}</div>
         }
 
         <div className="offer-card-logo">
           {offer.business_logo_url
-            ? <img src={offer.business_logo_url} alt={offer.business_name} />
+            ? <img src={resolveImageUrl(offer.business_logo_url)} alt={offer.business_name} />
             : <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 {getEmoji(offer.category)}
               </span>

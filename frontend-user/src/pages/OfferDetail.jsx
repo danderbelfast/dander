@@ -9,6 +9,7 @@ import { useCountdown } from '../hooks/useCountdown';
 import { ExpandableSection } from '../components/ui/ExpandableSection';
 import { Spinner } from '../components/ui/Spinner';
 import { usePwa } from '../context/PwaInstallContext';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -196,7 +197,7 @@ export default function OfferDetail() {
       {/* ── Hero image ── */}
       <div className="detail-cover">
         {offer.image_url
-          ? <img src={offer.image_url} alt={offer.title} />
+          ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} />
           : <div className="detail-cover-placeholder">🏪</div>
         }
         {typeLabel && (
@@ -211,7 +212,7 @@ export default function OfferDetail() {
         <div className="detail-biz-row">
           <div className="detail-biz-logo">
             {offer.business_logo_url
-              ? <img src={offer.business_logo_url} alt={offer.business_name} />
+              ? <img src={resolveImageUrl(offer.business_logo_url)} alt={offer.business_name} />
               : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1rem' }}>🏪</span>
             }
           </div>

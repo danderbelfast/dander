@@ -3,6 +3,7 @@ import { getMyCoupons } from '../api/coupons';
 import { Spinner } from '../components/ui/Spinner';
 import { useToast } from '../context/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,7 +79,7 @@ function ActiveCouponCard({ coupon }) {
           <div className="cp-card-offer-row">
             <div className="cp-card-thumb">
               {coupon.offer_image_url
-                ? <img src={coupon.offer_image_url} alt={coupon.offer_title} />
+                ? <img src={resolveImageUrl(coupon.offer_image_url)} alt={coupon.offer_title} />
                 : <div className="cp-card-thumb-placeholder">🏪</div>
               }
             </div>
