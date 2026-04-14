@@ -9,7 +9,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-/* Fly the map to a new position when lat/lng change externally */
 function MapFlyer({ lat, lng }) {
   const map = useMap();
   const prev = useRef(null);
@@ -21,17 +20,54 @@ function MapFlyer({ lat, lng }) {
   return null;
 }
 
-/* Click anywhere on the map to drop a pin */
 function ClickHandler({ onMove }) {
-  useMapEvents({
-    click(e) {
-      onMove(e.latlng.lat, e.latlng.lng);
-    },
-  });
+  useMapEvents({ click(e) { onMove(e.latlng.lat, e.latlng.lng); } });
   return null;
 }
 
-export function LocationPicker({ lat, lng, onChange }) {
+/**
+ * Reverse-geocode a lat/lng to get address parts.
+ */
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+    if (!data.address) return null;
+    const a = data.address;
+    return {
+      address: [a.house_number, a.road].filter(Boolean).join(' ') || '',
+      city: a.city || a.town || a.village || a.suburb || '',
+      postcode: a.postcode || '',
+      display_name: data.display_name || '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract address parts from a Nominatim search result.
+ */
+function parseSearchResult(r) {
+  const parts = (r.display_name || '').split(',').map(s => s.trim());
+  // Nominatim display_name is usually: house, road, suburb, city, county, postcode, country
+  // We'll do a reverse geocode for accuracy instead
+  return {
+    lat: parseFloat(r.lat),
+    lng: parseFloat(r.lon),
+    display_name: r.display_name,
+  };
+}
+
+/**
+ * @param {object} props
+ * @param {number|null} props.lat
+ * @param {number|null} props.lng
+ * @param {(lat: number, lng: number) => void} props.onChange
+ * @param {(info: { address, city, postcode }) => void} [props.onAddressFound]
+ */
+export function LocationPicker({ lat, lng, onChange, onAddressFound }) {
   const [search, setSearch]   = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -39,16 +75,20 @@ export function LocationPicker({ lat, lng, onChange }) {
 
   const center = (lat && lng) ? [lat, lng] : [54.5973, -5.9301];
 
-  const handleMove = useCallback((newLat, newLng) => {
+  const handleMove = useCallback(async (newLat, newLng) => {
     onChange(newLat, newLng);
-  }, [onChange]);
+    if (onAddressFound) {
+      const info = await reverseGeocode(newLat, newLng);
+      if (info) onAddressFound(info);
+    }
+  }, [onChange, onAddressFound]);
 
   async function doSearch(e) {
     e.preventDefault();
     if (!search.trim()) return;
     setSearching(true); setSearchErr(''); setResults([]);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(search)}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=${encodeURIComponent(search)}`;
       const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
       if (data.length === 0) setSearchErr('No results found. Try adding a postcode or country.');
@@ -58,10 +98,23 @@ export function LocationPicker({ lat, lng, onChange }) {
     } finally { setSearching(false); }
   }
 
-  function pickResult(r) {
-    onChange(parseFloat(r.lat), parseFloat(r.lon));
+  async function pickResult(r) {
+    const newLat = parseFloat(r.lat);
+    const newLng = parseFloat(r.lon);
+    onChange(newLat, newLng);
     setResults([]);
     setSearch('');
+
+    if (onAddressFound) {
+      // Use addressdetails from the search result directly
+      const a = r.address || {};
+      onAddressFound({
+        address: [a.house_number, a.road].filter(Boolean).join(' ') || '',
+        city: a.city || a.town || a.village || a.suburb || '',
+        postcode: a.postcode || '',
+        display_name: r.display_name || '',
+      });
+    }
   }
 
   return (

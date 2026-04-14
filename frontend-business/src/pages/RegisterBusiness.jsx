@@ -47,13 +47,20 @@ export default function RegisterBusiness() {
   // Step 2: business
   const [bizName, setBizName]   = useState('');
   const [category, setCategory] = useState('');
-  const [address, setAddress]   = useState('');
-  const [city, setCity]         = useState('Belfast');
-  const [description, setDesc]  = useState('');
-  const [bizPhone, setBizPhone] = useState('');
-  const [website, setWebsite]   = useState('');
-  const [lat, setLat]           = useState(null);
-  const [lng, setLng]           = useState(null);
+  const [address, setAddress]     = useState('');
+  const [city, setCity]           = useState('Belfast');
+  const [postcode, setPostcode]   = useState('');
+  const [description, setDesc]    = useState('');
+  const [bizPhone, setBizPhone]   = useState('');
+  const [website, setWebsite]     = useState('');
+  const [lat, setLat]             = useState(null);
+  const [lng, setLng]             = useState(null);
+
+  function handleAddressFound(info) {
+    if (info.address)  setAddress(info.address);
+    if (info.city)     setCity(info.city);
+    if (info.postcode) setPostcode(info.postcode);
+  }
 
   // Step 3: images
   const [logoFile, setLogoFile]   = useState(null);
@@ -217,6 +224,15 @@ export default function RegisterBusiness() {
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
+
+                {/* Location picker — map first, prefills address fields below */}
+                <div className="field">
+                  <label className="label">Find your business</label>
+                  <div className="field-hint" style={{ marginBottom: 8 }}>Search for your business name or address, then confirm the pin is in the right place.</div>
+                  <LocationPicker lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} onAddressFound={handleAddressFound} />
+                </div>
+
+                {/* Address fields — prefilled from map, still editable */}
                 <div className="field">
                   <label className="label">Address</label>
                   <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="30 Bank St" />
@@ -227,9 +243,13 @@ export default function RegisterBusiness() {
                     <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Belfast" />
                   </div>
                   <div className="field">
-                    <label className="label">Phone</label>
-                    <input className="input" type="tel" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="+44 28 9032 4835" />
+                    <label className="label">Postcode</label>
+                    <input className="input" value={postcode} onChange={(e) => setPostcode(e.target.value)} placeholder="BT1 5PB" />
                   </div>
+                </div>
+                <div className="field">
+                  <label className="label">Phone</label>
+                  <input className="input" type="tel" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="+44 28 9032 4835" />
                 </div>
                 <div className="field">
                   <label className="label">Website</label>
@@ -238,11 +258,6 @@ export default function RegisterBusiness() {
                 <div className="field">
                   <label className="label">Description</label>
                   <textarea className="textarea" value={description} onChange={(e) => setDesc(e.target.value)} placeholder="Tell customers what makes your business special…" rows={3} />
-                </div>
-                <div className="field">
-                  <label className="label">Business location</label>
-                  <div className="field-hint" style={{ marginBottom: 8 }}>Search for your address or click the map to drop a pin. This is where customers will see you.</div>
-                  <LocationPicker lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} />
                 </div>
                 <div className="register-actions">
                   <button className="btn btn-secondary" type="button" onClick={() => setStep(1)}>← Back</button>
