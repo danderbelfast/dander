@@ -101,13 +101,6 @@ app.use('/api/auth', authLimiter);
 // Routes
 // ---------------------------------------------------------------------------
 
-// Diagnostic — remove after confirming env vars are loading
-app.get('/api/health', (_req, res) => res.json({
-  cloudinary: !!process.env.CLOUDINARY_URL,
-  vapid: !!process.env.VAPID_PUBLIC_KEY,
-  node_env: process.env.NODE_ENV,
-}));
-
 app.use('/api/auth',        require('../routes/auth'));
 app.use('/api/offers',      require('../routes/offers'));
 app.use('/api/coupons',     require('../routes/coupons'));
