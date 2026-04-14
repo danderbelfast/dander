@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyOffers, deactivateOffer, duplicateOffer } from '../api/business';
+import { getMyOffers, deactivateOffer, duplicateOffer, updateOffer } from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
 
@@ -47,6 +47,19 @@ export default function MyOffers() {
       load();
     } catch {
       toast({ message: 'Could not deactivate offer.', type: 'error' });
+    } finally { setActing(null); }
+  }
+
+  async function handleActivate(id) {
+    setActing(id);
+    try {
+      const formData = new FormData();
+      formData.append('is_active', 'true');
+      await updateOffer(id, formData);
+      toast({ message: 'Offer activated.', type: 'success' });
+      load();
+    } catch {
+      toast({ message: 'Could not activate offer.', type: 'error' });
     } finally { setActing(null); }
   }
 
@@ -138,7 +151,7 @@ export default function MyOffers() {
                         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/offers/${o.id}/stats`)}>
                           Stats
                         </button>
-                        {offerStatus(o) !== 'expired' && offerStatus(o) !== 'inactive' && (
+                        {offerStatus(o) !== 'expired' && (
                           <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/offers/${o.id}/edit`)}>
                             Edit
                           </button>
@@ -154,6 +167,16 @@ export default function MyOffers() {
                             disabled={acting === o.id}
                           >
                             Deactivate
+                          </button>
+                        )}
+                        {offerStatus(o) === 'inactive' && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ color: 'var(--c-success, #16a34a)' }}
+                            onClick={() => handleActivate(o.id)}
+                            disabled={acting === o.id}
+                          >
+                            Activate
                           </button>
                         )}
                       </div>

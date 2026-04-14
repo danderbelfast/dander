@@ -17,6 +17,7 @@ const ALL_CATS = [
   { key: 'Retail & Shopping',     match: ['retail & shopping', 'retail'] },
   { key: 'Services',              match: ['services'] },
   { key: 'Experiences & Leisure', match: ['experiences & leisure', 'experiences', 'leisure'] },
+  { key: 'Other',                match: ['other'] },
 ];
 
 function matchCat(offer, cat) {
@@ -38,9 +39,6 @@ function CategoryRow({ title, offers, savedIds, onSaveToggle, onSeeAll }) {
           <SectionIcon category={title} />
           <span className="cat-row-title">{title}</span>
         </div>
-        {offers.length > 3 && (
-          <span className="cat-row-link" onClick={onSeeAll}>See all</span>
-        )}
       </div>
       <div className="cat-row-scroll">
         {offers.map((o) => (
@@ -296,7 +294,7 @@ export default function Home() {
 
           <CategoryRow
             title="Nearest to you"
-            offers={searchedOffers.slice(0, 12)}
+            offers={searchedOffers.slice(0, 10)}
             savedIds={savedIds}
             onSaveToggle={handleSaveToggle}
             onSeeAll={() => {}}
