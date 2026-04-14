@@ -79,7 +79,7 @@ if (process.env.NODE_ENV === 'production') {
 
 const authLimiter = rateLimit({
   windowMs:         60 * 1000,   // 1 minute
-  max:              20,
+  max:              60,
   standardHeaders:  true,
   legacyHeaders:    false,
   message:          { success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please wait a minute and try again.' },
@@ -87,7 +87,7 @@ const authLimiter = rateLimit({
 
 const generalLimiter = rateLimit({
   windowMs:         60 * 1000,   // 1 minute
-  max:              300,
+  max:              600,
   standardHeaders:  true,
   legacyHeaders:    false,
   message:          { success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' },
