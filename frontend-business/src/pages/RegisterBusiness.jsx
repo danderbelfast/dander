@@ -4,6 +4,7 @@ import { registerBusiness, verifySetup2FA, resendOtp } from '../api/auth';
 import { updateProfile } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
+import { LocationPicker } from '../components/ui/LocationPicker';
 import { Spinner } from '../components/ui/Spinner';
 import danderLogoBlack from '../assets/Dander_Logo_Black.png';
 
@@ -51,6 +52,8 @@ export default function RegisterBusiness() {
   const [description, setDesc]  = useState('');
   const [bizPhone, setBizPhone] = useState('');
   const [website, setWebsite]   = useState('');
+  const [lat, setLat]           = useState(null);
+  const [lng, setLng]           = useState(null);
 
   // Step 3: images
   const [logoFile, setLogoFile]   = useState(null);
@@ -87,7 +90,7 @@ export default function RegisterBusiness() {
     try {
       const data = await registerBusiness(
         { email, password, firstName, lastName },
-        { name: bizName, category, address, city, website, phone: bizPhone, description, logoFile, coverFile }
+        { name: bizName, category, address, city, website, phone: bizPhone, description, logoFile, coverFile, lat, lng }
       );
       setUserId(data.userId);
       setStep(4); // show email OTP entry
@@ -235,6 +238,11 @@ export default function RegisterBusiness() {
                 <div className="field">
                   <label className="label">Description</label>
                   <textarea className="textarea" value={description} onChange={(e) => setDesc(e.target.value)} placeholder="Tell customers what makes your business special…" rows={3} />
+                </div>
+                <div className="field">
+                  <label className="label">Business location</label>
+                  <div className="field-hint" style={{ marginBottom: 8 }}>Search for your address or click the map to drop a pin. This is where customers will see you.</div>
+                  <LocationPicker lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} />
                 </div>
                 <div className="register-actions">
                   <button className="btn btn-secondary" type="button" onClick={() => setStep(1)}>← Back</button>
