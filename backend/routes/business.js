@@ -249,7 +249,8 @@ router.post(
   '/offers',
   offerUpload,
   [
-    body('title').notEmpty().trim().withMessage('title is required.'),
+    body('title').notEmpty().trim().isLength({ max: 80 }).withMessage('title must be 80 characters or fewer.'),
+    body('description').optional().isLength({ max: 600 }).withMessage('description is too long.'),
     body('offer_type')
       .isIn(['deal', 'promotion', 'clearance', 'percentage', 'fixed', 'bogo', 'free_item', 'custom'])
       .withMessage('offer_type must be a valid type.'),
@@ -366,7 +367,8 @@ router.put(
   offerUpload,
   [
     param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.'),
-    body('title').optional().trim().notEmpty(),
+    body('title').optional().trim().notEmpty().isLength({ max: 80 }).withMessage('title must be 80 characters or fewer.'),
+    body('description').optional().isLength({ max: 600 }).withMessage('description is too long.'),
     body('offer_type').optional().isIn(['deal', 'promotion', 'clearance', 'percentage', 'fixed', 'bogo', 'free_item', 'custom']),
     body('original_price').optional().isFloat({ min: 0 }),
     body('offer_price').optional().isFloat({ min: 0 }),

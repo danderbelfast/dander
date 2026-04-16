@@ -157,11 +157,13 @@ export default function EditOffer() {
             {error && <div className="form-error-box">{error}</div>}
             <div className="field">
               <label className="label label-required">Title</label>
-              <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} required />
+              <div className="field-hint" style={{ textAlign: 'right' }}>{title.length} / 80</div>
             </div>
             <div className="field">
               <label className="label">Description</label>
-              <textarea className="textarea" value={description} onChange={(e) => setDesc(e.target.value)} rows={3} />
+              <textarea className="textarea" value={description} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={280} />
+              <div className="field-hint" style={{ textAlign: 'right' }}>{description.length} / 280</div>
             </div>
             <div className="form-grid">
               <div className="field">

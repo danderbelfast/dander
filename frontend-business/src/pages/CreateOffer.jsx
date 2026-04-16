@@ -159,13 +159,15 @@ export default function CreateOffer() {
             <div className="field">
               <label className="label label-required">Title</label>
               <input className="input" value={title} onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. 20% off your first pint" required />
+                placeholder="e.g. 20% off your first pint" maxLength={80} required />
+              <div className="field-hint" style={{ textAlign: 'right' }}>{title.length} / 80</div>
             </div>
 
             <div className="field">
               <label className="label">Description</label>
               <textarea className="textarea" value={description} onChange={(e) => setDesc(e.target.value)}
-                placeholder="Tell customers what's included…" rows={3} />
+                placeholder="Tell customers what's included…" rows={3} maxLength={280} />
+              <div className="field-hint" style={{ textAlign: 'right' }}>{description.length} / 280</div>
             </div>
 
             <div className="form-grid">
