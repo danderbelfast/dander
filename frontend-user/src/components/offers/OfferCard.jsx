@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCountdown } from '../../hooks/useCountdown';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import { CategoryIcon } from '../ui/CategoryIcon';
 import { saveOffer, unsaveOffer } from '../../api/offers';
 
 // ---------------------------------------------------------------------------
@@ -58,13 +57,6 @@ function HeartIcon({ filled }) {
 export function OfferCardH({ offer, saved, onSaveToggle }) {
   const navigate  = useNavigate();
   const countdown = useCountdown(offer.expires_at);
-
-  const discountLabel = offer.discount_percent
-    ? `${Math.round(offer.discount_percent)}% OFF`
-    : offer.offer_price != null
-    ? `£${parseFloat(offer.offer_price).toFixed(2)}`
-    : null;
-
   const distLabel = formatDistance(offer.distance_meters);
 
   async function handleSave(e) {
@@ -89,37 +81,10 @@ export function OfferCardH({ offer, saved, onSaveToggle }) {
           : <div className="offer-card-h-placeholder">{getEmoji(offer.category)}</div>
         }
 
-        {offer.category && <CategoryIcon category={offer.category} bg={offer.icon_color || '#000000'} size={30} />}
-
-        {/* Top-left: discount badge */}
-        {discountLabel && (
-          <div className="offer-card-h-discount">{discountLabel}</div>
-        )}
-
         {/* Top-right: save button */}
         <button className="offer-card-h-save" onClick={handleSave} aria-label={saved ? 'Unsave' : 'Save'}>
           <HeartIcon filled={saved} />
         </button>
-
-        {/* Bottom-left: distance pill */}
-        {distLabel && (
-          <span className="offer-pill offer-pill-left">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 14 8 14s8-8.6 8-14a8 8 0 0 0-8-8z"/>
-            </svg>
-            {distLabel}
-          </span>
-        )}
-
-        {/* Bottom-right: expiry pill */}
-        {countdown && !countdown.expired && (
-          <span className={`offer-pill offer-pill-right${countdown.urgent ? ' offer-pill-urgent' : ''}`}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            {countdown.label}
-          </span>
-        )}
       </div>
 
       <div className="offer-card-h-body">
@@ -137,13 +102,6 @@ export function OfferCardH({ offer, saved, onSaveToggle }) {
 export function OfferCard({ offer, saved, onSaveToggle }) {
   const navigate  = useNavigate();
   const countdown = useCountdown(offer.expires_at);
-
-  const discountLabel = offer.discount_percent
-    ? `${Math.round(offer.discount_percent)}% OFF`
-    : offer.offer_price != null
-    ? `£${parseFloat(offer.offer_price).toFixed(2)}`
-    : null;
-
   const distLabel = formatDistance(offer.distance_meters);
 
   async function handleSave(e) {
@@ -166,56 +124,12 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
           : <div className="offer-card-img-placeholder">{getEmoji(offer.category)}</div>
         }
 
-        <div className="offer-card-logo">
-          {offer.business_logo_url
-            ? <img src={resolveImageUrl(offer.business_logo_url)} alt={offer.business_name} />
-            : <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                {getEmoji(offer.category)}
-              </span>
-          }
-        </div>
-
-        {offer.category && <CategoryIcon category={offer.category} bg={offer.icon_color || '#000000'} />}
-
-        {/* Top-left: discount badge */}
-        {discountLabel && (
-          <div className="offer-card-discount">{discountLabel}</div>
-        )}
-
         {/* Top-right: save button */}
         <button className="offer-card-h-save" onClick={handleSave} aria-label={saved ? 'Unsave' : 'Save'}
           style={{ position: 'absolute', top: 10, right: 10, zIndex: 5 }}
         >
           <HeartIcon filled={saved} />
         </button>
-
-        {/* Bottom-left: distance pill */}
-        {distLabel && (
-          <span className="offer-pill offer-pill-left">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 14 8 14s8-8.6 8-14a8 8 0 0 0-8-8z"/>
-            </svg>
-            {distLabel}
-          </span>
-        )}
-
-        {/* Bottom-right: countdown/closed pill */}
-        {isClosed ? (
-          <span className="offer-pill offer-pill-right offer-pill-closed">
-            {offer.business_next_open ? `Opens ${offer.business_next_open}` : 'Closed'}
-          </span>
-        ) : offer.countdown_label && offer.show_countdown !== false ? (
-          <span className={`offer-pill offer-pill-right offer-pill-${offer.countdown_urgency || 'green'}`}>
-            {offer.countdown_label}
-          </span>
-        ) : countdown && !countdown.expired ? (
-          <span className={`offer-pill offer-pill-right${countdown.urgent ? ' offer-pill-urgent' : ''}`}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            {countdown.label}
-          </span>
-        ) : null}
       </div>
 
       <div className="offer-card-body">
