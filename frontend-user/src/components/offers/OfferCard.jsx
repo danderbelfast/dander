@@ -89,6 +89,8 @@ export function OfferCardH({ offer, saved, onSaveToggle }) {
           : <div className="offer-card-h-placeholder">{getEmoji(offer.category)}</div>
         }
 
+        {offer.category && <CategoryIcon category={offer.category} bg={offer.icon_color || '#000000'} size={30} />}
+
         {/* Top-left: discount badge */}
         {discountLabel && (
           <div className="offer-card-h-discount">{discountLabel}</div>

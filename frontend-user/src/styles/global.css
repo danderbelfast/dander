@@ -226,8 +226,8 @@ h3 { font-size: 1.15rem; }
 
 .offer-card-discount {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 14px;
+  left: 58px;
   background: var(--c-primary);
   color: #fff;
   font-family: var(--f-head);
@@ -709,8 +709,8 @@ h3 { font-size: 1.15rem; }
 }
 .offer-card-h-discount {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 12px;
+  left: 46px;
   background: var(--c-primary);
   color: #fff;
   font-family: var(--f-head);
