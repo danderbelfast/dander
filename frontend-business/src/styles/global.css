@@ -30,6 +30,7 @@
   --c-danger-light:   #FEE2E2;
 
   --f-sans: 'Instrument Sans', -apple-system, sans-serif;
+  --f-head: 'Syne', 'Instrument Sans', -apple-system, sans-serif;
 
   --r-sm:  6px;
   --r-md:  10px;
@@ -62,6 +63,13 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
 input, textarea, select { font: inherit; color: inherit; }
 a { color: inherit; text-decoration: none; }
 ul { list-style: none; }
+
+h1, h2, h3, h4, h5, h6 { font-family: var(--f-head); font-weight: 700; line-height: 1.15; }
+.topbar-title, .card-title, .page-title, .auth-form-title,
+.register-step-title, .offer-preview-title, .redeem-title,
+.empty-title, .redeem-result-title {
+  font-family: var(--f-head);
+}
 
 /* ── App layout ──────────────────────────────────────────── */
 #root { display: flex; min-height: 100vh; }
@@ -604,9 +612,69 @@ tbody tr:hover td { background: var(--c-bg-muted); }
   .stats-grid { grid-template-columns: 1fr 1fr; }
 }
 
+/* ── Mobile hamburger menu ───────────────────────────────── */
+.mobile-menu-btn { display: none; }
+.mobile-backdrop { display: none; }
+
 @media (max-width: 768px) {
   .auth-left { display: none; }
-  .sidebar   { transform: translateX(-100%); }
   .app-layout { grid-template-columns: 1fr; }
   .topbar, .main-content { grid-column: 1; }
+  .main-content { padding: 20px 16px; }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    width: 260px;
+    z-index: 110;
+  }
+  .app-layout.mobile-menu-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0 8px;
+    border-radius: var(--r-sm);
+    background: transparent;
+    margin-left: auto;
+  }
+  .mobile-menu-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--c-text);
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .app-layout.mobile-menu-open .mobile-menu-btn span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .app-layout.mobile-menu-open .mobile-menu-btn span:nth-child(2) {
+    opacity: 0;
+  }
+  .app-layout.mobile-menu-open .mobile-menu-btn span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 105;
+  }
+  .app-layout.mobile-menu-open .mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

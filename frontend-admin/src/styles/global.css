@@ -45,6 +45,7 @@
   /* Typography */
   --f-ui:   'Instrument Sans', -apple-system, sans-serif;
   --f-mono: 'DM Mono', 'Fira Mono', monospace;
+  --f-head: 'Syne', 'Instrument Sans', -apple-system, sans-serif;
 
   /* Radii */
   --r-sm:  5px;
@@ -78,6 +79,12 @@ body {
 button { font-family: var(--f-ui); cursor: pointer; border: none; background: none; }
 input, select, textarea { font-family: var(--f-ui); }
 a { color: inherit; text-decoration: none; }
+
+h1, h2, h3, h4, h5, h6 { font-family: var(--f-head); font-weight: 700; line-height: 1.15; }
+.topbar-title, .card-title, .page-title,
+.auth-form-title, .drawer-title, .modal-title {
+  font-family: var(--f-head);
+}
 
 /* ── App shell layout ────────────────────────────────────── */
 .app-layout {
@@ -601,4 +608,79 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 640px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .main-content { padding: 16px; }
+}
+
+/* ── Mobile hamburger menu ───────────────────────────────── */
+.mobile-menu-btn { display: none; }
+.mobile-backdrop { display: none; }
+
+@media (max-width: 768px) {
+  .app-layout,
+  .app-layout.collapsed {
+    grid-template-columns: 1fr;
+  }
+  .topbar, .main-content { grid-column: 1; }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 260px;
+    height: 100vh;
+    z-index: 110;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .app-layout.mobile-menu-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+  .sidebar-collapse-btn { display: none; }
+  .sidebar .nav-label,
+  .sidebar .nav-section-label { opacity: 1; width: auto; }
+
+  .mobile-menu-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 36px;
+    padding: 0 8px;
+    border-radius: var(--r-sm);
+    background: transparent;
+    margin-left: 8px;
+  }
+  .mobile-menu-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--c-heading);
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .app-layout.mobile-menu-open .mobile-menu-btn span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .app-layout.mobile-menu-open .mobile-menu-btn span:nth-child(2) {
+    opacity: 0;
+  }
+  .app-layout.mobile-menu-open .mobile-menu-btn span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 105;
+  }
+  .app-layout.mobile-menu-open .mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

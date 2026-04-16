@@ -65,7 +65,7 @@ const NAV = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }) {
   const { user, business, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -89,6 +89,7 @@ export function Sidebar() {
             <NavLink
               key={to}
               to={to}
+              onClick={onNavigate}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               {icon}

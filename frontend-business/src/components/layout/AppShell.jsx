@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getProfile } from '../../api/business';
@@ -17,6 +17,7 @@ const PAGE_TITLES = {
 export function AppShell() {
   const { isAuth, loading, setBusiness } = useAuth();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuth) return;
@@ -24,6 +25,8 @@ export function AppShell() {
       .then(({ business }) => setBusiness(business))
       .catch(() => {});
   }, [isAuth, setBusiness]);
+
+  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
   if (loading) return <LoadingBlock label="Starting up…" />;
   if (!isAuth) return <Navigate to="/login" replace />;
@@ -33,11 +36,25 @@ export function AppShell() {
     ?? (location.pathname.includes('/edit')  ? 'Edit Offer'    : '');
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${mobileMenuOpen ? ' mobile-menu-open' : ''}`}>
       <ToastContainer />
-      <Sidebar />
+      <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
+      <div
+        className="mobile-backdrop"
+        onClick={() => setMobileMenuOpen(false)}
+        aria-hidden="true"
+      />
       <header className="topbar">
         <span className="topbar-title">{title}</span>
+        <button
+          type="button"
+          className="mobile-menu-btn"
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen((v) => !v)}
+        >
+          <span /><span /><span />
+        </button>
       </header>
       <main className="main-content">
         <Outlet />

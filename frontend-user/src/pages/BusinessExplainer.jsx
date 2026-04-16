@@ -29,7 +29,7 @@ const COMPARE = [
   { feature: 'Instant updates',        dander: true,  groupon: false, flyers: false  },
 ];
 
-const BUSINESS_PORTAL_URL = import.meta.env.VITE_BUSINESS_PORTAL_URL || 'http://localhost:3001';
+const BUSINESS_PORTAL_URL = import.meta.env.VITE_BUSINESS_PORTAL_URL || '';
 
 function CompareCell({ val }) {
   if (val === true)      return <span className="ex-table-yes ex-col-dander">✓</span>;
@@ -103,7 +103,7 @@ export default function BusinessExplainer() {
       <div className="ex-cta">
         <a
           className="ex-cta-btn ex-cta-btn-business"
-          href={BUSINESS_PORTAL_URL}
+          href={BUSINESS_PORTAL_URL ? `${BUSINESS_PORTAL_URL}/register` : '#'}
           target="_blank"
           rel="noopener noreferrer"
         >

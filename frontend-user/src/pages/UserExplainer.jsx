@@ -53,7 +53,7 @@ export default function UserExplainer() {
           </svg>
         </button>
         <div className="ex-hero-label"><span className="ex-label-pill">For Shoppers</span></div>
-        <div className="ex-hero-title">Your next great deal<br />is already nearby.</div>
+        <div className="ex-hero-title">Don't walk past<br />the best deal for today.</div>
         <div className="ex-hero-sub">
           Real offers from real businesses, surfaced the moment you're close enough to use them.
         </div>

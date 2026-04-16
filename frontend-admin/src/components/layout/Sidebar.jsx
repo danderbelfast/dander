@@ -63,7 +63,7 @@ const NAV = [
   },
 ];
 
-export function Sidebar({ collapsed, onToggle }) {
+export function Sidebar({ collapsed, onToggle, onNavigate }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -104,6 +104,7 @@ export function Sidebar({ collapsed, onToggle }) {
               <NavLink
                 key={to}
                 to={to}
+                onClick={onNavigate}
                 title={collapsed ? label : undefined}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
