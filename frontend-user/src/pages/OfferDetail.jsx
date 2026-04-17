@@ -326,14 +326,7 @@ export default function OfferDetail() {
               {offer.terms}
             </ExpandableSection>
           )}
-          <ExpandableSection title="Free entry / postal route">
-            <p>
-              No purchase is necessary to claim this offer. To request a free entry or a printed voucher,
-              write to: <strong>Dander Promotions, c/o {offer.business_name}, {offer.business_address || offer.business_city || 'Belfast'}</strong>.
-              Please include your name and the offer title. This does not affect your statutory rights.
-            </p>
-          </ExpandableSection>
-          <ExpandableSection title={`About ${offer.business_name}`}>
+<ExpandableSection title={`About ${offer.business_name}`}>
             <p>{offer.business_name} · {offer.business_address && `${offer.business_address}, `}{offer.business_city}</p>
             {offer.business_phone   && <p style={{ marginTop: 6 }}>📞 {offer.business_phone}</p>}
             {offer.business_website && <p style={{ marginTop: 6 }}>🌐 {offer.business_website}</p>}
