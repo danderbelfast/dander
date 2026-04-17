@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPublicStats } from '../api/offers';
+import { usePwa } from '../context/PwaInstallContext';
 
 const STEPS = [
   {
@@ -36,6 +37,15 @@ function formatAvgSaving(raw) {
 export default function UserExplainer() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const { canPrompt, promptInstall, isIosDevice, installed } = usePwa();
+
+  function handleInstall() {
+    if (canPrompt) {
+      promptInstall();
+    } else {
+      navigate('/register');
+    }
+  }
 
   useEffect(() => {
     getPublicStats().then(setStats).catch(() => {});
@@ -57,7 +67,9 @@ export default function UserExplainer() {
         <div className="ex-hero-sub">
           Real offers from real businesses, surfaced the moment you're close enough to use them.
         </div>
-        <button className="ex-hero-cta" onClick={() => navigate('/register')}>Get the app free</button>
+        <button className="ex-hero-cta" onClick={handleInstall}>
+          {installed ? 'Open Dander' : 'Get the app free'}
+        </button>
       </div>
 
       {/* ── Body ── */}
@@ -104,8 +116,8 @@ export default function UserExplainer() {
       <div className="ex-final-cta">
         <div className="ex-final-cta-heading">Ready to start saving?</div>
         <div className="ex-final-cta-sub">Free to download. No catches.</div>
-        <button className="ex-cta-btn ex-cta-btn-user" onClick={() => navigate('/register')}>
-          Download Dander
+        <button className="ex-cta-btn ex-cta-btn-user" onClick={handleInstall}>
+          {installed ? 'Open Dander' : 'Download Dander'}
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
