@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login, verifyLogin2FA } from '../api/auth';
 import { getProfile } from '../api/business';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ function decodeJWT(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch 
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login: authLogin } = useAuth();
 
   const [step, setStep]         = useState(1);
@@ -20,6 +21,16 @@ export default function Login() {
   const [totp, setTotp]         = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+
+  useEffect(() => {
+    setStep(1);
+    setEmail('');
+    setPassword('');
+    setTempToken('');
+    setTotp('');
+    setError('');
+    setLoading(false);
+  }, [location.key]);
 
   async function handleCredentials(e) {
     e.preventDefault(); setError(''); setLoading(true);
