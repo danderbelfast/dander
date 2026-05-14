@@ -68,6 +68,10 @@ export const addSpecialHours = (data) =>
 export const deleteSpecialHours = (id) =>
   client.delete(`/api/business/hours/special/${id}`).then((r) => r.data);
 
+// ── Share ───────────────────────────────────────────────
+export const getShareImage = (id) =>
+  client.get(`/api/business/offers/${id}/share-image`, { responseType: 'blob' });
+
 // ── Story ───────────────────────────────────────────────
 export const getStory = () =>
   client.get('/api/business/story').then((r) => r.data);

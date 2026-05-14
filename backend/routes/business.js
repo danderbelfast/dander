@@ -7,6 +7,7 @@ const pool           = require('../db/pool');
 const offerService   = require('../services/offerService');
 const profitService  = require('../services/profitService');
 const hoursService   = require('../services/hoursService');
+const { generateShareImage } = require('../services/shareService');
 const { requireBusiness } = require('../middleware/auth');
 const { upload, processImage } = require('../middleware/upload');
 
@@ -642,6 +643,38 @@ router.delete(
     } catch (err) {
       console.error('[business/hours/special DELETE]', err);
       return fail(res, 500, 'SERVER_ERROR', 'Failed to delete special hours.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/business/offers/:id/share-image
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/offers/:id/share-image',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rows } = await pool.query(
+        `SELECT o.*, b.name AS business_name, b.logo_url AS business_logo_url
+         FROM offers o JOIN businesses b ON b.id = o.business_id
+         WHERE o.id = $1 AND o.business_id = $2`,
+        [req.params.id, req.business.id]
+      );
+      if (rows.length === 0) return fail(res, 404, 'NOT_FOUND', 'Offer not found.');
+
+      const pngBuffer = await generateShareImage(rows[0]);
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Disposition': `inline; filename="dander-deal-${req.params.id}.png"`,
+        'Cache-Control': 'no-cache',
+      });
+      return res.send(pngBuffer);
+    } catch (err) {
+      console.error('[business/offers/:id/share-image]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to generate share image.');
     }
   }
 );

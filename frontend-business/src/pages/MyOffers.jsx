@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyOffers, deactivateOffer, duplicateOffer, updateOffer } from '../api/business';
+import { getMyOffers, deactivateOffer, duplicateOffer, updateOffer, getShareImage } from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
 
@@ -71,6 +71,35 @@ export default function MyOffers() {
       load();
     } catch {
       toast({ message: 'Could not duplicate offer.', type: 'error' });
+    } finally { setActing(null); }
+  }
+
+  async function handleShare(offer) {
+    setActing(offer.id);
+    try {
+      const resp = await getShareImage(offer.id);
+      const blob = resp.data;
+      const file = new File([blob], `dander-deal-${offer.id}.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: offer.title,
+          text: `Check out this deal on Dander: ${offer.title}`,
+          files: [file],
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ message: 'Image downloaded — share it on your socials!', type: 'success' });
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        toast({ message: 'Could not generate share image.', type: 'error' });
+      }
     } finally { setActing(null); }
   }
 
@@ -150,6 +179,10 @@ export default function MyOffers() {
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/offers/${o.id}/stats`)}>
                           Stats
+                        </button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleShare(o)} disabled={acting === o.id}
+                          style={{ color: 'var(--c-primary)' }}>
+                          Share
                         </button>
                         {offerStatus(o) !== 'expired' && (
                           <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/offers/${o.id}/edit`)}>
