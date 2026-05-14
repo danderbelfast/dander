@@ -61,7 +61,7 @@ async function runMigrations() {
     console.log('[migrate] Connected to database.');
 
     // Check a representative set of tables
-    const CORE_TABLES = ['users', 'businesses', 'offers', 'coupons', 'platform_settings', 'push_subscriptions'];
+    const CORE_TABLES = ['users', 'businesses', 'offers', 'coupons', 'platform_settings', 'push_subscriptions', 'business_stories'];
 
     const missing = [];
     for (const table of CORE_TABLES) {

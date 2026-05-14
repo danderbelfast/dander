@@ -59,14 +59,16 @@ export default function Dashboard() {
   const [roiExplain, setRoiExplain] = useState(false);
 
   useEffect(() => {
-    Promise.all([getDashboard(), getMyOffers(), getStory()])
-      .then(([dashData, { offers: list }, storyData]) => {
+    Promise.all([getDashboard(), getMyOffers()])
+      .then(([dashData, { offers: list }]) => {
         setData(dashData);
         setOffers(list || []);
-        if (storyData.story) setStory(storyData.story);
       })
       .catch(() => setError('Failed to load dashboard.'))
       .finally(() => setLoading(false));
+    getStory()
+      .then((d) => { if (d.story) setStory(d.story); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
