@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
 CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -118,6 +119,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+DROP TRIGGER IF EXISTS trg_businesses_updated_at ON businesses;
 CREATE TRIGGER trg_businesses_updated_at
   BEFORE UPDATE ON businesses
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -190,6 +192,7 @@ CREATE TABLE IF NOT EXISTS offers (
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+DROP TRIGGER IF EXISTS trg_offers_updated_at ON offers;
 CREATE TRIGGER trg_offers_updated_at
   BEFORE UPDATE ON offers
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -335,6 +338,7 @@ CREATE TABLE IF NOT EXISTS user_notification_preferences (
 
 CREATE INDEX IF NOT EXISTS idx_user_notif_prefs_user_id ON user_notification_preferences (user_id);
 
+DROP TRIGGER IF EXISTS trg_user_notif_prefs_updated_at ON user_notification_preferences;
 CREATE TRIGGER trg_user_notif_prefs_updated_at
   BEFORE UPDATE ON user_notification_preferences
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
