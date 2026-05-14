@@ -203,6 +203,12 @@ export default function RegisterBusiness() {
                   <button className="btn btn-primary" type="submit" style={{ flex: 1 }}>Continue →</button>
                 </div>
               </form>
+              <div style={{ textAlign: 'center', marginTop: 20, fontSize: '0.85rem', color: 'var(--c-text-muted)' }}>
+                Already have an account?{' '}
+                <span style={{ color: 'var(--c-primary)', fontWeight: 600, cursor: 'pointer' }} onClick={() => navigate('/login')}>
+                  Sign in
+                </span>
+              </div>
             </>
           )}
 
