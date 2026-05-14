@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCountdown } from '../../hooks/useCountdown';
 import { resolveImageUrl } from '../../utils/imageUrl';
 import { saveOffer, unsaveOffer } from '../../api/offers';
+import { StoryOverlay } from '../ui/StoryOverlay';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,6 +51,30 @@ function HeartIcon({ filled }) {
   );
 }
 
+function BizAvatar({ offer, onClick }) {
+  const hasStory = offer.has_story && offer.business_is_open !== false;
+  const initial = (offer.business_name || '?')[0].toUpperCase();
+
+  function handleClick(e) {
+    if (!hasStory) return;
+    e.stopPropagation();
+    onClick?.();
+  }
+
+  return (
+    <div
+      className={`biz-avatar${hasStory ? ' biz-avatar-story' : ''}`}
+      onClick={handleClick}
+      style={hasStory ? { cursor: 'pointer' } : undefined}
+    >
+      {offer.business_logo_url
+        ? <img src={resolveImageUrl(offer.business_logo_url)} alt={offer.business_name} />
+        : <span>{initial}</span>
+      }
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // OfferCardH — compact horizontal card for swipeable rows
 // ---------------------------------------------------------------------------
@@ -58,6 +83,7 @@ export function OfferCardH({ offer, saved, onSaveToggle }) {
   const navigate  = useNavigate();
   const countdown = useCountdown(offer.expires_at);
   const distLabel = formatDistance(offer.distance_meters);
+  const [showStory, setShowStory] = useState(false);
 
   async function handleSave(e) {
     e.stopPropagation();
@@ -69,29 +95,42 @@ export function OfferCardH({ offer, saved, onSaveToggle }) {
   }
 
   return (
-    <div
-      className="offer-card-h"
-      onClick={() => navigate(`/offer/${offer.id}`)}
-      role="button"
-      tabIndex={0}
-    >
-      <div className="offer-card-h-img">
-        {offer.image_url
-          ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} loading="lazy" />
-          : <div className="offer-card-h-placeholder">{getEmoji(offer.category)}</div>
-        }
+    <>
+      <div
+        className="offer-card-h"
+        onClick={() => navigate(`/offer/${offer.id}`)}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="offer-card-h-img">
+          {offer.image_url
+            ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} loading="lazy" />
+            : <div className="offer-card-h-placeholder">{getEmoji(offer.category)}</div>
+          }
 
-        {/* Top-right: save button */}
-        <button className="offer-card-h-save" onClick={handleSave} aria-label={saved ? 'Unsave' : 'Save'}>
-          <HeartIcon filled={saved} />
-        </button>
+          {/* Top-right: save button */}
+          <button className="offer-card-h-save" onClick={handleSave} aria-label={saved ? 'Unsave' : 'Save'}>
+            <HeartIcon filled={saved} />
+          </button>
+        </div>
+
+        <div className="offer-card-h-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <BizAvatar offer={offer} onClick={() => setShowStory(true)} />
+            <div className="offer-card-h-biz">{offer.business_name}</div>
+          </div>
+          <div className="offer-card-h-title">{toTitleCase(offer.title)}</div>
+        </div>
       </div>
 
-      <div className="offer-card-h-body">
-        <div className="offer-card-h-biz">{offer.business_name}</div>
-        <div className="offer-card-h-title">{toTitleCase(offer.title)}</div>
-      </div>
-    </div>
+      {showStory && (
+        <StoryOverlay
+          businessId={offer.business_id}
+          businessName={offer.business_name}
+          onClose={() => setShowStory(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -103,6 +142,7 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
   const navigate  = useNavigate();
   const countdown = useCountdown(offer.expires_at);
   const distLabel = formatDistance(offer.distance_meters);
+  const [showStory, setShowStory] = useState(false);
 
   async function handleSave(e) {
     e.stopPropagation();
@@ -116,56 +156,69 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
   const isClosed = offer.business_is_open === false;
 
   return (
-    <div className="offer-card" onClick={() => navigate(`/offer/${offer.id}`)} role="button" tabIndex={0}
-      style={isClosed ? { opacity: 0.65, filter: 'saturate(0.5)' } : undefined}>
-      <div className="offer-card-img">
-        {offer.image_url
-          ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} loading="lazy" />
-          : <div className="offer-card-img-placeholder">{getEmoji(offer.category)}</div>
-        }
+    <>
+      <div className="offer-card" onClick={() => navigate(`/offer/${offer.id}`)} role="button" tabIndex={0}
+        style={isClosed ? { opacity: 0.65, filter: 'saturate(0.5)' } : undefined}>
+        <div className="offer-card-img">
+          {offer.image_url
+            ? <img src={resolveImageUrl(offer.image_url)} alt={offer.title} loading="lazy" />
+            : <div className="offer-card-img-placeholder">{getEmoji(offer.category)}</div>
+          }
 
-        {/* Top-right: save button */}
-        <button className="offer-card-h-save" onClick={handleSave} aria-label={saved ? 'Unsave' : 'Save'}
-          style={{ position: 'absolute', top: 10, right: 10, zIndex: 5 }}
-        >
-          <HeartIcon filled={saved} />
-        </button>
-      </div>
+          {/* Top-right: save button */}
+          <button className="offer-card-h-save" onClick={handleSave} aria-label={saved ? 'Unsave' : 'Save'}
+            style={{ position: 'absolute', top: 10, right: 10, zIndex: 5 }}
+          >
+            <HeartIcon filled={saved} />
+          </button>
+        </div>
 
-      <div className="offer-card-body">
-        <div className="offer-card-biz truncate">{offer.business_name}</div>
-        <div className="offer-card-title">{toTitleCase(offer.title)}</div>
+        <div className="offer-card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <BizAvatar offer={offer} onClick={() => setShowStory(true)} />
+            <div className="offer-card-biz truncate">{offer.business_name}</div>
+          </div>
+          <div className="offer-card-title">{toTitleCase(offer.title)}</div>
 
-        <div className="offer-card-meta">
-          {distLabel && (
-            <span className="offer-card-meta-item">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 14 8 14s8-8.6 8-14a8 8 0 0 0-8-8z"/>
-              </svg>
-              {distLabel}
-            </span>
-          )}
+          <div className="offer-card-meta">
+            {distLabel && (
+              <span className="offer-card-meta-item">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 14 8 14s8-8.6 8-14a8 8 0 0 0-8-8z"/>
+                </svg>
+                {distLabel}
+              </span>
+            )}
 
-          {isClosed ? (
-            <span className="offer-card-meta-item" style={{ color: 'var(--c-text-dim)' }}>
-              {offer.business_next_open ? `Opens ${offer.business_next_open}` : 'Closed'}
-            </span>
-          ) : offer.countdown_label && offer.show_countdown !== false ? (
-            <span className={`offer-card-meta-item ${offer.countdown_urgency === 'red' || offer.countdown_urgency === 'pulse' ? 'offer-card-expiry-urgent' : ''}`}>
-              {offer.countdown_label}
-            </span>
-          ) : countdown && !countdown.expired ? (
-            <span className={`offer-card-meta-item ${countdown.urgent ? 'offer-card-expiry-urgent' : ''}`}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
-              {countdown.label}
-            </span>
-          ) : countdown?.expired ? (
-            <span className="offer-card-meta-item text-dim">Expired</span>
-          ) : null}
+            {isClosed ? (
+              <span className="offer-card-meta-item" style={{ color: 'var(--c-text-dim)' }}>
+                {offer.business_next_open ? `Opens ${offer.business_next_open}` : 'Closed'}
+              </span>
+            ) : offer.countdown_label && offer.show_countdown !== false ? (
+              <span className={`offer-card-meta-item ${offer.countdown_urgency === 'red' || offer.countdown_urgency === 'pulse' ? 'offer-card-expiry-urgent' : ''}`}>
+                {offer.countdown_label}
+              </span>
+            ) : countdown && !countdown.expired ? (
+              <span className={`offer-card-meta-item ${countdown.urgent ? 'offer-card-expiry-urgent' : ''}`}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {countdown.label}
+              </span>
+            ) : countdown?.expired ? (
+              <span className="offer-card-meta-item text-dim">Expired</span>
+            ) : null}
+          </div>
         </div>
       </div>
-    </div>
+
+      {showStory && (
+        <StoryOverlay
+          businessId={offer.business_id}
+          businessName={offer.business_name}
+          onClose={() => setShowStory(false)}
+        />
+      )}
+    </>
   );
 }

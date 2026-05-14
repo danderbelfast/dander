@@ -187,6 +187,37 @@ router.delete(
 );
 
 // ---------------------------------------------------------------------------
+// GET /api/offers/story/:businessId — public story (only if business is open)
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/story/:businessId',
+  [param('businessId').isInt({ min: 1 }).withMessage('Invalid business ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const hoursService = require('../services/hoursService');
+      const status = await hoursService.isBusinessOpen(parseInt(req.params.businessId, 10));
+      if (!status.isOpen) return ok(res, { story: null });
+
+      const { rows } = await pool.query(
+        `SELECT s.*, b.name AS business_name, b.logo_url AS business_logo_url
+         FROM business_stories s
+         JOIN businesses b ON b.id = s.business_id
+         WHERE s.business_id = $1
+           AND (s.created_at AT TIME ZONE 'Europe/London')::date = (NOW() AT TIME ZONE 'Europe/London')::date
+         ORDER BY s.created_at DESC LIMIT 1`,
+        [req.params.businessId]
+      );
+      return ok(res, { story: rows[0] || null });
+    } catch (err) {
+      console.error('[offers/story/:businessId GET]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch story.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
 // GET /api/offers/:id   — single offer with business details
 // ---------------------------------------------------------------------------
 
@@ -207,7 +238,12 @@ router.get(
            b.phone         AS business_phone,
            b.website       AS business_website,
            b.lat           AS business_lat,
-           b.lng           AS business_lng
+           b.lng           AS business_lng,
+           EXISTS (
+             SELECT 1 FROM business_stories bs
+             WHERE bs.business_id = o.business_id
+               AND (bs.created_at AT TIME ZONE 'Europe/London')::date = (NOW() AT TIME ZONE 'Europe/London')::date
+           ) AS has_story
          FROM  offers       o
          JOIN  businesses   b ON b.id = o.business_id
          WHERE o.id = $1 AND o.is_active = true`,

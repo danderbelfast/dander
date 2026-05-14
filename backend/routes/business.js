@@ -646,4 +646,74 @@ router.delete(
   }
 );
 
+// ---------------------------------------------------------------------------
+// GET /api/business/story
+// ---------------------------------------------------------------------------
+
+router.get('/story', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM business_stories
+       WHERE business_id = $1
+         AND (created_at AT TIME ZONE 'Europe/London')::date = (NOW() AT TIME ZONE 'Europe/London')::date
+       ORDER BY created_at DESC LIMIT 1`,
+      [req.business.id]
+    );
+    return ok(res, { story: rows[0] || null });
+  } catch (err) {
+    console.error('[business/story GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch story.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/business/story
+// ---------------------------------------------------------------------------
+
+const storyUpload = upload.single('image');
+
+router.post(
+  '/story',
+  storyUpload,
+  [body('caption').optional().isLength({ max: 280 }).withMessage('Caption must be 280 characters or fewer.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    if (!req.file) return fail(res, 400, 'VALIDATION_ERROR', 'An image is required.');
+
+    try {
+      const imageUrl = await processImage(req.file.buffer, 'story', req.file.originalname);
+      const caption = req.body.caption || null;
+
+      const { rows } = await pool.query(
+        `INSERT INTO business_stories (business_id, image_url, caption)
+         VALUES ($1, $2, $3) RETURNING *`,
+        [req.business.id, imageUrl, caption]
+      );
+      return ok(res, { story: rows[0] }, 201);
+    } catch (err) {
+      console.error('[business/story POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to post story.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// DELETE /api/business/story
+// ---------------------------------------------------------------------------
+
+router.delete('/story', async (req, res) => {
+  try {
+    await pool.query(
+      `DELETE FROM business_stories
+       WHERE business_id = $1
+         AND (created_at AT TIME ZONE 'Europe/London')::date = (NOW() AT TIME ZONE 'Europe/London')::date`,
+      [req.business.id]
+    );
+    return ok(res, { message: 'Story removed.' });
+  } catch (err) {
+    console.error('[business/story DELETE]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to delete story.');
+  }
+});
+
 module.exports = router;

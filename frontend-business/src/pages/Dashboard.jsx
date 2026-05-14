@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { getDashboard, getMyOffers, getDashboardROI } from '../api/business';
+import { getDashboard, getMyOffers, getDashboardROI, getStory, postStory, deleteStory } from '../api/business';
 import { resolveImageUrl } from '../utils/imageUrl';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
+import { FileDropzone } from '../components/ui/FileDropzone';
 
 function StatCard({ label, value, sub, accent }) {
   return (
@@ -42,6 +43,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
 
+  // Story state
+  const [story, setStory]               = useState(null);
+  const [storyFile, setStoryFile]       = useState(null);
+  const [storyPreview, setStoryPreview] = useState('');
+  const [storyCaption, setStoryCaption] = useState('');
+  const [storyLoading, setStoryLoading] = useState(false);
+
   // ROI state
   const todayStr = new Date().toISOString().slice(0, 10);
   const yearStart = `${new Date().getFullYear()}-01-01`;
@@ -51,10 +59,11 @@ export default function Dashboard() {
   const [roiExplain, setRoiExplain] = useState(false);
 
   useEffect(() => {
-    Promise.all([getDashboard(), getMyOffers()])
-      .then(([dashData, { offers: list }]) => {
+    Promise.all([getDashboard(), getMyOffers(), getStory()])
+      .then(([dashData, { offers: list }, storyData]) => {
         setData(dashData);
         setOffers(list || []);
+        if (storyData.story) setStory(storyData.story);
       })
       .catch(() => setError('Failed to load dashboard.'))
       .finally(() => setLoading(false));
@@ -75,6 +84,31 @@ export default function Dashboard() {
   if (error) return (
     <div className="form-error-box" style={{ maxWidth: 480 }}>{error}</div>
   );
+
+  async function handlePostStory() {
+    if (!storyFile) return;
+    setStoryLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', storyFile);
+      if (storyCaption) fd.append('caption', storyCaption);
+      const { story: s } = await postStory(fd);
+      setStory(s);
+      setStoryFile(null);
+      setStoryPreview('');
+      setStoryCaption('');
+    } catch {}
+    setStoryLoading(false);
+  }
+
+  async function handleDeleteStory() {
+    setStoryLoading(true);
+    try {
+      await deleteStory();
+      setStory(null);
+    } catch {}
+    setStoryLoading(false);
+  }
 
   const { dashboard = {} } = data || {};
   const stats = {
@@ -113,6 +147,61 @@ export default function Dashboard() {
         <StatCard label="Coupons claimed" value={stats.totalClaimed} sub="waiting to be used" />
         <StatCard label="Coupons redeemed" value={stats.totalRedeemed} sub="used at counter" accent />
         <StatCard label="Top offer" value={stats.topOffer?.title || '—'} sub={stats.topOffer ? `${stats.topOffer.redemptions} redeemed` : null} />
+      </div>
+
+      {/* Today's Post */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Today's Post</span>
+          {story && (
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--c-danger)' }} onClick={handleDeleteStory} disabled={storyLoading}>
+              Remove
+            </button>
+          )}
+        </div>
+        <div className="card-body">
+          {story ? (
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <img
+                src={resolveImageUrl(story.image_url)}
+                alt="Today's story"
+                style={{ width: 120, height: 150, objectFit: 'cover', borderRadius: 'var(--r-md)' }}
+              />
+              <div style={{ flex: 1, minWidth: 180 }}>
+                {story.caption && <p style={{ fontSize: '0.88rem', marginBottom: 8 }}>{story.caption}</p>}
+                <p style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>
+                  Visible to shoppers while you're open. Disappears at closing time.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--c-text-muted)', margin: 0 }}>
+                Post a photo to show shoppers what you have on today. It'll appear as a glowing ring on your offers and disappear when you close.
+              </p>
+              <FileDropzone
+                label="Drop a photo"
+                hint="1080 × 1350 px recommended · PNG, JPG"
+                onFile={(f) => { setStoryFile(f); setStoryPreview(URL.createObjectURL(f)); }}
+                preview={storyPreview}
+              />
+              <div className="field">
+                <label className="label">Caption (optional)</label>
+                <input
+                  className="input"
+                  value={storyCaption}
+                  onChange={(e) => setStoryCaption(e.target.value)}
+                  placeholder="e.g. Fresh batch just out the oven!"
+                  maxLength={280}
+                />
+                <div className="field-hint" style={{ textAlign: 'right' }}>{storyCaption.length} / 280</div>
+              </div>
+              <button className="btn btn-primary" onClick={handlePostStory} disabled={!storyFile || storyLoading}>
+                {storyLoading ? <Spinner white /> : 'Post'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Your ROI */}

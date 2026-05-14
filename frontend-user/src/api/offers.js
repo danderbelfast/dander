@@ -25,3 +25,6 @@ export const unsaveOffer = (id) =>
 
 export const getSavedOffers = () =>
   client.get('/api/offers/saved').then((r) => r.data);
+
+export const getBusinessStory = (businessId) =>
+  client.get(`/api/offers/story/${businessId}`).then((r) => r.data);

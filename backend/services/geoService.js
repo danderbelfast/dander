@@ -148,9 +148,10 @@ async function getOffersNearLocation(lat, lng, radiusMeters, filters = {}) {
 
   const { rows } = await pool.query(sql, params);
 
-  // Enrich each offer with business hours status + countdown
+  // Enrich each offer with business hours status + countdown + story
   const hoursService = require('./hoursService');
   const businessCache = {};
+  const storyCache = {};
 
   for (const offer of rows) {
     const bizId = offer.business_id;
@@ -167,6 +168,18 @@ async function getOffersNearLocation(lat, lng, radiusMeters, filters = {}) {
     const countdown = hoursService.buildCountdownLabel(offer, status);
     offer.countdown_label   = countdown?.text || null;
     offer.countdown_urgency = countdown?.urgency || null;
+
+    if (status.isOpen && !(bizId in storyCache)) {
+      const { rows: sr } = await pool.query(
+        `SELECT id FROM business_stories
+         WHERE business_id = $1
+           AND (created_at AT TIME ZONE 'Europe/London')::date = (NOW() AT TIME ZONE 'Europe/London')::date
+         LIMIT 1`,
+        [bizId]
+      );
+      storyCache[bizId] = sr.length > 0;
+    }
+    offer.has_story = storyCache[bizId] || false;
   }
 
   return rows;

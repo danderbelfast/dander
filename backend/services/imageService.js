@@ -36,6 +36,7 @@ const PRESETS = {
   logo:   { width: 400,  height: 400,  fit: 'cover',  quality: 85 },
   cover:  { width: 1200, height: 400,  fit: 'cover',  quality: 82 },
   offer:  { width: 900,  height: 600,  fit: 'inside', quality: 82 },
+  story:  { width: 1080, height: 1350, fit: 'cover',  quality: 82 },
   avatar: { width: 200,  height: 200,  fit: 'cover',  quality: 88 },
 };
 

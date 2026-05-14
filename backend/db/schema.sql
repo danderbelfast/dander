@@ -407,6 +407,21 @@ ALTER TABLE offers ADD COLUMN IF NOT EXISTS show_countdown   BOOLEAN NOT NULL DE
 -- PLATFORM SETTINGS
 -- =============================================================================
 
+-- =============================================================================
+-- BUSINESS STORIES  (one "today's post" per business, hidden when closed)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS business_stories (
+  id            SERIAL       PRIMARY KEY,
+  business_id   INTEGER      NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  image_url     TEXT         NOT NULL,
+  caption       VARCHAR(280),
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stories_biz_date
+  ON business_stories (business_id, created_at DESC);
+
 -- Seed default platform settings
 INSERT INTO platform_settings (key, value) VALUES
   ('proximity_radius_default_meters', '500'),

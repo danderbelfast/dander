@@ -68,6 +68,18 @@ export const addSpecialHours = (data) =>
 export const deleteSpecialHours = (id) =>
   client.delete(`/api/business/hours/special/${id}`).then((r) => r.data);
 
+// ── Story ───────────────────────────────────────────────
+export const getStory = () =>
+  client.get('/api/business/story').then((r) => r.data);
+
+export const postStory = (formData) =>
+  client.post('/api/business/story', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((r) => r.data);
+
+export const deleteStory = () =>
+  client.delete('/api/business/story').then((r) => r.data);
+
 // ── Staff ───────────────────────────────────────────────────
 export const getStaff = () =>
   client.get('/api/business/staff').then((r) => r.data);
