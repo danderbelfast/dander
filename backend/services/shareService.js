@@ -18,6 +18,18 @@ async function fetchImageBuffer(url) {
   return Buffer.from(data);
 }
 
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+async function renderText(markup, width) {
+  return sharp({
+    text: {
+      text: markup,
+      rgba: true,
+      width,
+    },
+  }).png().toBuffer();
+}
+
 async function generateShareImage(offer) {
   const bgBuffer = offer.image_url
     ? await fetchImageBuffer(offer.image_url)
@@ -40,6 +52,12 @@ async function generateShareImage(offer) {
     </svg>`
   );
 
+  const ctaBar = Buffer.from(
+    `<svg width="${WIDTH}" height="90">
+      <rect width="${WIDTH}" height="90" fill="#E85D26"/>
+    </svg>`
+  );
+
   const title = (offer.title || '').length > 50
     ? offer.title.slice(0, 47) + '...'
     : (offer.title || '');
@@ -51,27 +69,46 @@ async function generateShareImage(offer) {
   if (offer.discount_percent) discountText = `${Math.round(offer.discount_percent)}% OFF`;
   else if (offer.offer_price != null) discountText = `£${parseFloat(offer.offer_price).toFixed(2)}`;
 
-  const escXml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const composites = [
+    { input: darkOverlay, top: 0, left: 0 },
+    { input: ctaBar, top: HEIGHT - 90, left: 0 },
+  ];
 
-  const textOverlay = Buffer.from(
-    `<svg width="${WIDTH}" height="${HEIGHT}">
-      <style>
-        .biz  { font: bold 28px sans-serif; fill: rgba(255,255,255,0.8); }
-        .title { font: bold 48px sans-serif; fill: #fff; }
-        .disc { font: 800 64px sans-serif; fill: #E85D26; }
-        .cta  { font: 600 26px sans-serif; fill: rgba(255,255,255,0.9); }
-        .cta-bg { fill: #E85D26; }
-      </style>
+  if (discountText) {
+    const discBuf = await renderText(
+      `<span foreground="#E85D26" font_weight="bold" font_size="52000">${esc(discountText)}</span>`,
+      WIDTH - 120
+    );
+    composites.push({ input: discBuf, top: 60, left: 60 });
+  }
 
-      ${discountText ? `<text x="60" y="120" class="disc">${escXml(discountText)}</text>` : ''}
-
-      <text x="60" y="${HEIGHT - 195}" class="biz">${escXml(bizName)}</text>
-      <text x="60" y="${HEIGHT - 145}" class="title">${escXml(title)}</text>
-
-      <rect x="0" y="${HEIGHT - 90}" width="${WIDTH}" height="90" class="cta-bg"/>
-      <text x="${WIDTH / 2}" y="${HEIGHT - 38}" text-anchor="middle" class="cta">Find this deal on Dander</text>
-    </svg>`
+  const bizBuf = await renderText(
+    `<span foreground="#cccccc" font_weight="bold" font_size="22000">${esc(bizName)}</span>`,
+    WIDTH - 120
   );
+  const titleBuf = await renderText(
+    `<span foreground="#ffffff" font_weight="bold" font_size="38000">${esc(title)}</span>`,
+    WIDTH - 120
+  );
+
+  const bizMeta = await sharp(bizBuf).metadata();
+  const titleMeta = await sharp(titleBuf).metadata();
+  const textBlockH = (bizMeta.height || 30) + 10 + (titleMeta.height || 50);
+  const textTop = HEIGHT - 90 - 40 - textBlockH;
+
+  composites.push({ input: bizBuf, top: textTop, left: 60 });
+  composites.push({ input: titleBuf, top: textTop + (bizMeta.height || 30) + 10, left: 60 });
+
+  const ctaTextBuf = await renderText(
+    `<span foreground="#ffffff" font_weight="bold" font_size="21000">Find this deal on Dander</span>`,
+    WIDTH - 60
+  );
+  const ctaMeta = await sharp(ctaTextBuf).metadata();
+  composites.push({
+    input: ctaTextBuf,
+    top: HEIGHT - 90 + Math.round((90 - (ctaMeta.height || 26)) / 2),
+    left: Math.round((WIDTH - (ctaMeta.width || 400)) / 2),
+  });
 
   let logoBuf;
   try {
@@ -81,12 +118,6 @@ async function generateShareImage(offer) {
   } catch {
     logoBuf = null;
   }
-
-  const composites = [
-    { input: darkOverlay, top: 0, left: 0 },
-    { input: textOverlay, top: 0, left: 0 },
-  ];
-
   if (logoBuf) {
     composites.push({ input: logoBuf, top: 30, left: WIDTH - 180 });
   }
