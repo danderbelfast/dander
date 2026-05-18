@@ -109,6 +109,7 @@ app.use('/api/admin',       require('../routes/admin'));
 app.use('/api/push',        require('../routes/push'));
 app.use('/api/users',       require('../routes/users'));
 app.use('/api/preferences', require('../routes/preferences'));
+app.use('/api/v1',          require('../routes/v1'));
 
 // ---------------------------------------------------------------------------
 // Health check  (exempt from auth; after routes so it doesn't interfere)
