@@ -115,6 +115,7 @@ app.use('/api/v1',          require('../routes/v1'));
 // API documentation (static HTML)
 // ---------------------------------------------------------------------------
 
+app.get('/docs', (_req, res) => res.redirect(301, '/docs/'));
 app.use('/docs', require('express').static(require('path').resolve(__dirname, '..', 'public', 'docs')));
 
 // ---------------------------------------------------------------------------
