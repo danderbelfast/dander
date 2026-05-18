@@ -115,8 +115,7 @@ app.use('/api/v1',          require('../routes/v1'));
 // API documentation (static HTML)
 // ---------------------------------------------------------------------------
 
-app.get('/docs', (req, res, next) => req.url.endsWith('/') ? next() : res.redirect(301, '/docs/'));
-app.use('/docs', require('express').static(require('path').resolve(__dirname, '..', 'public', 'docs')));
+app.use('/docs', require('express').static(require('path').resolve(__dirname, '..', 'public', 'docs'), { index: 'index.html' }));
 
 // ---------------------------------------------------------------------------
 // Health check  (exempt from auth; after routes so it doesn't interfere)
