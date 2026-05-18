@@ -4,6 +4,7 @@ const { Router } = require('express');
 const { body, validationResult } = require('express-validator');
 
 const couponService = require('../services/couponService');
+const { dispatchEvent } = require('../services/webhookService');
 const { requireAuth, requireBusiness } = require('../middleware/auth');
 
 const router = Router();
@@ -129,6 +130,7 @@ router.post(
         req.body.staffPin,
         req.business.id
       );
+      dispatchEvent(req.business.id, 'coupon.redeemed', result);
       return ok(res, result);
     } catch (err) {
       const knownCodes = new Set([

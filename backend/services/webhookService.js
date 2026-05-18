@@ -1,0 +1,96 @@
+'use strict';
+
+const crypto = require('crypto');
+const axios  = require('axios');
+const pool   = require('../db/pool');
+const { logWebhookDelivery } = require('../middleware/apiAuth');
+
+const VALID_EVENTS = [
+  'offer.created',
+  'offer.updated',
+  'offer.deactivated',
+  'coupon.redeemed',
+  'story.posted',
+];
+
+function sign(payload, secret) {
+  return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+}
+
+async function dispatchEvent(businessId, eventType, payload) {
+  try {
+    const { rows: hooks } = await pool.query(
+      `SELECT id, url, secret_hash
+       FROM webhooks
+       WHERE business_id = $1 AND is_active = true
+         AND ($2 = ANY(events) OR 'all' = ANY(events))`,
+      [businessId, eventType]
+    );
+
+    if (hooks.length === 0) return;
+
+    const body = JSON.stringify({
+      event: eventType,
+      timestamp: new Date().toISOString(),
+      data: payload,
+    });
+
+    for (const hook of hooks) {
+      deliver(hook, eventType, body).catch(() => {});
+    }
+  } catch (err) {
+    console.error('[webhook] dispatchEvent error:', err.message);
+  }
+}
+
+async function deliver(hook, eventType, body, attempt = 1) {
+  const signature = sign(body, hook.secret_hash);
+  let status = null;
+  let responseBody = null;
+
+  try {
+    const resp = await axios.post(hook.url, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Dander-Signature': signature,
+        'X-Dander-Event': eventType,
+      },
+      timeout: 10000,
+      validateStatus: () => true,
+    });
+    status = resp.status;
+    responseBody = typeof resp.data === 'string' ? resp.data.slice(0, 500) : JSON.stringify(resp.data).slice(0, 500);
+  } catch (err) {
+    status = 0;
+    responseBody = err.message;
+  }
+
+  await logWebhookDelivery({
+    webhookId: String(hook.id),
+    eventType,
+    payload: JSON.parse(body),
+    responseStatus: status,
+    responseBody,
+    attemptNumber: attempt,
+  });
+
+  if (status !== 200 && attempt < 3) {
+    const delay = attempt * 5000;
+    setTimeout(() => deliver(hook, eventType, body, attempt + 1), delay);
+  }
+}
+
+async function testUrl(url) {
+  try {
+    const resp = await axios.post(url, JSON.stringify({ test: true }), {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000,
+      validateStatus: () => true,
+    });
+    return resp.status >= 200 && resp.status < 300;
+  } catch {
+    return false;
+  }
+}
+
+module.exports = { dispatchEvent, testUrl, VALID_EVENTS };

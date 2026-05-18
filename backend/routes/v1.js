@@ -11,7 +11,8 @@
  */
 
 const { Router } = require('express');
-const { query, param } = require('express-validator');
+const { query, param, body } = require('express-validator');
+const crypto = require('crypto');
 
 const pool = require('../db/pool');
 const {
@@ -20,9 +21,11 @@ const {
   apiRateLimiter,
   apiError,
   apiSuccess,
+  hashKey,
 } = require('../middleware/apiAuth');
 const { enrichOffer, discountLabel } = require('../services/offerLabels');
 const { generateOgImage } = require('../services/ogImageService');
+const { testUrl, VALID_EVENTS } = require('../services/webhookService');
 
 const router = Router();
 
@@ -268,6 +271,137 @@ router.get(
     } catch (err) {
       console.error('[api/v1/stats]', err);
       return apiError(res, 500, 'server_error', 'Failed to fetch stats.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/webhooks — register a new webhook
+// Scope: webhooks:write
+// ---------------------------------------------------------------------------
+
+router.post(
+  '/webhooks',
+  requireScope('webhooks:write'),
+  [
+    body('url').isURL({ require_protocol: true }).withMessage('url must be a valid HTTPS URL.'),
+    body('events').isArray({ min: 1 }).withMessage('events must be a non-empty array.'),
+    body('events.*').isIn([...VALID_EVENTS, 'all']).withMessage(`events must be one of: ${VALID_EVENTS.join(', ')}, all`),
+    body('secret').isString().isLength({ min: 16, max: 64 }).withMessage('secret must be 16–64 characters.'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+
+    const { url, events, secret } = req.body;
+    const bizId = req.apiKey.businessId;
+
+    const reachable = await testUrl(url);
+    if (!reachable) {
+      return apiError(res, 422, 'url_unreachable',
+        'The webhook URL did not return a 2xx response to a test POST.');
+    }
+
+    try {
+      const secretHash = hashKey(secret);
+      const { rows } = await pool.query(
+        `INSERT INTO webhooks (business_id, url, events, secret_hash)
+         VALUES ($1, $2, $3, $4) RETURNING id, url, events, is_active, created_at`,
+        [bizId, url, events, secretHash]
+      );
+      return apiSuccess(res, rows[0], 201);
+    } catch (err) {
+      console.error('[api/v1/webhooks POST]', err);
+      return apiError(res, 500, 'server_error', 'Failed to register webhook.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/webhooks — list all webhooks for this business
+// Scope: webhooks:write
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/webhooks',
+  requireScope('webhooks:write'),
+  async (req, res) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, url, events, is_active, created_at
+         FROM webhooks
+         WHERE business_id = $1
+         ORDER BY created_at DESC`,
+        [req.apiKey.businessId]
+      );
+      return apiSuccess(res, rows);
+    } catch (err) {
+      console.error('[api/v1/webhooks GET]', err);
+      return apiError(res, 500, 'server_error', 'Failed to list webhooks.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// DELETE /api/v1/webhooks/:id — soft delete (set is_active = false)
+// Scope: webhooks:write
+// ---------------------------------------------------------------------------
+
+router.delete(
+  '/webhooks/:id',
+  requireScope('webhooks:write'),
+  [param('id').isInt({ min: 1 }).withMessage('Invalid webhook ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rowCount } = await pool.query(
+        `UPDATE webhooks SET is_active = false
+         WHERE id = $1 AND business_id = $2`,
+        [req.params.id, req.apiKey.businessId]
+      );
+      if (rowCount === 0) {
+        return apiError(res, 404, 'not_found', 'Webhook not found.');
+      }
+      return apiSuccess(res, { id: parseInt(req.params.id, 10), is_active: false });
+    } catch (err) {
+      console.error('[api/v1/webhooks DELETE]', err);
+      return apiError(res, 500, 'server_error', 'Failed to delete webhook.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/webhooks/:id/deliveries — last 50 delivery attempts
+// Scope: webhooks:write
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/webhooks/:id/deliveries',
+  requireScope('webhooks:write'),
+  [param('id').isInt({ min: 1 }).withMessage('Invalid webhook ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rows: hook } = await pool.query(
+        'SELECT 1 FROM webhooks WHERE id = $1 AND business_id = $2',
+        [req.params.id, req.apiKey.businessId]
+      );
+      if (hook.length === 0) {
+        return apiError(res, 404, 'not_found', 'Webhook not found.');
+      }
+
+      const { rows } = await pool.query(
+        `SELECT id, event_type, response_status, response_body,
+                attempt_number, delivered_at
+         FROM webhook_deliveries
+         WHERE webhook_id = $1
+         ORDER BY delivered_at DESC
+         LIMIT 50`,
+        [req.params.id]
+      );
+      return apiSuccess(res, rows);
+    } catch (err) {
+      console.error('[api/v1/webhooks deliveries GET]', err);
+      return apiError(res, 500, 'server_error', 'Failed to fetch deliveries.');
     }
   }
 );

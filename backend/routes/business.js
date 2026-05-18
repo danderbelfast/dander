@@ -8,6 +8,7 @@ const offerService   = require('../services/offerService');
 const profitService  = require('../services/profitService');
 const hoursService   = require('../services/hoursService');
 const { generateShareImage } = require('../services/shareService');
+const { dispatchEvent }     = require('../services/webhookService');
 const { requireBusiness } = require('../middleware/auth');
 const { upload, processImage } = require('../middleware/upload');
 
@@ -287,6 +288,7 @@ router.post(
       }
 
       const offer = await offerService.createOffer(req.business.id, offerData);
+      dispatchEvent(req.business.id, 'offer.created', offer);
       return ok(res, { offer }, 201);
     } catch (err) {
       if (err.code === 'VALIDATION_ERROR') return fail(res, 400, err.code, err.message, err.details);
@@ -403,6 +405,7 @@ router.put(
       }
 
       const offer = await offerService.updateOffer(req.params.id, req.business.id, updates);
+      dispatchEvent(req.business.id, 'offer.updated', offer);
       return ok(res, { offer });
     } catch (err) {
       if (err.code === 'VALIDATION_ERROR') return fail(res, 400, err.code, err.message, err.details);
@@ -425,6 +428,7 @@ router.delete(
 
     try {
       const result = await offerService.deactivateOffer(req.params.id, req.business.id);
+      dispatchEvent(req.business.id, 'offer.deactivated', result);
       return ok(res, { message: 'Offer deactivated.', offer: result });
     } catch (err) {
       if (err.status === 404) return fail(res, 404, 'NOT_FOUND', err.message);
@@ -722,6 +726,7 @@ router.post(
          VALUES ($1, $2, $3) RETURNING *`,
         [req.business.id, imageUrl, caption]
       );
+      dispatchEvent(req.business.id, 'story.posted', rows[0]);
       return ok(res, { story: rows[0] }, 201);
     } catch (err) {
       console.error('[business/story POST]', err);
