@@ -30,7 +30,7 @@ async function generateShareImage(offer) {
   if (offer.image_url) {
     try {
       const raw = await fetchImageBuffer(offer.image_url);
-      const resized = await sharp(raw).resize(WIDTH, HEIGHT, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer();
+      const resized = await sharp(raw).resize(WIDTH, HEIGHT, { fit: 'cover' }).jpeg({ quality: 60 }).toBuffer();
       bgDataUri = await toBase64DataUri(resized, 'image/jpeg');
     } catch {}
   }
@@ -79,8 +79,10 @@ async function generateShareImage(offer) {
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: WIDTH },
   });
-  const pngData = resvg.render();
-  return Buffer.from(pngData.asPng());
+  const rawPng = resvg.render().asPng();
+  return sharp(Buffer.from(rawPng))
+    .png({ compressionLevel: 9, colours: 64, palette: true, effort: 10 })
+    .toBuffer();
 }
 
 module.exports = { generateShareImage };
