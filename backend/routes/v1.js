@@ -123,6 +123,34 @@ router.get(
   }
 );
 
+// POST /api/v1/offers/:id/share — increment share_count + dispatch event (no auth)
+router.post(
+  '/offers/:id/share',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
+  async (req, res) => {
+    const { validationResult: vr } = require('express-validator');
+    if (!vr(req).isEmpty()) return res.status(400).json({ error: 'invalid_id' });
+
+    try {
+      const { rows } = await pool.query(
+        `UPDATE offers SET share_count = share_count + 1
+         WHERE id = $1 AND is_active = true
+         RETURNING id, business_id, title, share_count`,
+        [req.params.id]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: 'not_found' });
+
+      const { dispatchEvent } = require('../services/webhookService');
+      dispatchEvent(rows[0].business_id, 'offer.shared', rows[0]);
+
+      return res.json({ data: { share_count: rows[0].share_count } });
+    } catch (err) {
+      console.error('[api/v1/offers/:id/share]', err);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+);
+
 // All remaining v1 routes: authenticate → rate limit
 router.use(authenticateApiKey);
 router.use(apiRateLimiter);

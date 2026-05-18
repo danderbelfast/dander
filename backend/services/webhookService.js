@@ -9,8 +9,10 @@ const VALID_EVENTS = [
   'offer.created',
   'offer.updated',
   'offer.deactivated',
+  'offer.shared',
   'coupon.redeemed',
   'story.posted',
+  // 'footfall.alert' — reserved for Kilo IoT integration phase
 ];
 
 function sign(payload, secret) {
