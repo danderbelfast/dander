@@ -112,6 +112,12 @@ app.use('/api/preferences', require('../routes/preferences'));
 app.use('/api/v1',          require('../routes/v1'));
 
 // ---------------------------------------------------------------------------
+// API documentation (static HTML)
+// ---------------------------------------------------------------------------
+
+app.use('/docs', require('express').static(require('path').resolve(__dirname, '..', 'public', 'docs')));
+
+// ---------------------------------------------------------------------------
 // Health check  (exempt from auth; after routes so it doesn't interfere)
 // ---------------------------------------------------------------------------
 

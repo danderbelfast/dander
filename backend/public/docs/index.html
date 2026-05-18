@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dander API Documentation</title>
+<style>
+  :root { --orange: #E85D26; --bg: #FAFAF9; --surface: #fff; --text: #1A1A19; --muted: #6B7280; --border: #E5E5E4; --code-bg: #F3F4F6; --mono: 'SF Mono', 'Fira Mono', 'Consolas', monospace; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  a { color: var(--orange); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .header-badge { background: var(--orange); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 40px; }
+
+  /* Nav */
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 40px; }
+  .toc-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 10px; }
+  .toc ul { list-style: none; columns: 2; gap: 8px; }
+  .toc li { margin-bottom: 6px; font-size: 0.88rem; }
+
+  /* Sections */
+  h2 { font-size: 1.35rem; font-weight: 700; margin: 48px 0 16px; padding-top: 24px; border-top: 1px solid var(--border); }
+  h2:first-of-type { border-top: none; margin-top: 0; }
+  h3 { font-size: 1rem; font-weight: 700; margin: 28px 0 8px; }
+  p, li { font-size: 0.9rem; margin-bottom: 8px; }
+  ul { padding-left: 20px; }
+
+  /* Code */
+  code { font-family: var(--mono); font-size: 0.82rem; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; }
+  pre { background: #1A1A19; color: #E5E5E4; border-radius: 10px; padding: 18px 20px; overflow-x: auto; margin: 12px 0 20px; font-size: 0.8rem; line-height: 1.55; }
+  pre code { background: none; padding: 0; color: inherit; }
+  .kw { color: #F59E0B; }
+  .str { color: #34D399; }
+  .cmt { color: #6B7280; }
+
+  /* Method badges */
+  .method { display: inline-block; font-family: var(--mono); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 6px; }
+  .method-get { background: #DBEAFE; color: #1D4ED8; }
+  .method-post { background: #D1FAE5; color: #065F46; }
+  .method-delete { background: #FEE2E2; color: #991B1B; }
+  .endpoint { font-family: var(--mono); font-size: 0.85rem; font-weight: 600; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 0.85rem; }
+  th { text-align: left; font-weight: 600; padding: 8px 12px; border-bottom: 2px solid var(--border); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td code { font-size: 0.78rem; }
+
+  /* Alerts */
+  .note { background: #FFF7ED; border-left: 3px solid var(--orange); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0 20px; font-size: 0.85rem; }
+  .note strong { color: var(--orange); }
+
+  @media (max-width: 600px) {
+    .toc ul { columns: 1; }
+    h1 { font-size: 1.5rem; }
+    pre { font-size: 0.75rem; padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <h1>Dander API</h1>
+  <span class="header-badge">v1</span>
+</div>
+<p class="subtitle">Programmatic access to offers, stats, and webhook integrations for Dander businesses.</p>
+
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ul>
+    <li><a href="#auth">Authentication</a></li>
+    <li><a href="#base-url">Base URL</a></li>
+    <li><a href="#offer-types">Offer Types</a></li>
+    <li><a href="#endpoints">Endpoints</a></li>
+    <li><a href="#iot">Kilo IoT Integration</a></li>
+    <li><a href="#webhooks">Webhook Events</a></li>
+    <li><a href="#rate-limits">Rate Limits</a></li>
+    <li><a href="#errors">Errors</a></li>
+    <li><a href="#api-key">Getting Your API Key</a></li>
+  </ul>
+</div>
+
+<!-- ─── AUTH ─── -->
+<h2 id="auth">Authentication</h2>
+<p>All authenticated endpoints require an API key passed via the <code>X-API-Key</code> header:</p>
+<pre><code>curl -H <span class="str">"X-API-Key: dsk_your_key_here"</span> \
+  https://dander.io/api/v1/stats</code></pre>
+<p>Alternatively, use <code>Authorization: Bearer dsk_...</code> — the key must start with <code>dsk_</code>.</p>
+<p>Keys are scoped. Each endpoint lists its required scope. Your key must include that scope or you'll get a <code>403 insufficient_scope</code> error.</p>
+
+<!-- ─── BASE URL ─── -->
+<h2 id="base-url">Base URL</h2>
+<pre><code>https://dander.io/api/v1</code></pre>
+
+<!-- ─── OFFER TYPES ─── -->
+<h2 id="offer-types">Offer Types</h2>
+<p>The <code>offer_type</code> field determines pricing logic and the auto-generated <code>discount_label</code>:</p>
+<table>
+  <thead><tr><th>offer_type</th><th>discount_label</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td><code>percentage</code></td><td><code>20% OFF</code></td><td>20% off all mains</td></tr>
+    <tr><td><code>fixed</code></td><td><code>&pound;5.99</code></td><td>&pound;5.99 lunch special</td></tr>
+    <tr><td><code>free_item</code></td><td><code>FREE GIFT</code></td><td>Free chips with any burger</td></tr>
+    <tr><td><code>buy_one_get_one</code></td><td><code>2 FOR 1</code></td><td>2 for 1 on cocktails</td></tr>
+    <tr><td><code>free_delivery</code></td><td><code>FREE DELIVERY</code></td><td>Free delivery on orders over &pound;15</td></tr>
+    <tr><td><code>custom</code></td><td>Your text (max 20 chars)</td><td>Set via <code>discount_label</code> field</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── ENDPOINTS ─── -->
+<h2 id="endpoints">Endpoints</h2>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/stats</span></h3>
+<p>Scope: <code>stats:read</code> &mdash; Overall performance for your business.</p>
+<table>
+  <thead><tr><th>Param</th><th>Values</th><th>Default</th></tr></thead>
+  <tbody>
+    <tr><td><code>period</code></td><td><code>7d</code>, <code>30d</code>, <code>90d</code></td><td><code>30d</code></td></tr>
+    <tr><td><code>trigger_source</code></td><td><code>kilo_iot</code>, <code>stamplify</code>, <code>manual</code>, <code>all</code></td><td><code>all</code></td></tr>
+  </tbody>
+</table>
+<pre><code>{
+  <span class="str">"data"</span>: {
+    <span class="str">"period"</span>: <span class="str">"30d"</span>,
+    <span class="str">"total_offers"</span>: 24,
+    <span class="str">"active_offers"</span>: 3,
+    <span class="str">"total_views"</span>: 1847,
+    <span class="str">"total_redemptions"</span>: 89,
+    <span class="str">"total_shares"</span>: 34,
+    <span class="str">"avg_redemption_rate"</span>: <span class="str">"4.8%"</span>,
+    <span class="str">"top_performing_offer"</span>: { <span class="cmt">/* offer object with discount_label */</span> },
+    <span class="str">"busiest_day"</span>: <span class="str">"tuesday"</span>,
+    <span class="str">"busiest_hour"</span>: <span class="str">"13:00"</span>,
+    <span class="str">"by_trigger_source"</span>: {
+      <span class="str">"kilo_iot"</span>: { <span class="str">"offers"</span>: 8, <span class="str">"redemptions"</span>: 34 },
+      <span class="str">"manual"</span>:   { <span class="str">"offers"</span>: 10, <span class="str">"redemptions"</span>: 27 }
+    }
+  },
+  <span class="str">"meta"</span>: { <span class="str">"request_id"</span>: <span class="str">"uuid"</span>, <span class="str">"timestamp"</span>: <span class="str">"ISO8601"</span> }
+}</code></pre>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/offers/:id/share</span></h3>
+<p><strong>No auth required.</strong> Called when a user taps Share in the app. Increments <code>share_count</code> and dispatches <code>offer.shared</code> webhook.</p>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/offers/:id/preview.png</span></h3>
+<p><strong>No auth required.</strong> Returns a branded 1200&times;630 PNG for Open Graph / social sharing.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/webhooks</span></h3>
+<p>Scope: <code>webhooks:write</code> &mdash; Register a new webhook endpoint.</p>
+<p>The URL is tested with a POST before saving. If it doesn't return 2xx, registration is rejected.</p>
+<pre><code>{
+  <span class="str">"url"</span>: <span class="str">"https://example.com/hooks/dander"</span>,
+  <span class="str">"events"</span>: [<span class="str">"offer.created"</span>, <span class="str">"coupon.redeemed"</span>],
+  <span class="str">"secret"</span>: <span class="str">"your-shared-secret-min-16-chars"</span>
+}</code></pre>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/webhooks</span></h3>
+<p>Scope: <code>webhooks:write</code> &mdash; List all registered webhooks. Secret is never returned.</p>
+
+<h3><span class="method method-delete">DELETE</span> <span class="endpoint">/webhooks/:id</span></h3>
+<p>Scope: <code>webhooks:write</code> &mdash; Soft-delete (deactivates the webhook).</p>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/webhooks/:id/deliveries</span></h3>
+<p>Scope: <code>webhooks:write</code> &mdash; Last 50 delivery attempts. Useful for debugging failed integrations.</p>
+
+<!-- ─── IOT ─── -->
+<h2 id="iot">Kilo IoT Integration</h2>
+<p>Dander supports automatic offer triggering from IoT sensors (e.g. Kilo footfall counters). Three fields on the offer control this:</p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>trigger_source</code></td><td>string</td><td>Origin of the offer: <code>kilo_iot</code>, <code>stamplify</code>, or <code>manual</code> (default)</td></tr>
+    <tr><td><code>trigger_device_id</code></td><td>string</td><td>Hardware ID of the triggering sensor (e.g. <code>kilo_bel_0042</code>)</td></tr>
+    <tr><td><code>auto_expire_on_recovery</code></td><td>boolean</td><td>If <code>true</code>, the offer auto-expires when footfall returns to normal</td></tr>
+  </tbody>
+</table>
+<p><strong>Example flow:</strong> A Kilo sensor at a caf&eacute; detects a quiet period (footfall drops below threshold). It calls the API to create an offer with <code>trigger_source: "kilo_iot"</code>. When footfall recovers, it deactivates the offer. The <code>footfall.alert</code> webhook event notifies any subscribed systems.</p>
+<pre><code><span class="cmt">// Sensor creates a "quiet period" offer</span>
+POST /api/v1/offers
+{
+  <span class="str">"title"</span>: <span class="str">"Quiet hour special &mdash; 30% off lattes"</span>,
+  <span class="str">"offer_type"</span>: <span class="str">"percentage"</span>,
+  <span class="str">"discount_percent"</span>: 30,
+  <span class="str">"trigger_source"</span>: <span class="str">"kilo_iot"</span>,
+  <span class="str">"trigger_device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
+  <span class="str">"auto_expire_on_recovery"</span>: <span class="kw">true</span>
+}</code></pre>
+
+<!-- ─── WEBHOOKS ─── -->
+<h2 id="webhooks">Webhook Events</h2>
+<p>Dander sends a POST to each registered webhook URL when events occur. The payload is signed with HMAC-SHA256 using your shared secret, sent in the <code>X-Dander-Signature</code> header.</p>
+
+<table>
+  <thead><tr><th>Event</th><th>Triggered when</th></tr></thead>
+  <tbody>
+    <tr><td><code>offer.created</code></td><td>A new offer is published</td></tr>
+    <tr><td><code>offer.updated</code></td><td>An offer is edited</td></tr>
+    <tr><td><code>offer.deactivated</code></td><td>An offer is deactivated</td></tr>
+    <tr><td><code>offer.shared</code></td><td>A shopper shares an offer</td></tr>
+    <tr><td><code>coupon.redeemed</code></td><td>A coupon is redeemed at the counter</td></tr>
+    <tr><td><code>story.posted</code></td><td>A business posts a daily story</td></tr>
+    <tr><td><code>footfall.alert</code></td><td>IoT sensor reports a footfall change <em>(Kilo phase)</em></td></tr>
+  </tbody>
+</table>
+
+<h3>Example: offer.created</h3>
+<pre><code>{
+  <span class="str">"event"</span>: <span class="str">"offer.created"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-18T14:30:00.000Z"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"id"</span>: 42,
+    <span class="str">"business_id"</span>: 7,
+    <span class="str">"title"</span>: <span class="str">"20% off all mains"</span>,
+    <span class="str">"offer_type"</span>: <span class="str">"percentage"</span>,
+    <span class="str">"discount_percent"</span>: 20,
+    <span class="str">"is_active"</span>: <span class="kw">true</span>,
+    <span class="str">"trigger_source"</span>: <span class="str">"manual"</span>
+  }
+}</code></pre>
+
+<h3>Example: coupon.redeemed</h3>
+<pre><code>{
+  <span class="str">"event"</span>: <span class="str">"coupon.redeemed"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-18T15:12:00.000Z"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"coupon_code"</span>: <span class="str">"DAN-X7K2"</span>,
+    <span class="str">"offer_id"</span>: 42,
+    <span class="str">"offer_title"</span>: <span class="str">"20% off all mains"</span>,
+    <span class="str">"redeemed_by"</span>: <span class="str">"staff@example.com"</span>,
+    <span class="str">"redeemed_at"</span>: <span class="str">"2026-05-18T15:12:00.000Z"</span>
+  }
+}</code></pre>
+
+<h3>Example: offer.shared</h3>
+<pre><code>{
+  <span class="str">"event"</span>: <span class="str">"offer.shared"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-18T16:05:00.000Z"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"id"</span>: 42,
+    <span class="str">"business_id"</span>: 7,
+    <span class="str">"title"</span>: <span class="str">"20% off all mains"</span>,
+    <span class="str">"share_count"</span>: 15
+  }
+}</code></pre>
+
+<h3>Example: footfall.alert <span class="header-badge">coming soon</span></h3>
+<pre><code>{
+  <span class="str">"event"</span>: <span class="str">"footfall.alert"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-18T14:00:00.000Z"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
+    <span class="str">"business_id"</span>: 7,
+    <span class="str">"status"</span>: <span class="str">"quiet"</span>,
+    <span class="str">"current_count"</span>: 3,
+    <span class="str">"threshold"</span>: 10
+  }
+}</code></pre>
+
+<h3>Verifying signatures</h3>
+<pre><code><span class="cmt">// Node.js example</span>
+<span class="kw">const</span> crypto = require(<span class="str">'crypto'</span>);
+
+<span class="kw">const</span> expected = crypto
+  .createHmac(<span class="str">'sha256'</span>, YOUR_SHARED_SECRET)
+  .update(rawRequestBody)
+  .digest(<span class="str">'hex'</span>);
+
+<span class="kw">if</span> (signature !== expected) {
+  <span class="kw">return</span> res.status(401).json({ error: <span class="str">'invalid_signature'</span> });
+}</code></pre>
+
+<!-- ─── RATE LIMITS ─── -->
+<h2 id="rate-limits">Rate Limits</h2>
+<p>100 requests per minute per API key. Every response includes these headers:</p>
+<table>
+  <thead><tr><th>Header</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>X-RateLimit-Limit</code></td><td>Max requests per window (100)</td></tr>
+    <tr><td><code>X-RateLimit-Remaining</code></td><td>Requests remaining in this window</td></tr>
+    <tr><td><code>X-RateLimit-Reset</code></td><td>Unix timestamp when the window resets</td></tr>
+    <tr><td><code>Retry-After</code></td><td>Seconds to wait (only on 429 responses)</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── ERRORS ─── -->
+<h2 id="errors">Errors</h2>
+<p>All errors follow this format:</p>
+<pre><code>{
+  <span class="str">"error"</span>: <span class="str">"error_code"</span>,
+  <span class="str">"message"</span>: <span class="str">"Human-readable description"</span>,
+  <span class="str">"status"</span>: 401
+}</code></pre>
+<table>
+  <thead><tr><th>Code</th><th>Status</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>missing_api_key</code></td><td>401</td><td>No API key provided</td></tr>
+    <tr><td><code>invalid_api_key</code></td><td>401</td><td>Key doesn't exist</td></tr>
+    <tr><td><code>api_key_revoked</code></td><td>401</td><td>Key has been deactivated</td></tr>
+    <tr><td><code>insufficient_scope</code></td><td>403</td><td>Key lacks the required scope</td></tr>
+    <tr><td><code>validation_error</code></td><td>400</td><td>Invalid request parameters</td></tr>
+    <tr><td><code>not_found</code></td><td>404</td><td>Resource doesn't exist</td></tr>
+    <tr><td><code>url_unreachable</code></td><td>422</td><td>Webhook URL failed reachability test</td></tr>
+    <tr><td><code>rate_limited</code></td><td>429</td><td>Too many requests — check Retry-After</td></tr>
+    <tr><td><code>missing_signature</code></td><td>401</td><td>Webhook call missing X-Dander-Signature</td></tr>
+    <tr><td><code>invalid_signature</code></td><td>401</td><td>HMAC signature doesn't match</td></tr>
+    <tr><td><code>server_error</code></td><td>500</td><td>Something went wrong on our end</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── API KEY ─── -->
+<h2 id="api-key">Getting Your API Key</h2>
+<ol>
+  <li>Sign in to the <a href="https://business.dander.io/dashboard">Dander Business Dashboard</a></li>
+  <li>Navigate to <strong>Settings &rarr; API Keys</strong></li>
+  <li>Click <strong>Create API Key</strong></li>
+  <li>Choose a label and select the scopes you need</li>
+  <li>Copy the key immediately &mdash; it won't be shown again</li>
+</ol>
+<div class="note">
+  <strong>Security:</strong> Keys are stored as SHA-256 hashes. If you lose your key, revoke it and create a new one.
+</div>
+
+<hr style="margin: 48px 0 24px; border: none; border-top: 1px solid var(--border);">
+<p style="color: var(--muted); font-size: 0.8rem; text-align: center;">&copy; Dander 2026 &mdash; Belfast, NI</p>
+
+</div>
+</body>
+</html>
