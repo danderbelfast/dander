@@ -21,41 +21,106 @@ const {
   apiError,
   apiSuccess,
 } = require('../middleware/apiAuth');
+const { enrichOffer, discountLabel } = require('../services/offerLabels');
+const { generateOgImage } = require('../services/ogImageService');
 
 const router = Router();
 
 // ---------------------------------------------------------------------------
-// Discount label formatter
+// PUBLIC — no auth (must be before the auth middleware)
 // ---------------------------------------------------------------------------
 
-function discountLabel(offer) {
-  switch (offer.offer_type) {
-    case 'percentage':
-      return offer.discount_percent ? `${Math.round(offer.discount_percent)}% OFF` : null;
-    case 'fixed':
-    case 'fixed_price':
-      return offer.offer_price != null ? `£${parseFloat(offer.offer_price).toFixed(2)}` : null;
-    case 'free_item':
-    case 'gift_with_purchase':
-      return 'FREE GIFT';
-    case 'bogo':
-    case 'buy_one_get_one':
-      return '2 FOR 1';
-    case 'free_delivery':
-      return 'FREE DELIVERY';
-    case 'custom':
-      return offer.discount_label || offer.description || null;
-    default:
-      return null;
+// GET /api/v1/offers/:id/preview.png — OG image for social sharing
+router.get(
+  '/offers/:id/preview.png',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
+  async (req, res) => {
+    const { validationResult } = require('express-validator');
+    if (!validationResult(req).isEmpty()) return res.status(400).end();
+
+    try {
+      const { rows } = await pool.query(
+        `SELECT o.*, b.name AS business_name, b.logo_url AS business_logo_url
+         FROM offers o JOIN businesses b ON b.id = o.business_id
+         WHERE o.id = $1 AND o.is_active = true`,
+        [req.params.id]
+      );
+      if (rows.length === 0) return res.status(404).end();
+
+      const offer = rows[0];
+      const badge = discountLabel(offer);
+      const png   = await generateOgImage(offer, badge);
+
+      res.set({
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      return res.send(png);
+    } catch (err) {
+      console.error('[api/v1/offers/:id/preview.png]', err);
+      return res.status(500).end();
+    }
   }
-}
+);
 
-function enrichOffer(offer) {
-  if (!offer) return null;
-  return { ...offer, discount_label: discountLabel(offer) };
-}
+// GET /api/v1/offers/:id/og — HTML page with OG meta tags (for crawlers)
+router.get(
+  '/offers/:id/og',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
+  async (req, res) => {
+    const { validationResult: vr } = require('express-validator');
+    if (!vr(req).isEmpty()) return res.status(400).send('Invalid ID');
 
-// All v1 routes: authenticate → rate limit
+    try {
+      const { rows } = await pool.query(
+        `SELECT o.id, o.title, o.description, o.offer_type,
+                o.discount_percent, o.offer_price, o.discount_label,
+                b.name AS business_name
+         FROM offers o JOIN businesses b ON b.id = o.business_id
+         WHERE o.id = $1 AND o.is_active = true`,
+        [req.params.id]
+      );
+      if (rows.length === 0) return res.status(404).send('Offer not found');
+
+      const offer = rows[0];
+      const badge = discountLabel(offer) || 'Deal';
+      const ogTitle = `${badge} at ${offer.business_name}`;
+      const ogDesc  = offer.title || '';
+      const ogImage = `https://dander.io/api/v1/offers/${offer.id}/preview.png`;
+      const ogUrl   = `https://dander.io/o/${offer.id}`;
+      const appUrl  = `https://dander.io/offer/${offer.id}`;
+
+      const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+      res.set('Content-Type', 'text/html');
+      return res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${esc(ogTitle)}</title>
+  <meta property="og:title" content="${esc(ogTitle)}">
+  <meta property="og:description" content="${esc(ogDesc)}">
+  <meta property="og:image" content="${ogImage}">
+  <meta property="og:url" content="${ogUrl}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${esc(ogTitle)}">
+  <meta name="twitter:description" content="${esc(ogDesc)}">
+  <meta name="twitter:image" content="${ogImage}">
+  <meta http-equiv="refresh" content="0;url=${appUrl}">
+</head>
+<body>
+  <p>Redirecting to <a href="${appUrl}">${esc(offer.title)}</a>…</p>
+</body>
+</html>`);
+    } catch (err) {
+      console.error('[api/v1/offers/:id/og]', err);
+      return res.status(500).send('Server error');
+    }
+  }
+);
+
+// All remaining v1 routes: authenticate → rate limit
 router.use(authenticateApiKey);
 router.use(apiRateLimiter);
 

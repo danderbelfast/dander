@@ -7,6 +7,12 @@
   VITE_API_URL = "https://web-production-04206.up.railway.app"
 
 [[redirects]]
+  from   = "/o/:id"
+  to     = "https://web-production-04206.up.railway.app/api/v1/offers/:id/og"
+  status = 200
+  force  = true
+
+[[redirects]]
   from   = "/*"
   to     = "/index.html"
   status = 200
