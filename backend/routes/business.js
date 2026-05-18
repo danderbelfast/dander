@@ -7,10 +7,12 @@ const pool           = require('../db/pool');
 const offerService   = require('../services/offerService');
 const profitService  = require('../services/profitService');
 const hoursService   = require('../services/hoursService');
+const crypto = require('crypto');
 const { generateShareImage } = require('../services/shareService');
 const { dispatchEvent }     = require('../services/webhookService');
 const { requireBusiness } = require('../middleware/auth');
 const { upload, processImage } = require('../middleware/upload');
+const { hashKey } = require('../middleware/apiAuth');
 
 const router = Router();
 
@@ -753,5 +755,91 @@ router.delete('/story', async (req, res) => {
     return fail(res, 500, 'SERVER_ERROR', 'Failed to delete story.');
   }
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/business/api-keys — generate a new API key
+// ---------------------------------------------------------------------------
+
+router.post(
+  '/api-keys',
+  [
+    body('label').optional().trim().isLength({ max: 100 }),
+    body('scopes').isArray({ min: 1 }).withMessage('scopes must be a non-empty array.'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+
+    try {
+      const rawKey = `dsk_${crypto.randomBytes(24).toString('hex')}`;
+      const keyHash = hashKey(rawKey);
+      const prefix = rawKey.slice(0, 12);
+      const label = req.body.label || 'default';
+      const scopes = req.body.scopes;
+
+      const { rows } = await pool.query(
+        `INSERT INTO api_keys (business_id, key_hash, key_prefix, label, scopes)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, key_prefix, label, scopes, is_active, created_at`,
+        [req.business.id, keyHash, prefix, label, scopes]
+      );
+
+      return ok(res, {
+        api_key: {
+          ...rows[0],
+          key: rawKey,
+        },
+        warning: 'Store this key securely — it will not be shown again.',
+      }, 201);
+    } catch (err) {
+      console.error('[business/api-keys POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to create API key.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/business/api-keys — list all API keys for this business
+// ---------------------------------------------------------------------------
+
+router.get('/api-keys', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, key_prefix, label, scopes, is_active, last_used_at, created_at
+       FROM api_keys
+       WHERE business_id = $1
+       ORDER BY created_at DESC`,
+      [req.business.id]
+    );
+    return ok(res, { api_keys: rows });
+  } catch (err) {
+    console.error('[business/api-keys GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to list API keys.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/business/api-keys/:id — revoke an API key
+// ---------------------------------------------------------------------------
+
+router.delete(
+  '/api-keys/:id',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid API key ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+
+    try {
+      const { rowCount } = await pool.query(
+        `UPDATE api_keys SET is_active = false
+         WHERE id = $1 AND business_id = $2`,
+        [req.params.id, req.business.id]
+      );
+      if (rowCount === 0) return fail(res, 404, 'NOT_FOUND', 'API key not found.');
+      return ok(res, { message: 'API key revoked.' });
+    } catch (err) {
+      console.error('[business/api-keys DELETE]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to revoke API key.');
+    }
+  }
+);
 
 module.exports = router;
