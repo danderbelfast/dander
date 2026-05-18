@@ -770,7 +770,8 @@ router.post(
     if (!validate(req, res)) return;
 
     try {
-      const rawKey = `dsk_${crypto.randomBytes(24).toString('hex')}`;
+      const keyPrefix = process.env.API_KEY_PREFIX || 'dnd_live_';
+      const rawKey = `${keyPrefix}${crypto.randomBytes(24).toString('hex')}`;
       const keyHash = hashKey(rawKey);
       const prefix = rawKey.slice(0, 12);
       const label = req.body.label || 'default';

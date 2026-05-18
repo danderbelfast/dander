@@ -1,6 +1,6 @@
 'use strict';
 
-const BASE_URL = 'https://dander.io';
+const BASE_URL = process.env.DANDER_BASE_URL || 'https://dander.io';
 
 function discountLabel(offer) {
   switch (offer.offer_type) {

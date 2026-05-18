@@ -47,9 +47,11 @@ function hashKey(raw) {
 // authenticateApiKey
 // ---------------------------------------------------------------------------
 
+const API_KEY_PREFIX = process.env.API_KEY_PREFIX || 'dnd_live_';
+
 async function authenticateApiKey(req, res, next) {
   const raw = req.headers['x-api-key']
-    || (req.headers.authorization?.startsWith('Bearer dsk_')
+    || (req.headers.authorization?.startsWith(`Bearer ${API_KEY_PREFIX}`)
         ? req.headers.authorization.slice(7).trim()
         : null);
 
@@ -123,7 +125,7 @@ function requireScope(scope) {
 // ---------------------------------------------------------------------------
 
 const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS = 100;
+const MAX_REQUESTS = parseInt(process.env.API_RATE_LIMIT_PER_MINUTE, 10) || 100;
 const buckets = new Map();
 
 setInterval(() => {

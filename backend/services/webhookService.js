@@ -5,6 +5,9 @@ const axios  = require('axios');
 const pool   = require('../db/pool');
 const { logWebhookDelivery } = require('../middleware/apiAuth');
 
+const MAX_RETRIES    = parseInt(process.env.WEBHOOK_MAX_RETRIES, 10) || 10;
+const TIMEOUT_MS     = parseInt(process.env.WEBHOOK_TIMEOUT_MS, 10) || 5000;
+
 const VALID_EVENTS = [
   'offer.created',
   'offer.updated',
@@ -57,7 +60,7 @@ async function deliver(hook, eventType, body, attempt = 1) {
         'X-Dander-Signature': signature,
         'X-Dander-Event': eventType,
       },
-      timeout: 10000,
+      timeout: TIMEOUT_MS,
       validateStatus: () => true,
     });
     status = resp.status;
@@ -76,7 +79,7 @@ async function deliver(hook, eventType, body, attempt = 1) {
     attemptNumber: attempt,
   });
 
-  if (status !== 200 && attempt < 3) {
+  if (status !== 200 && attempt < MAX_RETRIES) {
     const delay = attempt * 5000;
     setTimeout(() => deliver(hook, eventType, body, attempt + 1), delay);
   }
@@ -86,7 +89,7 @@ async function testUrl(url) {
   try {
     const resp = await axios.post(url, JSON.stringify({ test: true }), {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 10000,
+      timeout: TIMEOUT_MS,
       validateStatus: () => true,
     });
     return resp.status >= 200 && resp.status < 300;
