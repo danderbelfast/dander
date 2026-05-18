@@ -77,7 +77,7 @@ router.get(
     try {
       const { rows } = await pool.query(
         `SELECT o.id, o.title, o.description, o.offer_type,
-                o.discount_percent, o.offer_price, o.discount_label,
+                o.discount_percent, o.offer_price,
                 b.name AS business_name
          FROM offers o JOIN businesses b ON b.id = o.business_id
          WHERE o.id = $1 AND o.is_active = true`,
