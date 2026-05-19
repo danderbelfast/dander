@@ -110,6 +110,7 @@ app.use('/api/push',        require('../routes/push'));
 app.use('/api/users',       require('../routes/users'));
 app.use('/api/preferences', require('../routes/preferences'));
 app.use('/api/v1',          require('../routes/v1'));
+app.use('/api/kilo',        require('../routes/kilo'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)

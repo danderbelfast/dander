@@ -15,7 +15,8 @@ const VALID_EVENTS = [
   'offer.shared',
   'coupon.redeemed',
   'story.posted',
-  // 'footfall.alert' — reserved for Kilo IoT integration phase
+  'device.first_reading',
+  // 'footfall.alert' — reserved for Kilo IoT polling phase
 ];
 
 function sign(payload, secret) {
