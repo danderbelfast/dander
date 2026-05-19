@@ -89,12 +89,13 @@ router.put(
     body('lng').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.'),
     body('website').optional().isURL().withMessage('website must be a valid URL.'),
     body('phone').optional().trim().isLength({ max: 30 }).withMessage('Invalid phone number.'),
+    body('avg_hourly_staff_cost_gbp').optional().isFloat({ min: 0 }).withMessage('Staff cost must be a positive number.'),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;
 
     try {
-      const allowed = ['name', 'description', 'category', 'address', 'city', 'lat', 'lng', 'website', 'phone'];
+      const allowed = ['name', 'description', 'category', 'address', 'city', 'lat', 'lng', 'website', 'phone', 'avg_hourly_staff_cost_gbp'];
       const updates = {};
 
       for (const field of allowed) {
