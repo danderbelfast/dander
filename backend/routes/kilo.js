@@ -216,10 +216,61 @@ router.post(
         });
       }
 
+      // Build footfall context if this is a people_counter
+      let footfall = null;
+      if (deviceType === 'people_counter') {
+        const ts = new Date(now);
+        const dow = ts.getDay();
+        const hour = ts.getHours();
+
+        const { rows: bl } = await pool.query(
+          `SELECT avg_footfall, sample_count FROM footfall_baselines
+           WHERE business_id = $1 AND day_of_week = $2 AND hour_slot = $3`,
+          [req.business.id, dow, hour]
+        );
+
+        const { rows: dataAge } = await pool.query(
+          `SELECT
+             MIN(recorded_at) AS earliest,
+             COUNT(DISTINCT DATE(recorded_at))::int AS distinct_days
+           FROM sensor_readings
+           WHERE business_id = $1 AND device_type = 'people_counter'`,
+          [req.business.id]
+        );
+
+        const earliest = dataAge[0]?.earliest;
+        let weeksOfData = 0;
+        let dataConfidence = 'low';
+        if (earliest) {
+          weeksOfData = Math.floor((Date.now() - new Date(earliest).getTime()) / (7 * 24 * 60 * 60 * 1000));
+          if (weeksOfData >= 4) dataConfidence = 'high';
+          else if (weeksOfData >= 2) dataConfidence = 'medium';
+        }
+
+        const baseline = bl[0] || null;
+        const current = parseFloat(req.body.reading_value);
+        const avg = baseline ? parseFloat(baseline.avg_footfall) : null;
+
+        footfall = {
+          current_count: current,
+          baseline_avg: avg,
+          deviation: avg != null ? parseFloat((current - avg).toFixed(1)) : null,
+          deviation_pct: avg != null && avg > 0 ? parseFloat((((current - avg) / avg) * 100).toFixed(1)) : null,
+          status: avg == null ? 'no_baseline'
+            : current < avg * 0.6 ? 'quiet'
+            : current > avg * 1.4 ? 'busy'
+            : 'normal',
+          data_confidence: dataConfidence,
+          weeks_of_data: weeksOfData,
+          sample_count: baseline?.sample_count || 0,
+        };
+      }
+
       return ok(res, {
         reading: readingRows[0],
         device: updated[0],
         first_reading: isFirstReading,
+        footfall,
       });
     } catch (err) {
       console.error('[kilo/devices/:deviceId/reading POST]', err);
@@ -241,7 +292,23 @@ router.get('/baselines', async (req, res) => {
        ORDER BY day_of_week, hour_slot`,
       [req.business.id]
     );
-    return ok(res, { baselines: rows });
+
+    const { rows: dataAge } = await pool.query(
+      `SELECT MIN(recorded_at) AS earliest
+       FROM sensor_readings
+       WHERE business_id = $1 AND device_type = 'people_counter'`,
+      [req.business.id]
+    );
+    const earliest = dataAge[0]?.earliest;
+    let weeksOfData = 0;
+    let dataConfidence = 'low';
+    if (earliest) {
+      weeksOfData = Math.floor((Date.now() - new Date(earliest).getTime()) / (7 * 24 * 60 * 60 * 1000));
+      if (weeksOfData >= 4) dataConfidence = 'high';
+      else if (weeksOfData >= 2) dataConfidence = 'medium';
+    }
+
+    return ok(res, { baselines: rows, data_confidence: dataConfidence, weeks_of_data: weeksOfData });
   } catch (err) {
     console.error('[kilo/baselines GET]', err);
     return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch baselines.');
