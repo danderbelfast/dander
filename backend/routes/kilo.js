@@ -9,6 +9,11 @@ const { dispatchEvent } = require('../services/webhookService');
 
 const router = Router();
 
+// In-memory quiet state per device — tracks when footfall drops below threshold
+const quietState = new Map();
+
+const FOOTFALL_THRESHOLD = parseInt(process.env.KILO_FOOTFALL_THRESHOLD, 10) || 10;
+
 router.use(requireBusiness);
 
 function ok(res, data, status = 200) {
@@ -251,19 +256,51 @@ router.post(
         const current = parseFloat(req.body.reading_value);
         const avg = baseline ? parseFloat(baseline.avg_footfall) : null;
 
+        const isQuiet = current < FOOTFALL_THRESHOLD;
+        const statusLabel = avg == null ? 'no_baseline'
+          : current < avg * 0.6 ? 'quiet'
+          : current > avg * 1.4 ? 'busy'
+          : 'normal';
+
         footfall = {
           current_count: current,
           baseline_avg: avg,
           deviation: avg != null ? parseFloat((current - avg).toFixed(1)) : null,
           deviation_pct: avg != null && avg > 0 ? parseFloat((((current - avg) / avg) * 100).toFixed(1)) : null,
-          status: avg == null ? 'no_baseline'
-            : current < avg * 0.6 ? 'quiet'
-            : current > avg * 1.4 ? 'busy'
-            : 'normal',
+          status: statusLabel,
           data_confidence: dataConfidence,
           weeks_of_data: weeksOfData,
           sample_count: baseline?.sample_count || 0,
         };
+
+        // Footfall alert / recovery dispatch
+        const stateKey = `${req.business.id}:${device.device_id}`;
+        const prev = quietState.get(stateKey) || { isQuiet: false, since: null };
+
+        if (isQuiet && !prev.isQuiet) {
+          quietState.set(stateKey, { isQuiet: true, since: new Date() });
+          dispatchEvent(req.business.id, 'footfall.alert', {
+            device_id: device.device_id,
+            business_id: req.business.id,
+            status: 'quiet',
+            current_count: current,
+            threshold: FOOTFALL_THRESHOLD,
+            baseline_avg: avg,
+          });
+        } else if (!isQuiet && prev.isQuiet) {
+          const quietMinutes = prev.since
+            ? Math.round((Date.now() - prev.since.getTime()) / 60000)
+            : 0;
+          quietState.set(stateKey, { isQuiet: false, since: null });
+          dispatchEvent(req.business.id, 'footfall.recovery', {
+            device_id: device.device_id,
+            business_id: req.business.id,
+            status: 'recovered',
+            current_count: current,
+            threshold: FOOTFALL_THRESHOLD,
+            quiet_duration_minutes: quietMinutes,
+          });
+        }
       }
 
       return ok(res, {

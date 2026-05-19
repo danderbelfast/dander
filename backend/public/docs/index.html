@@ -293,7 +293,8 @@
     <tr><td><code>coupon.redeemed</code></td><td>A coupon is redeemed at the counter</td></tr>
     <tr><td><code>story.posted</code></td><td>A business posts a daily story</td></tr>
     <tr><td><code>device.first_reading</code></td><td>IoT device sends its first sensor reading</td></tr>
-    <tr><td><code>footfall.alert</code></td><td>IoT sensor reports a footfall change <em>(Kilo phase)</em></td></tr>
+    <tr><td><code>footfall.alert</code></td><td>Footfall drops below threshold — quiet period detected</td></tr>
+    <tr><td><code>footfall.recovery</code></td><td>Footfall returns above threshold — quiet period ended</td></tr>
   </tbody>
 </table>
 
@@ -337,16 +338,44 @@
   }
 }</code></pre>
 
-<h3>Example: footfall.alert <span class="header-badge">coming soon</span></h3>
+<h3>Example: device.first_reading</h3>
+<pre><code>{
+  <span class="str">"event"</span>: <span class="str">"device.first_reading"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-19T09:00:00.000Z"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
+    <span class="str">"business_id"</span>: 7,
+    <span class="str">"label"</span>: <span class="str">"Front door counter"</span>,
+    <span class="str">"first_reading_at"</span>: <span class="str">"2026-05-19T09:00:00.000Z"</span>,
+    <span class="str">"reading_value"</span>: 5
+  }
+}</code></pre>
+
+<h3>Example: footfall.alert</h3>
 <pre><code>{
   <span class="str">"event"</span>: <span class="str">"footfall.alert"</span>,
-  <span class="str">"timestamp"</span>: <span class="str">"2026-05-18T14:00:00.000Z"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-19T14:00:00.000Z"</span>,
   <span class="str">"data"</span>: {
     <span class="str">"device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
     <span class="str">"business_id"</span>: 7,
     <span class="str">"status"</span>: <span class="str">"quiet"</span>,
     <span class="str">"current_count"</span>: 3,
-    <span class="str">"threshold"</span>: 10
+    <span class="str">"threshold"</span>: 10,
+    <span class="str">"baseline_avg"</span>: 18.5
+  }
+}</code></pre>
+
+<h3>Example: footfall.recovery</h3>
+<pre><code>{
+  <span class="str">"event"</span>: <span class="str">"footfall.recovery"</span>,
+  <span class="str">"timestamp"</span>: <span class="str">"2026-05-19T15:30:00.000Z"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
+    <span class="str">"business_id"</span>: 7,
+    <span class="str">"status"</span>: <span class="str">"recovered"</span>,
+    <span class="str">"current_count"</span>: 14,
+    <span class="str">"threshold"</span>: 10,
+    <span class="str">"quiet_duration_minutes"</span>: 90
   }
 }</code></pre>
 
