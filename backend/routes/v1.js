@@ -434,4 +434,62 @@ router.get(
   }
 );
 
+// ---------------------------------------------------------------------------
+// GET /api/v1/weather/correlation — weather vs footfall correlation
+// Scope: stats:read
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/weather/correlation',
+  requireScope('stats:read'),
+  [
+    query('days').optional().isInt({ min: 1, max: 90 }).withMessage('days must be 1–90'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+
+    const bizId = req.apiKey.businessId;
+    const days = parseInt(req.query.days, 10) || 30;
+
+    try {
+      const { rows } = await pool.query(
+        `SELECT
+           wr.id              AS weather_id,
+           wr.recorded_at,
+           wr.temperature_c,
+           wr.wind_speed_kmh,
+           wr.rainfall_mm,
+           wr.condition,
+           COALESCE(AVG(sr.reading_value), 0)::numeric(10,1) AS footfall_count
+         FROM weather_readings wr
+         LEFT JOIN sensor_readings sr
+           ON sr.business_id = wr.business_id
+           AND sr.device_type = 'people_counter'
+           AND sr.recorded_at BETWEEN wr.recorded_at AND wr.recorded_at + INTERVAL '30 minutes'
+         WHERE wr.business_id = $1
+           AND wr.recorded_at >= NOW() - ($2 || ' days')::interval
+         GROUP BY wr.id, wr.recorded_at, wr.temperature_c, wr.wind_speed_kmh, wr.rainfall_mm, wr.condition
+         ORDER BY wr.recorded_at DESC`,
+        [bizId, days]
+      );
+
+      return apiSuccess(res, {
+        period_days: days,
+        data_points: rows.length,
+        readings: rows.map(r => ({
+          recorded_at:    r.recorded_at,
+          temperature_c:  parseFloat(r.temperature_c),
+          wind_speed_kmh: parseFloat(r.wind_speed_kmh),
+          rainfall_mm:    parseFloat(r.rainfall_mm),
+          condition:      r.condition,
+          footfall_count: parseFloat(r.footfall_count),
+        })),
+      });
+    } catch (err) {
+      console.error('[api/v1/weather/correlation]', err);
+      return apiError(res, 500, 'server_error', 'Failed to fetch weather correlation.');
+    }
+  }
+);
+
 module.exports = router;
