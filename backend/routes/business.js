@@ -987,4 +987,169 @@ router.put('/notification-preferences', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /api/business/fcm-token — register FCM push token
+// ---------------------------------------------------------------------------
+
+router.post(
+  '/fcm-token',
+  [body('token').notEmpty().withMessage('token is required.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      await pool.query(
+        `UPDATE businesses SET business_fcm_token = $1, updated_at = NOW() WHERE id = $2`,
+        [req.body.token, req.business.id]
+      );
+      return ok(res, { updated: true });
+    } catch (err) {
+      console.error('[business/fcm-token POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to save FCM token.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/business/reports/weekly — weekly performance report
+// ---------------------------------------------------------------------------
+
+router.get('/reports/weekly', async (req, res) => {
+  try {
+    const bizId = req.business.id;
+    const weekEnd = req.query.week_end || new Date().toISOString().slice(0, 10);
+
+    const [
+      summaryResult,
+      dailyResult,
+      footfallResult,
+      weatherResult,
+      offersResult,
+      couponsResult,
+      baselineResult,
+    ] = await Promise.all([
+      pool.query(
+        `SELECT
+           COUNT(*)::int AS total_offers,
+           COUNT(*) FILTER (WHERE is_active)::int AS active_offers,
+           COALESCE(SUM(current_redemptions), 0)::int AS total_redemptions,
+           COALESCE(SUM(view_count), 0)::int AS total_views,
+           COALESCE(SUM(share_count), 0)::int AS total_shares
+         FROM offers
+         WHERE business_id = $1
+           AND created_at BETWEEN ($2::date - INTERVAL '6 days') AND ($2::date + INTERVAL '1 day')`,
+        [bizId, weekEnd]
+      ),
+      pool.query(
+        `SELECT DATE(created_at) AS day,
+                COUNT(*)::int AS offers_created,
+                COALESCE(SUM(current_redemptions), 0)::int AS redemptions
+         FROM offers
+         WHERE business_id = $1
+           AND created_at BETWEEN ($2::date - INTERVAL '6 days') AND ($2::date + INTERVAL '1 day')
+         GROUP BY day ORDER BY day`,
+        [bizId, weekEnd]
+      ),
+      pool.query(
+        `SELECT DATE(recorded_at) AS day,
+                ROUND(AVG(reading_value), 1) AS avg_footfall,
+                MAX(reading_value)::numeric(10,1) AS peak_footfall,
+                COUNT(*)::int AS readings
+         FROM sensor_readings
+         WHERE business_id = $1 AND device_type = 'people_counter'
+           AND recorded_at BETWEEN ($2::date - INTERVAL '6 days') AND ($2::date + INTERVAL '1 day')
+         GROUP BY day ORDER BY day`,
+        [bizId, weekEnd]
+      ),
+      pool.query(
+        `SELECT DATE(recorded_at) AS day,
+                ROUND(AVG(temperature_c), 1) AS avg_temp,
+                ROUND(SUM(rainfall_mm), 1) AS total_rain,
+                MODE() WITHIN GROUP (ORDER BY condition) AS dominant_condition
+         FROM weather_readings
+         WHERE business_id = $1
+           AND recorded_at BETWEEN ($2::date - INTERVAL '6 days') AND ($2::date + INTERVAL '1 day')
+         GROUP BY day ORDER BY day`,
+        [bizId, weekEnd]
+      ),
+      pool.query(
+        `SELECT id, title, offer_type, discount_percent,
+                current_redemptions, view_count, share_count, created_at
+         FROM offers
+         WHERE business_id = $1
+           AND created_at BETWEEN ($2::date - INTERVAL '6 days') AND ($2::date + INTERVAL '1 day')
+         ORDER BY current_redemptions DESC`,
+        [bizId, weekEnd]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FILTER (WHERE status = 'redeemed')::int AS redeemed,
+                COUNT(*) FILTER (WHERE status = 'active')::int AS outstanding,
+                COUNT(*)::int AS total
+         FROM coupons c JOIN offers o ON o.id = c.offer_id
+         WHERE o.business_id = $1
+           AND c.created_at BETWEEN ($2::date - INTERVAL '6 days') AND ($2::date + INTERVAL '1 day')`,
+        [bizId, weekEnd]
+      ),
+      pool.query(
+        `SELECT day_of_week, hour_slot, avg_footfall, sample_count
+         FROM footfall_baselines WHERE business_id = $1`,
+        [bizId]
+      ),
+    ]);
+
+    const summary = summaryResult.rows[0];
+    const coupons = couponsResult.rows[0];
+
+    const baselineMap = {};
+    for (const b of baselineResult.rows) {
+      baselineMap[`${b.day_of_week}`] = baselineMap[`${b.day_of_week}`] || [];
+      baselineMap[`${b.day_of_week}`].push(parseFloat(b.avg_footfall));
+    }
+
+    const probable_causes = [];
+    for (const wr of weatherResult.rows) {
+      const ff = footfallResult.rows.find(f => f.day === wr.day);
+      if (wr.total_rain > 2 && ff && parseFloat(ff.avg_footfall) > 0) {
+        probable_causes.push({
+          day: wr.day,
+          description: `Rain (${wr.total_rain}mm) may have affected footfall`,
+          type: 'weather',
+        });
+      }
+    }
+
+    for (const offer of offersResult.rows) {
+      if (offer.current_redemptions > 3) {
+        probable_causes.push({
+          day: new Date(offer.created_at).toISOString().slice(0, 10),
+          description: `"${offer.title}" drove ${offer.current_redemptions} redemptions`,
+          type: 'offer_impact',
+        });
+      }
+    }
+
+    return ok(res, {
+      report: {
+        week_ending: weekEnd,
+        summary: {
+          total_offers: summary.total_offers,
+          active_offers: summary.active_offers,
+          total_views: summary.total_views,
+          total_redemptions: summary.total_redemptions,
+          total_shares: summary.total_shares,
+          coupons_redeemed: coupons.redeemed,
+          coupons_outstanding: coupons.outstanding,
+        },
+        daily_breakdown: dailyResult.rows,
+        footfall_daily: footfallResult.rows,
+        weather_daily: weatherResult.rows,
+        offers: offersResult.rows,
+        probable_causes,
+      },
+    });
+  } catch (err) {
+    console.error('[business/reports/weekly]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to generate weekly report.');
+  }
+});
+
 module.exports = router;

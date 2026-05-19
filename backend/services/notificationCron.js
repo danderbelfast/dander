@@ -69,4 +69,92 @@ function scheduleNotificationReminders() {
   return task;
 }
 
-module.exports = { scheduleNotificationReminders };
+// ---------------------------------------------------------------------------
+// Smart Specials reminder — runs every day at 8am Europe/London
+// Finds businesses with perishable inventory items and an FCM token,
+// sends a push reminder to take a stock photo.
+// ---------------------------------------------------------------------------
+
+function scheduleSmartSpecialsReminder() {
+  const task = cron.schedule('0 8 * * *', async () => {
+    try {
+      const { rows: businesses } = await pool.query(
+        `SELECT DISTINCT b.id, b.name, b.business_fcm_token
+         FROM businesses b
+         JOIN inventory_items i ON i.business_id = b.id AND i.is_active = true AND i.is_perishable = true
+         WHERE b.business_fcm_token IS NOT NULL AND b.status = 'active'`
+      );
+
+      let sent = 0;
+      for (const biz of businesses) {
+        try {
+          const admin = require('firebase-admin');
+          if (admin.apps.length > 0) {
+            await admin.messaging().send({
+              token: biz.business_fcm_token,
+              notification: {
+                title: 'Time to check your stock',
+                body: `${biz.name} — take a quick photo of your perishables to get Smart Specials suggestions.`,
+              },
+              data: { type: 'smart_specials_reminder' },
+            });
+            sent++;
+          }
+        } catch {}
+      }
+
+      if (sent > 0) console.info(`[smartSpecials] Sent ${sent} daily reminder(s).`);
+    } catch (err) {
+      console.error('[smartSpecials] Reminder failed:', err.message);
+    }
+  });
+
+  console.info('[smartSpecials] Reminder scheduled — runs daily at 8am.');
+  return task;
+}
+
+// ---------------------------------------------------------------------------
+// Weekly report cron — runs Monday 8am
+// Generates a notification for businesses with active sensors.
+// ---------------------------------------------------------------------------
+
+function scheduleWeeklyReport() {
+  const task = cron.schedule('0 8 * * 1', async () => {
+    try {
+      const { rows: businesses } = await pool.query(
+        `SELECT DISTINCT b.id, b.name, b.business_fcm_token
+         FROM businesses b
+         JOIN kilo_devices d ON d.business_id = b.id AND d.status = 'active'
+         WHERE b.status = 'active'`
+      );
+
+      let sent = 0;
+      for (const biz of businesses) {
+        if (!biz.business_fcm_token) continue;
+        try {
+          const admin = require('firebase-admin');
+          if (admin.apps.length > 0) {
+            await admin.messaging().send({
+              token: biz.business_fcm_token,
+              notification: {
+                title: 'Your weekly report is ready',
+                body: `${biz.name} — see how your business performed last week including footfall, offers, and weather impact.`,
+              },
+              data: { type: 'weekly_report' },
+            });
+            sent++;
+          }
+        } catch {}
+      }
+
+      if (sent > 0) console.info(`[weeklyReport] Notified ${sent} business(es).`);
+    } catch (err) {
+      console.error('[weeklyReport] Job failed:', err.message);
+    }
+  });
+
+  console.info('[weeklyReport] Scheduler started — runs Monday 8am.');
+  return task;
+}
+
+module.exports = { scheduleNotificationReminders, scheduleSmartSpecialsReminder, scheduleWeeklyReport };

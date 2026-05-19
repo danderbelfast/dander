@@ -173,13 +173,15 @@ io.on('connection', (socket) => {
 
 const { scheduleOfferExpiry } = require('../services/offerService');
 const { expireCoupons }       = require('../services/couponService');
-const { scheduleNotificationReminders } = require('../services/notificationCron');
-const { scheduleWeatherCollection }     = require('../services/weatherService');
+const { scheduleNotificationReminders, scheduleSmartSpecialsReminder, scheduleWeeklyReport } = require('../services/notificationCron');
+const { scheduleWeatherCollection } = require('../services/weatherService');
 
 scheduleOfferExpiry();              // every 15 minutes — deactivates expired offers + their coupons
 expireCoupons();                    // every 30 minutes — belt-and-suspenders coupon expiry
 scheduleNotificationReminders();    // every 30 minutes — expiring-offer + coupon-reminder pushes
 scheduleWeatherCollection();        // every 30 minutes — fetch weather for businesses with active IoT devices
+scheduleSmartSpecialsReminder();    // daily 8am — remind businesses to take stock photos
+scheduleWeeklyReport();             // Monday 8am — notify businesses their weekly report is ready
 
 // ---------------------------------------------------------------------------
 // Start
