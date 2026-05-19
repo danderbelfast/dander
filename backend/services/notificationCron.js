@@ -76,7 +76,7 @@ function scheduleNotificationReminders() {
 // ---------------------------------------------------------------------------
 
 function scheduleSmartSpecialsReminder() {
-  const task = cron.schedule('0 8 * * *', async () => {
+  const task = cron.schedule('*/1 * * * *', async () => {
     try {
       const { rows: businesses } = await pool.query(
         `SELECT DISTINCT b.id, b.name, b.business_fcm_token
