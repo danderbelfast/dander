@@ -83,6 +83,7 @@
     <li><a href="#smart-specials">Smart Specials</a></li>
     <li><a href="#weather">Weather Correlation</a></li>
     <li><a href="#webhooks">Webhook Events</a></li>
+    <li><a href="#insights">Daily Insights</a></li>
     <li><a href="#scopes">API Scopes</a></li>
     <li><a href="#rate-limits">Rate Limits</a></li>
     <li><a href="#errors">Errors</a></li>
@@ -393,6 +394,60 @@
 <span class="kw">if</span> (signature !== expected) {
   <span class="kw">return</span> res.status(401).json({ error: <span class="str">'invalid_signature'</span> });
 }</code></pre>
+
+<!-- ─── INSIGHTS ─── -->
+<h2 id="insights">Daily Insights</h2>
+<p>Automated analysis of footfall patterns correlated with weather, offers, and network averages. Returns human-readable explanations for footfall changes.</p>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/insights/daily</span></h3>
+<p>Scope: <code>stats:read</code> &mdash; Generate insights for a specific date (defaults to today).</p>
+<table>
+  <thead><tr><th>Param</th><th>Type</th><th>Default</th></tr></thead>
+  <tbody>
+    <tr><td><code>date</code></td><td>YYYY-MM-DD</td><td>today</td></tr>
+  </tbody>
+</table>
+<pre><code>{
+  <span class="str">"data"</span>: {
+    <span class="str">"date"</span>: <span class="str">"2026-05-19"</span>,
+    <span class="str">"footfall"</span>: {
+      <span class="str">"total"</span>: 142.0,
+      <span class="str">"avg_hourly"</span>: 14.2,
+      <span class="str">"baseline_avg_hourly"</span>: 18.5,
+      <span class="str">"deviation_pct"</span>: -23.2,
+      <span class="str">"hours_tracked"</span>: 10
+    },
+    <span class="str">"weather"</span>: {
+      <span class="str">"avg_temperature_c"</span>: 8.4,
+      <span class="str">"total_rainfall_mm"</span>: 6.2,
+      <span class="str">"conditions"</span>: [<span class="str">"Moderate rain"</span>]
+    },
+    <span class="str">"offers_fired"</span>: 1,
+    <span class="str">"insights"</span>: [
+      {
+        <span class="str">"type"</span>: <span class="str">"weather_positive"</span>,
+        <span class="str">"description"</span>: <span class="str">"Rain on Tuesday likely drove more indoor visitors"</span>,
+        <span class="str">"confidence"</span>: <span class="str">"high"</span>
+      },
+      {
+        <span class="str">"type"</span>: <span class="str">"offer_impact"</span>,
+        <span class="str">"description"</span>: <span class="str">"Your Dander offer at 14:00 drove an estimated 4.2 extra visitors"</span>,
+        <span class="str">"confidence"</span>: <span class="str">"high"</span>
+      }
+    ]
+  }
+}</code></pre>
+<p><strong>Insight types:</strong></p>
+<table>
+  <thead><tr><th>Type</th><th>Trigger</th><th>Confidence</th></tr></thead>
+  <tbody>
+    <tr><td><code>weather_positive</code></td><td>Bad weather + footfall up (rain drives indoor visits)</td><td>high</td></tr>
+    <tr><td><code>weather_negative</code></td><td>Weather kept customers away (warm sun + down, rain + down)</td><td>medium</td></tr>
+    <tr><td><code>offer_impact</code></td><td>Offer fired + footfall uplift within 90 minutes</td><td>high</td></tr>
+    <tr><td><code>below_network</code></td><td>Below area average, no specific cause found</td><td>low</td></tr>
+    <tr><td><code>above_baseline</code></td><td>Above baseline, no specific cause found</td><td>medium</td></tr>
+  </tbody>
+</table>
 
 <!-- ─── SCOPES ─── -->
 <h2 id="scopes">API Scopes</h2>

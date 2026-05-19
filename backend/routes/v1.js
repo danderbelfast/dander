@@ -27,6 +27,7 @@ const { enrichOffer, discountLabel } = require('../services/offerLabels');
 const { generateOgImage } = require('../services/ogImageService');
 const { testUrl, VALID_EVENTS } = require('../services/webhookService');
 const { assessPhoto, getHistory: getSmartHistory } = require('../services/smartSpecialsService');
+const { generateDailyInsights } = require('../services/insightsService');
 const { upload, processImage } = require('../middleware/upload');
 
 const router = Router();
@@ -552,6 +553,32 @@ router.get(
     } catch (err) {
       console.error('[api/v1/smart-specials/history]', err);
       return apiError(res, 500, 'server_error', 'Failed to fetch assessment history.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/insights/daily — AI-generated daily footfall insights
+// Scope: stats:read
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/insights/daily',
+  requireScope('stats:read'),
+  [
+    query('date').optional().isISO8601().withMessage('date must be YYYY-MM-DD format'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const result = await generateDailyInsights(
+        req.apiKey.businessId,
+        req.query.date || null
+      );
+      return apiSuccess(res, result);
+    } catch (err) {
+      console.error('[api/v1/insights/daily]', err);
+      return apiError(res, 500, 'server_error', 'Failed to generate insights.');
     }
   }
 );
