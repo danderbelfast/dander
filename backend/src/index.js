@@ -45,6 +45,22 @@ const allowedOrigins = process.env.FRONTEND_URL
   : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
 app.use(cors({ origin: allowedOrigins }));
 app.use(morgan('dev'));
+// Stripe webhook needs raw body — mount before JSON parser
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).end();
+  try {
+    const billing = require('../services/billingService');
+    const event = billing.getStripe().webhooks.constructEvent(req.body, sig, secret);
+    await billing.handleWebhookEvent(event);
+    res.json({ received: true });
+  } catch (err) {
+    console.error('[billing/webhook]', err.message);
+    res.status(400).json({ error: 'Invalid signature' });
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -111,6 +127,7 @@ app.use('/api/users',       require('../routes/users'));
 app.use('/api/preferences', require('../routes/preferences'));
 app.use('/api/v1',          require('../routes/v1'));
 app.use('/api/kilo',        require('../routes/kilo'));
+app.use('/api/billing',     require('../routes/billing'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)
