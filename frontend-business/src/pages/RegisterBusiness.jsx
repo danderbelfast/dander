@@ -62,6 +62,9 @@ export default function RegisterBusiness() {
     if (info.postcode) setPostcode(info.postcode);
   }
 
+  // Staff cost (optional, step 2)
+  const [staffCostReg, setStaffCostReg] = useState('');
+
   // Step 3: images
   const [logoFile, setLogoFile]   = useState(null);
   const [coverFile, setCoverFile] = useState(null);
@@ -264,6 +267,14 @@ export default function RegisterBusiness() {
                 <div className="field">
                   <label className="label">Description</label>
                   <textarea className="textarea" value={description} onChange={(e) => setDesc(e.target.value)} placeholder="Tell customers what makes your business special…" rows={3} />
+                </div>
+                <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 16, marginTop: 4 }}>
+                  <div className="field">
+                    <label className="label">Average hourly staff cost (GBP) — optional</label>
+                    <input className="input" type="number" min="0" step="0.01" value={staffCostReg}
+                      onChange={(e) => setStaffCostReg(e.target.value)} placeholder="e.g. 11.44" />
+                    <div className="field-hint">Used for ROI calculations. You can set this later in Settings.</div>
+                  </div>
                 </div>
                 <div className="register-actions">
                   <button className="btn btn-secondary" type="button" onClick={() => setStep(1)}>← Back</button>

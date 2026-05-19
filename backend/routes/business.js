@@ -844,4 +844,71 @@ router.delete(
   }
 );
 
+// ---------------------------------------------------------------------------
+// GET /api/business/inventory
+// ---------------------------------------------------------------------------
+
+router.get('/inventory', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM inventory_items WHERE business_id = $1 AND is_active = true ORDER BY sort_order, name`,
+      [req.business.id]
+    );
+    return ok(res, { items: rows });
+  } catch (err) {
+    console.error('[business/inventory GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to list inventory.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/business/inventory
+// ---------------------------------------------------------------------------
+
+router.post(
+  '/inventory',
+  [
+    body('name').notEmpty().trim().withMessage('name is required.'),
+    body('category').optional().trim(),
+    body('is_perishable').optional().isBoolean(),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO inventory_items (business_id, name, category, is_perishable)
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [req.business.id, req.body.name, req.body.category || null, req.body.is_perishable ?? true]
+      );
+      return ok(res, { item: rows[0] }, 201);
+    } catch (err) {
+      console.error('[business/inventory POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to add item.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// DELETE /api/business/inventory/:id
+// ---------------------------------------------------------------------------
+
+router.delete(
+  '/inventory/:id',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid item ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rowCount } = await pool.query(
+        `UPDATE inventory_items SET is_active = false WHERE id = $1 AND business_id = $2`,
+        [req.params.id, req.business.id]
+      );
+      if (rowCount === 0) return fail(res, 404, 'NOT_FOUND', 'Item not found.');
+      return ok(res, { message: 'Item removed.' });
+    } catch (err) {
+      console.error('[business/inventory DELETE]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to remove item.');
+    }
+  }
+);
+
 module.exports = router;

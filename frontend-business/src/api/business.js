@@ -93,3 +93,33 @@ export const addStaff = (data) =>
 
 export const removeStaff = (id) =>
   client.delete(`/api/business/staff/${id}`).then((r) => r.data);
+
+// ── API Keys ────────────────────────────────────────────────
+export const getApiKeys = () =>
+  client.get('/api/business/api-keys').then((r) => r.data);
+
+export const createApiKey = (data) =>
+  client.post('/api/business/api-keys', data).then((r) => r.data);
+
+export const revokeApiKey = (id) =>
+  client.delete(`/api/business/api-keys/${id}`).then((r) => r.data);
+
+// ── Kilo Devices ────────────────────────────────────────────
+export const getDevices = () =>
+  client.get('/api/kilo/devices').then((r) => r.data);
+
+export const registerDevice = (data) =>
+  client.post('/api/kilo/devices', data).then((r) => r.data);
+
+export const decommissionDevice = (id) =>
+  client.delete(`/api/kilo/devices/${id}`).then((r) => r.data);
+
+// ── Inventory ───────────────────────────────────────────────
+export const getInventory = () =>
+  client.get('/api/business/inventory').then((r) => r.data);
+
+export const addInventoryItem = (data) =>
+  client.post('/api/business/inventory', data).then((r) => r.data);
+
+export const removeInventoryItem = (id) =>
+  client.delete(`/api/business/inventory/${id}`).then((r) => r.data);

@@ -15,6 +15,11 @@ import RedeemCoupon     from './pages/RedeemCoupon';
 import BusinessProfile  from './pages/BusinessProfile';
 import Guide            from './pages/Guide';
 import Reports          from './pages/Reports';
+import SmartSpecials    from './pages/SmartSpecials';
+import MySensors        from './pages/MySensors';
+import StaffRota        from './pages/StaffRota';
+import ApiKeys          from './pages/ApiKeys';
+import Settings         from './pages/Settings';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -45,7 +50,12 @@ export default function App() {
           <Route path="/offers/new"       element={<CreateOffer />} />
           <Route path="/offers/:id/edit"  element={<EditOffer />} />
           <Route path="/offers/:id/stats" element={<CampaignStats />} />
+          <Route path="/smart-specials"   element={<SmartSpecials />} />
+          <Route path="/sensors"          element={<MySensors />} />
           <Route path="/reports"          element={<Reports />} />
+          <Route path="/rota"             element={<StaffRota />} />
+          <Route path="/api-keys"         element={<ApiKeys />} />
+          <Route path="/settings"         element={<Settings />} />
           <Route path="/redeem"           element={<RedeemCoupon />} />
           <Route path="/profile"          element={<BusinessProfile />} />
           <Route path="/guide"            element={<Guide />} />
