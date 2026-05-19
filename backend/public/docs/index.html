@@ -83,8 +83,10 @@
     <li><a href="#smart-specials">Smart Specials</a></li>
     <li><a href="#weather">Weather Correlation</a></li>
     <li><a href="#webhooks">Webhook Events</a></li>
+    <li><a href="#scopes">API Scopes</a></li>
     <li><a href="#rate-limits">Rate Limits</a></li>
     <li><a href="#errors">Errors</a></li>
+    <li><a href="#billing">Billing</a></li>
     <li><a href="#api-key">Getting Your API Key</a></li>
   </ul>
 </div>
@@ -392,6 +394,24 @@
   <span class="kw">return</span> res.status(401).json({ error: <span class="str">'invalid_signature'</span> });
 }</code></pre>
 
+<!-- ─── SCOPES ─── -->
+<h2 id="scopes">API Scopes</h2>
+<p>Each API key is assigned one or more scopes that control which endpoints it can access. Request the scopes you need when creating a key.</p>
+<table>
+  <thead><tr><th>Scope</th><th>Grants access to</th></tr></thead>
+  <tbody>
+    <tr><td><code>stats:read</code></td><td>GET /stats, GET /weather/correlation</td></tr>
+    <tr><td><code>sensors:read</code></td><td>GET /kilo/devices, GET /kilo/baselines</td></tr>
+    <tr><td><code>sensors:write</code></td><td>POST /kilo/devices, PUT/DELETE devices, POST readings, POST recalculate</td></tr>
+    <tr><td><code>smart_specials:read</code></td><td>POST /smart-specials/assess, GET /smart-specials/history</td></tr>
+    <tr><td><code>smart_specials:write</code></td><td>Reserved &mdash; approve/publish suggested offers (future)</td></tr>
+    <tr><td><code>webhooks:write</code></td><td>POST/GET/DELETE /webhooks, GET /webhooks/:id/deliveries</td></tr>
+  </tbody>
+</table>
+<div class="note">
+  <strong>Tip:</strong> Use the minimum scopes needed. A key with <code>stats:read</code> cannot modify offers or register webhooks.
+</div>
+
 <!-- ─── RATE LIMITS ─── -->
 <h2 id="rate-limits">Rate Limits</h2>
 <p>100 requests per minute per API key. Every response includes these headers:</p>
@@ -429,6 +449,31 @@
     <tr><td><code>server_error</code></td><td>500</td><td>Something went wrong on our end</td></tr>
   </tbody>
 </table>
+
+<!-- ─── BILLING ─── -->
+<h2 id="billing">Billing &amp; Subscriptions</h2>
+<p>Subscription management endpoints for Dander business plans and hardware leasing. All endpoints require business session auth.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/billing/subscribe</span> <span class="header-badge">coming soon</span></h3>
+<p>Create a new subscription for this business.</p>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/api/billing/subscription</span> <span class="header-badge">coming soon</span></h3>
+<p>Get current subscription status, plan, and renewal date.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/billing/upgrade</span> <span class="header-badge">coming soon</span></h3>
+<p>Upgrade to a higher plan tier.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/billing/cancel</span> <span class="header-badge">coming soon</span></h3>
+<p>Cancel the current subscription at end of billing period.</p>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/api/billing/history</span> <span class="header-badge">coming soon</span></h3>
+<p>Invoice and payment history.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/billing/hardware</span> <span class="header-badge">coming soon</span></h3>
+<p>Request IoT hardware (Kilo sensor) as part of a subscription plan.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/billing/portal</span> <span class="header-badge">coming soon</span></h3>
+<p>Generate a Stripe Customer Portal link for self-service billing management.</p>
 
 <!-- ─── API KEY ─── -->
 <h2 id="api-key">Getting Your API Key</h2>
