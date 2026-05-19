@@ -5,6 +5,16 @@ import { Spinner } from '../components/ui/Spinner';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const ROTA_KEY = 'dander_biz_rota';
+
+function loadRota() {
+  try { return JSON.parse(localStorage.getItem(ROTA_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveRota(rota) {
+  localStorage.setItem(ROTA_KEY, JSON.stringify(rota));
+}
 
 export default function StaffRota() {
   const { toast } = useToast();
@@ -12,7 +22,7 @@ export default function StaffRota() {
   const [loading, setLoading]     = useState(true);
   const [staffCost, setStaffCost] = useState('');
   const [savingCost, setSavingCost] = useState(false);
-  const [rota, setRota]           = useState({});
+  const [rota, setRota]           = useState(loadRota);
 
   useEffect(() => {
     Promise.all([getStaff(), getProfile()])
@@ -26,7 +36,11 @@ export default function StaffRota() {
 
   function toggleSlot(staffId, day, hour) {
     const key = `${staffId}-${day}-${hour}`;
-    setRota((prev) => ({ ...prev, [key]: !prev[key] }));
+    setRota((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveRota(next);
+      return next;
+    });
   }
 
   function isActive(staffId, day, hour) {
@@ -112,7 +126,7 @@ export default function StaffRota() {
                 </div>
               </div>
             ))}
-            <div className="field-hint" style={{ marginTop: 8 }}>Click cells to toggle shifts. This is saved locally for planning — shift data is not yet synced to the server.</div>
+            <div className="field-hint" style={{ marginTop: 8 }}>Click cells to toggle shifts. Your schedule is saved to this browser automatically.</div>
           </div>
         </div>
       )}

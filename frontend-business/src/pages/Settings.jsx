@@ -4,12 +4,25 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
 
+const NOTIF_KEY = 'dander_biz_notif_prefs';
+const DEFAULT_PREFS = { coupon_redeemed: true, daily_summary: true, footfall_alert: true };
+
+function loadNotifPrefs() {
+  try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(NOTIF_KEY)) }; }
+  catch { return { ...DEFAULT_PREFS }; }
+}
+
+function saveNotifPrefs(prefs) {
+  localStorage.setItem(NOTIF_KEY, JSON.stringify(prefs));
+}
+
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
   const [staffCost, setStaffCost] = useState('');
+  const [notifs, setNotifs]       = useState(loadNotifPrefs);
 
   useEffect(() => {
     getProfile()
@@ -18,7 +31,21 @@ export default function Settings() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    const pending = localStorage.getItem('dander_reg_staff_cost');
+    if (pending) {
+      setStaffCost(pending);
+      localStorage.removeItem('dander_reg_staff_cost');
+    }
   }, []);
+
+  function toggleNotif(key) {
+    setNotifs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveNotifPrefs(next);
+      return next;
+    });
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -70,15 +97,15 @@ export default function Settings() {
         <div className="card-body">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', cursor: 'pointer' }}>
-              <input type="checkbox" defaultChecked />
+              <input type="checkbox" checked={notifs.coupon_redeemed} onChange={() => toggleNotif('coupon_redeemed')} />
               Email me when a coupon is redeemed
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', cursor: 'pointer' }}>
-              <input type="checkbox" defaultChecked />
+              <input type="checkbox" checked={notifs.daily_summary} onChange={() => toggleNotif('daily_summary')} />
               Email me daily footfall summaries
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', cursor: 'pointer' }}>
-              <input type="checkbox" defaultChecked />
+              <input type="checkbox" checked={notifs.footfall_alert} onChange={() => toggleNotif('footfall_alert')} />
               Alert me when footfall drops below threshold
             </label>
           </div>

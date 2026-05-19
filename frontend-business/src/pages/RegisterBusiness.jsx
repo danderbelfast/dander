@@ -91,6 +91,9 @@ export default function RegisterBusiness() {
   function nextStep2(e) {
     e.preventDefault(); setError('');
     if (!bizName) { setError('Business name is required.'); return; }
+    if (staffCostReg) {
+      localStorage.setItem('dander_reg_staff_cost', staffCostReg);
+    }
     setStep(3);
   }
 
