@@ -26,6 +26,8 @@ const {
 const { enrichOffer, discountLabel } = require('../services/offerLabels');
 const { generateOgImage } = require('../services/ogImageService');
 const { testUrl, VALID_EVENTS } = require('../services/webhookService');
+const { assessPhoto, getHistory: getSmartHistory } = require('../services/smartSpecialsService');
+const { upload, processImage } = require('../middleware/upload');
 
 const router = Router();
 
@@ -488,6 +490,68 @@ router.get(
     } catch (err) {
       console.error('[api/v1/weather/correlation]', err);
       return apiError(res, 500, 'server_error', 'Failed to fetch weather correlation.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/smart-specials/assess — upload photo, assess inventory
+// Scope: smart_specials:read
+// ---------------------------------------------------------------------------
+
+const smartUpload = upload.single('photo');
+
+router.post(
+  '/smart-specials/assess',
+  requireScope('smart_specials:read'),
+  smartUpload,
+  [
+    body('labels').optional(),
+  ],
+  async (req, res) => {
+    if (!req.file) return apiError(res, 400, 'validation_error', 'A photo is required.');
+
+    try {
+      const photoUrl = await processImage(req.file.buffer, 'offer', req.file.originalname);
+
+      let labels = [];
+      if (req.body.labels) {
+        try {
+          labels = typeof req.body.labels === 'string' ? JSON.parse(req.body.labels) : req.body.labels;
+        } catch { labels = []; }
+      }
+
+      const assessment = await assessPhoto(req.apiKey.businessId, photoUrl, labels);
+
+      return apiSuccess(res, {
+        assessment_id:    assessment.id,
+        photo_url:        assessment.photo_url,
+        items:            assessment.items_detected,
+        freshness_flags:  assessment.freshness_flags,
+        suggested_offers: assessment.suggested_offers,
+      }, 201);
+    } catch (err) {
+      console.error('[api/v1/smart-specials/assess]', err);
+      return apiError(res, 500, 'server_error', 'Failed to assess photo.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/smart-specials/history — last 30 assessments
+// Scope: smart_specials:read
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/smart-specials/history',
+  requireScope('smart_specials:read'),
+  async (req, res) => {
+    try {
+      const history = await getSmartHistory(req.apiKey.businessId);
+      return apiSuccess(res, history);
+    } catch (err) {
+      console.error('[api/v1/smart-specials/history]', err);
+      return apiError(res, 500, 'server_error', 'Failed to fetch assessment history.');
     }
   }
 );
