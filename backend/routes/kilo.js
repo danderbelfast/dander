@@ -161,7 +161,9 @@ router.post(
   '/devices/:deviceId/reading',
   [
     param('deviceId').notEmpty().withMessage('Device ID is required.'),
-    body('footfall_count').optional().isInt({ min: 0 }),
+    body('reading_value').isNumeric().withMessage('reading_value is required.'),
+    body('device_type').optional().isString(),
+    body('unit').optional().isString(),
     body('meta').optional().isObject(),
   ],
   async (req, res) => {
@@ -178,7 +180,16 @@ router.post(
       const device = rows[0];
       const isFirstReading = device.status === 'assigned';
       const now = new Date().toISOString();
+      const deviceType = req.body.device_type || device.device_type || 'people_counter';
 
+      // Store reading
+      const { rows: readingRows } = await pool.query(
+        `INSERT INTO sensor_readings (device_id, business_id, device_type, reading_value, unit, meta, recorded_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [device.id, req.business.id, deviceType, req.body.reading_value, req.body.unit || 'count', req.body.meta || {}, now]
+      );
+
+      // Update device state
       const updates = { last_reading_at: now };
       if (isFirstReading) {
         updates.status = 'active';
@@ -201,11 +212,12 @@ router.post(
           business_id: req.business.id,
           label: device.label,
           first_reading_at: now,
-          footfall_count: req.body.footfall_count ?? null,
+          reading_value: req.body.reading_value,
         });
       }
 
       return ok(res, {
+        reading: readingRows[0],
         device: updated[0],
         first_reading: isFirstReading,
       });
@@ -215,5 +227,68 @@ router.post(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// GET /api/kilo/baselines — get footfall baselines for this business
+// ---------------------------------------------------------------------------
+
+router.get('/baselines', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT day_of_week, hour_slot, avg_footfall, sample_count, last_calculated_at
+       FROM footfall_baselines
+       WHERE business_id = $1
+       ORDER BY day_of_week, hour_slot`,
+      [req.business.id]
+    );
+    return ok(res, { baselines: rows });
+  } catch (err) {
+    console.error('[kilo/baselines GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch baselines.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/kilo/baselines/recalculate — recalculate from last 56 days
+// AVG(reading_value) grouped by DOW + hour for people_counter devices
+// ---------------------------------------------------------------------------
+
+router.post('/baselines/recalculate', async (req, res) => {
+  try {
+    const bizId = req.business.id;
+
+    const { rows: slots } = await pool.query(
+      `SELECT
+         EXTRACT(DOW FROM recorded_at)::int  AS day_of_week,
+         EXTRACT(HOUR FROM recorded_at)::int AS hour_slot,
+         ROUND(AVG(reading_value), 2)        AS avg_footfall,
+         COUNT(*)::int                       AS sample_count
+       FROM sensor_readings
+       WHERE business_id = $1
+         AND device_type = 'people_counter'
+         AND recorded_at >= NOW() - INTERVAL '56 days'
+       GROUP BY day_of_week, hour_slot
+       ORDER BY day_of_week, hour_slot`,
+      [bizId]
+    );
+
+    let updated = 0;
+    for (const slot of slots) {
+      await pool.query(
+        `INSERT INTO footfall_baselines (business_id, day_of_week, hour_slot, avg_footfall, sample_count, last_calculated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (business_id, day_of_week, hour_slot)
+         DO UPDATE SET avg_footfall = $4, sample_count = $5, last_calculated_at = NOW()`,
+        [bizId, slot.day_of_week, slot.hour_slot, slot.avg_footfall, slot.sample_count]
+      );
+      updated++;
+    }
+
+    return ok(res, { recalculated: true, slots_updated: updated });
+  } catch (err) {
+    console.error('[kilo/baselines/recalculate POST]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to recalculate baselines.');
+  }
+});
 
 module.exports = router;

@@ -172,26 +172,62 @@
 
 <!-- ─── IOT ─── -->
 <h2 id="iot">Kilo IoT Integration</h2>
-<p>Dander supports automatic offer triggering from IoT sensors (e.g. Kilo footfall counters). Three fields on the offer control this:</p>
+<p>Dander supports IoT sensor integration for automatic footfall tracking and offer triggering. All Kilo endpoints require business session auth (<code>/api/kilo/*</code>).</p>
+
+<h3>Device Management</h3>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/kilo/devices</span></h3>
+<p>Register a new sensor device. Initial status: <code>assigned</code>.</p>
+<pre><code>{
+  <span class="str">"device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
+  <span class="str">"label"</span>: <span class="str">"Front door counter"</span>,
+  <span class="str">"lat"</span>: 54.5973, <span class="str">"lng"</span>: -5.9301
+}</code></pre>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/api/kilo/devices</span></h3>
+<p>List all non-decommissioned devices for this business.</p>
+
+<h3><span class="method method-put">PUT</span> <span class="endpoint">/api/kilo/devices/:id</span></h3>
+<p>Update device label, location, or meta.</p>
+
+<h3><span class="method method-delete">DELETE</span> <span class="endpoint">/api/kilo/devices/:id</span></h3>
+<p>Decommission device (soft delete).</p>
+
+<p><strong>Device lifecycle:</strong> <code>assigned</code> &rarr; <code>active</code> (on first reading) &rarr; <code>offline</code> / <code>decommissioned</code></p>
+
+<h3>Sensor Readings</h3>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/kilo/devices/:deviceId/reading</span></h3>
+<p>Record a sensor reading. Stored in <code>sensor_readings</code> table. On the first reading, the device transitions from <code>assigned</code> to <code>active</code> and dispatches a <code>device.first_reading</code> webhook.</p>
+<pre><code>{
+  <span class="str">"reading_value"</span>: 12,
+  <span class="str">"device_type"</span>: <span class="str">"people_counter"</span>,
+  <span class="str">"unit"</span>: <span class="str">"count"</span>,
+  <span class="str">"meta"</span>: { <span class="str">"battery"</span>: <span class="str">"94%"</span> }
+}</code></pre>
+
+<h3>Footfall Baselines</h3>
+<p>Baselines represent the average footfall per day-of-week + hour slot, calculated from the last 56 days of <code>people_counter</code> readings.</p>
+
+<h3><span class="method method-get">GET</span> <span class="endpoint">/api/kilo/baselines</span></h3>
+<p>Get all baselines for this business. Returns array of <code>{ day_of_week, hour_slot, avg_footfall, sample_count }</code>.</p>
+
+<h3><span class="method method-post">POST</span> <span class="endpoint">/api/kilo/baselines/recalculate</span></h3>
+<p>Recalculate baselines from the last 56 days of sensor data. Upserts into <code>footfall_baselines</code> table.</p>
+<pre><code><span class="cmt">// Response</span>
+{ <span class="str">"recalculated"</span>: <span class="kw">true</span>, <span class="str">"slots_updated"</span>: 84 }</code></pre>
+
+<h3>Offer Trigger Fields</h3>
 <table>
   <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
   <tbody>
     <tr><td><code>trigger_source</code></td><td>string</td><td>Origin of the offer: <code>kilo_iot</code>, <code>stamplify</code>, or <code>manual</code> (default)</td></tr>
-    <tr><td><code>trigger_device_id</code></td><td>string</td><td>Hardware ID of the triggering sensor (e.g. <code>kilo_bel_0042</code>)</td></tr>
+    <tr><td><code>trigger_device_id</code></td><td>string</td><td>Hardware ID of the triggering sensor</td></tr>
     <tr><td><code>auto_expire_on_recovery</code></td><td>boolean</td><td>If <code>true</code>, the offer auto-expires when footfall returns to normal</td></tr>
   </tbody>
 </table>
-<p><strong>Example flow:</strong> A Kilo sensor at a caf&eacute; detects a quiet period (footfall drops below threshold). It calls the API to create an offer with <code>trigger_source: "kilo_iot"</code>. When footfall recovers, it deactivates the offer. The <code>footfall.alert</code> webhook event notifies any subscribed systems.</p>
-<pre><code><span class="cmt">// Sensor creates a "quiet period" offer</span>
-POST /api/v1/offers
-{
-  <span class="str">"title"</span>: <span class="str">"Quiet hour special &mdash; 30% off lattes"</span>,
-  <span class="str">"offer_type"</span>: <span class="str">"percentage"</span>,
-  <span class="str">"discount_percent"</span>: 30,
-  <span class="str">"trigger_source"</span>: <span class="str">"kilo_iot"</span>,
-  <span class="str">"trigger_device_id"</span>: <span class="str">"kilo_bel_0042"</span>,
-  <span class="str">"auto_expire_on_recovery"</span>: <span class="kw">true</span>
-}</code></pre>
+
+<p><strong>Example flow:</strong> A Kilo sensor detects a quiet period (footfall drops below the baseline threshold). It creates an offer with <code>trigger_source: "kilo_iot"</code>. When footfall recovers, it deactivates the offer. The <code>footfall.alert</code> webhook notifies subscribed systems.</p>
 
 <!-- ─── WEBHOOKS ─── -->
 <h2 id="webhooks">Webhook Events</h2>
@@ -206,6 +242,7 @@ POST /api/v1/offers
     <tr><td><code>offer.shared</code></td><td>A shopper shares an offer</td></tr>
     <tr><td><code>coupon.redeemed</code></td><td>A coupon is redeemed at the counter</td></tr>
     <tr><td><code>story.posted</code></td><td>A business posts a daily story</td></tr>
+    <tr><td><code>device.first_reading</code></td><td>IoT device sends its first sensor reading</td></tr>
     <tr><td><code>footfall.alert</code></td><td>IoT sensor reports a footfall change <em>(Kilo phase)</em></td></tr>
   </tbody>
 </table>
