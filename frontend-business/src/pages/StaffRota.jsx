@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { getStaff, updateProfile, getProfile } from '../api/business';
+import React, { useEffect, useState, useRef } from 'react';
+import { getStaff, updateProfile, getProfile, getRota, saveRota as saveRotaApi } from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
 
@@ -7,38 +7,56 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const ROTA_KEY = 'dander_biz_rota';
 
-function loadRota() {
-  try { return JSON.parse(localStorage.getItem(ROTA_KEY)) || {}; }
-  catch { return {}; }
-}
-
-function saveRota(rota) {
-  localStorage.setItem(ROTA_KEY, JSON.stringify(rota));
-}
-
 export default function StaffRota() {
   const { toast } = useToast();
   const [staff, setStaff]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [staffCost, setStaffCost] = useState('');
   const [savingCost, setSavingCost] = useState(false);
-  const [rota, setRota]           = useState(loadRota);
+  const [rota, setRota]           = useState({});
+  const debounceRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([getStaff(), getProfile()])
-      .then(([staffData, profData]) => {
+    Promise.all([getStaff(), getProfile(), getRota()])
+      .then(([staffData, profData, rotaData]) => {
         setStaff(staffData.staff || []);
         setStaffCost(profData.business?.avg_hourly_staff_cost_gbp || '');
+        const backend = rotaData.rota || {};
+        if (Object.keys(backend).length > 0) {
+          setRota(backend);
+          localStorage.removeItem(ROTA_KEY);
+        } else {
+          try {
+            const cached = JSON.parse(localStorage.getItem(ROTA_KEY));
+            if (cached && Object.keys(cached).length > 0) setRota(cached);
+          } catch {}
+        }
       })
-      .catch(() => toast({ message: 'Failed to load data.', type: 'error' }))
+      .catch(() => {
+        toast({ message: 'Failed to load data.', type: 'error' });
+        try {
+          const cached = JSON.parse(localStorage.getItem(ROTA_KEY));
+          if (cached) setRota(cached);
+        } catch {}
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  function persistRota(nextRota) {
+    localStorage.setItem(ROTA_KEY, JSON.stringify(nextRota));
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      saveRotaApi(nextRota)
+        .then(() => localStorage.removeItem(ROTA_KEY))
+        .catch(() => {});
+    }, 1000);
+  }
 
   function toggleSlot(staffId, day, hour) {
     const key = `${staffId}-${day}-${hour}`;
     setRota((prev) => {
       const next = { ...prev, [key]: !prev[key] };
-      saveRota(next);
+      persistRota(next);
       return next;
     });
   }
@@ -126,7 +144,7 @@ export default function StaffRota() {
                 </div>
               </div>
             ))}
-            <div className="field-hint" style={{ marginTop: 8 }}>Click cells to toggle shifts. Your schedule is saved to this browser automatically.</div>
+            <div className="field-hint" style={{ marginTop: 8 }}>Click cells to toggle shifts. Changes save automatically.</div>
           </div>
         </div>
       )}

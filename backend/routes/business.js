@@ -911,4 +911,80 @@ router.delete(
   }
 );
 
+// ---------------------------------------------------------------------------
+// GET /api/business/rota
+// ---------------------------------------------------------------------------
+
+router.get('/rota', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT rota_data FROM business_rota WHERE business_id = $1',
+      [req.business.id]
+    );
+    return ok(res, { rota: rows[0]?.rota_data || {} });
+  } catch (err) {
+    console.error('[business/rota GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch rota.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/business/rota
+// ---------------------------------------------------------------------------
+
+router.post('/rota', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO business_rota (business_id, rota_data, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (business_id)
+       DO UPDATE SET rota_data = $2, updated_at = NOW()
+       RETURNING rota_data`,
+      [req.business.id, JSON.stringify(req.body.rota || {})]
+    );
+    return ok(res, { rota: rows[0].rota_data });
+  } catch (err) {
+    console.error('[business/rota POST]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to save rota.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/business/notification-preferences
+// ---------------------------------------------------------------------------
+
+router.get('/notification-preferences', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT prefs FROM business_notification_preferences WHERE business_id = $1',
+      [req.business.id]
+    );
+    return ok(res, { prefs: rows[0]?.prefs || { coupon_redeemed: true, daily_summary: true, footfall_alert: true } });
+  } catch (err) {
+    console.error('[business/notification-preferences GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch preferences.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/business/notification-preferences
+// ---------------------------------------------------------------------------
+
+router.put('/notification-preferences', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO business_notification_preferences (business_id, prefs, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (business_id)
+       DO UPDATE SET prefs = $2, updated_at = NOW()
+       RETURNING prefs`,
+      [req.business.id, JSON.stringify(req.body.prefs || {})]
+    );
+    return ok(res, { prefs: rows[0].prefs });
+  } catch (err) {
+    console.error('[business/notification-preferences PUT]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to save preferences.');
+  }
+});
+
 module.exports = router;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getProfile, updateProfile } from '../api/business';
+import { getProfile, updateProfile, getNotifPrefs, saveNotifPrefs as saveNotifPrefsApi } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
@@ -7,29 +7,35 @@ import { Spinner } from '../components/ui/Spinner';
 const NOTIF_KEY = 'dander_biz_notif_prefs';
 const DEFAULT_PREFS = { coupon_redeemed: true, daily_summary: true, footfall_alert: true };
 
-function loadNotifPrefs() {
-  try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(NOTIF_KEY)) }; }
-  catch { return { ...DEFAULT_PREFS }; }
-}
-
-function saveNotifPrefs(prefs) {
-  localStorage.setItem(NOTIF_KEY, JSON.stringify(prefs));
-}
-
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [staffCost, setStaffCost] = useState('');
-  const [notifs, setNotifs]       = useState(loadNotifPrefs);
+  const [notifs, setNotifs]       = useState({ ...DEFAULT_PREFS });
 
   useEffect(() => {
-    getProfile()
-      .then((d) => {
-        setStaffCost(d.business?.avg_hourly_staff_cost_gbp || '');
+    Promise.all([getProfile(), getNotifPrefs()])
+      .then(([profData, notifData]) => {
+        setStaffCost(profData.business?.avg_hourly_staff_cost_gbp || '');
+        const backend = notifData.prefs || {};
+        if (Object.keys(backend).length > 0) {
+          setNotifs({ ...DEFAULT_PREFS, ...backend });
+          localStorage.removeItem(NOTIF_KEY);
+        } else {
+          try {
+            const cached = JSON.parse(localStorage.getItem(NOTIF_KEY));
+            if (cached) setNotifs({ ...DEFAULT_PREFS, ...cached });
+          } catch {}
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        try {
+          const cached = JSON.parse(localStorage.getItem(NOTIF_KEY));
+          if (cached) setNotifs({ ...DEFAULT_PREFS, ...cached });
+        } catch {}
+      })
       .finally(() => setLoading(false));
 
     const pending = localStorage.getItem('dander_reg_staff_cost');
@@ -42,7 +48,10 @@ export default function Settings() {
   function toggleNotif(key) {
     setNotifs((prev) => {
       const next = { ...prev, [key]: !prev[key] };
-      saveNotifPrefs(next);
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
+      saveNotifPrefsApi(next)
+        .then(() => localStorage.removeItem(NOTIF_KEY))
+        .catch(() => {});
       return next;
     });
   }

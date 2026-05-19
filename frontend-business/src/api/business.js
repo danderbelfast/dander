@@ -94,6 +94,20 @@ export const addStaff = (data) =>
 export const removeStaff = (id) =>
   client.delete(`/api/business/staff/${id}`).then((r) => r.data);
 
+// ── Rota ────────────────────────────────────────────────────
+export const getRota = () =>
+  client.get('/api/business/rota').then((r) => r.data);
+
+export const saveRota = (rota) =>
+  client.post('/api/business/rota', { rota }).then((r) => r.data);
+
+// ── Notification Preferences ────────────────────────────────
+export const getNotifPrefs = () =>
+  client.get('/api/business/notification-preferences').then((r) => r.data);
+
+export const saveNotifPrefs = (prefs) =>
+  client.put('/api/business/notification-preferences', { prefs }).then((r) => r.data);
+
 // ── API Keys ────────────────────────────────────────────────
 export const getApiKeys = () =>
   client.get('/api/business/api-keys').then((r) => r.data);
