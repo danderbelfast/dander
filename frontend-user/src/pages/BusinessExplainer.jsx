@@ -146,7 +146,7 @@ export default function BusinessExplainer() {
           <div style={{ fontSize: '1.15rem', fontWeight: 700, maxWidth: 520, margin: '0 auto', lineHeight: 1.5 }}>
             "We built Dander because every shop deserves the same data advantage that online stores have had for 20 years."
           </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginTop: 8 }}>— Dander team, Belfast</div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginTop: 8 }}>— Dander team</div>
         </div>
 
         {/* Pricing */}
@@ -190,9 +190,9 @@ export default function BusinessExplainer() {
 
         {/* Who is this for */}
         <div style={{ marginTop: 40 }}>
-          <div className="ex-section-title" style={{ textAlign: 'center', fontSize: '1.1rem' }}>Built for Belfast businesses</div>
+          <div className="ex-section-title" style={{ textAlign: 'center', fontSize: '1.1rem' }}>Built for business intelligence</div>
           <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--c-text-muted)', maxWidth: 520, margin: '0 auto 20px', lineHeight: 1.6 }}>
-            Cafés, restaurants, bars, salons, retail shops, gyms — any business with a physical location and customers who walk through a door. Join the growing number of Belfast businesses using Dander to understand their footfall, optimize operations, and drive more customers through the door.
+            Cafés, restaurants, bars, salons, retail shops, gyms — any business with a physical location and customers who walk through a door. Join the growing number of businesses using Dander to understand their footfall, optimize operations, and drive more customers through the door.
           </p>
         </div>
       </div>
