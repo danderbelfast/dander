@@ -1,7 +1,7 @@
 'use strict';
 
 const { Router } = require('express');
-const { query, validationResult } = require('express-validator');
+const { query, body, param, validationResult } = require('express-validator');
 
 const { requireBusiness } = require('../middleware/auth');
 const analytics = require('../services/analyticsService');
@@ -267,6 +267,117 @@ router.get(
     } catch (err) {
       console.error('[analytics/zones]', err);
       return fail(res, 500, 'SERVER_ERROR', 'Failed to load zone data.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Annotations CRUD
+// ---------------------------------------------------------------------------
+
+const VALID_CATEGORIES = ['product_launch', 'marketing', 'store_change', 'external_event', 'offer'];
+
+router.get('/annotations', async (req, res) => {
+  try {
+    const from = req.query.from || new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+    const to = req.query.to || new Date().toISOString().slice(0, 10);
+    const { rows } = await pool.query(
+      `SELECT a.*, u.first_name, u.last_name, u.email AS creator_email
+       FROM analytics_annotations a
+       LEFT JOIN users u ON u.id = a.created_by
+       WHERE a.business_id = $1 AND a.event_date BETWEEN $2::date AND $3::date
+       ORDER BY a.event_date DESC, a.created_at DESC`,
+      [req.business.id, from, to]
+    );
+    return ok(res, { annotations: rows });
+  } catch (err) {
+    console.error('[analytics/annotations GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to load annotations.');
+  }
+});
+
+router.post(
+  '/annotations',
+  [
+    body('event_date').isISO8601().withMessage('event_date is required (YYYY-MM-DD).'),
+    body('title').notEmpty().trim().isLength({ max: 120 }).withMessage('title is required (max 120 chars).'),
+    body('description').optional().trim(),
+    body('category').isIn(VALID_CATEGORIES).withMessage(`category must be one of: ${VALID_CATEGORIES.join(', ')}`),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO analytics_annotations (business_id, event_date, title, description, category, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [req.business.id, req.body.event_date, req.body.title, req.body.description || null, req.body.category, req.user?.id || null]
+      );
+      return ok(res, { annotation: rows[0] }, 201);
+    } catch (err) {
+      console.error('[analytics/annotations POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to create annotation.');
+    }
+  }
+);
+
+router.put(
+  '/annotations/:id',
+  [
+    param('id').isInt({ min: 1 }),
+    body('title').optional().trim().isLength({ max: 120 }),
+    body('description').optional().trim(),
+    body('category').optional().isIn(VALID_CATEGORIES),
+    body('event_date').optional().isISO8601(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    try {
+      const fields = [];
+      const values = [];
+      let idx = 1;
+      for (const key of ['title', 'description', 'category', 'event_date']) {
+        if (req.body[key] !== undefined) {
+          fields.push(`${key} = $${idx++}`);
+          values.push(req.body[key]);
+        }
+      }
+      if (fields.length === 0) return fail(res, 400, 'NO_CHANGES', 'No fields to update.');
+
+      values.push(req.params.id, req.business.id);
+      const { rows } = await pool.query(
+        `UPDATE analytics_annotations SET ${fields.join(', ')} WHERE id = $${idx} AND business_id = $${idx + 1} RETURNING *`,
+        values
+      );
+      if (rows.length === 0) return fail(res, 404, 'NOT_FOUND', 'Annotation not found.');
+      return ok(res, { annotation: rows[0] });
+    } catch (err) {
+      console.error('[analytics/annotations PUT]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to update annotation.');
+    }
+  }
+);
+
+router.delete(
+  '/annotations/:id',
+  [param('id').isInt({ min: 1 })],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    try {
+      const { rowCount } = await pool.query(
+        'DELETE FROM analytics_annotations WHERE id = $1 AND business_id = $2',
+        [req.params.id, req.business.id]
+      );
+      if (rowCount === 0) return fail(res, 404, 'NOT_FOUND', 'Annotation not found.');
+      return ok(res, { deleted: true });
+    } catch (err) {
+      console.error('[analytics/annotations DELETE]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to delete annotation.');
     }
   }
 );

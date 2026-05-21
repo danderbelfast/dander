@@ -3,11 +3,24 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics, getAnalyticsZones } from '../api/business';
+import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics, getAnalyticsZones, getAnnotations, createAnnotation, deleteAnnotation } from '../api/business';
 import { Spinner } from '../components/ui/Spinner';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEMO_COLORS = { male: '#3B82F6', female: '#EC4899', adults: '#6B7280', children: '#F59E0B', staff: '#8B5CF6' };
+
+const ANNOTATION_CATEGORIES = [
+  { value: 'product_launch', label: 'Product Launch', emoji: '🚀', color: '#3B82F6' },
+  { value: 'marketing', label: 'Marketing', emoji: '📢', color: '#16A34A' },
+  { value: 'store_change', label: 'Store Change', emoji: '🏪', color: '#E85D26' },
+  { value: 'external_event', label: 'External Event', emoji: '🌍', color: '#6B7280' },
+  { value: 'offer', label: 'Offer', emoji: '🎁', color: '#8B5CF6' },
+];
+
+function getCategoryBadge(cat) {
+  const c = ANNOTATION_CATEGORIES.find(a => a.value === cat) || ANNOTATION_CATEGORIES[2];
+  return { ...c };
+}
 
 function MetricCard({ label, value, sub, accent, icon }) {
   return (
@@ -53,10 +66,12 @@ export default function Analytics() {
   const [realtime, setRealtime]   = useState(null);
   const [demoData, setDemoData]   = useState(null);
   const [zoneData, setZoneData]   = useState(null);
+  const [annotations, setAnnotations] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
   const [period, setPeriod]       = useState('7d');
   const [tab, setTab]             = useState('overview');
+  const [annotModal, setAnnotModal] = useState(null);
 
   function loadData(days) {
     setLoading(true);
@@ -68,12 +83,14 @@ export default function Analytics() {
       getAnalyticsRealtime(),
       getAnalyticsDemographics({ from, to }),
       getAnalyticsZones({ from, to }),
+      getAnnotations({ from, to }),
     ])
-      .then(([dashData, rtData, dData, zData]) => {
+      .then(([dashData, rtData, dData, zData, aData]) => {
         setDashboard(dashData.analytics);
         setRealtime(rtData.realtime);
         setDemoData(dData.demographics);
         setZoneData(zData);
+        setAnnotations(aData.annotations || []);
       })
       .catch(() => setError('Failed to load analytics.'))
       .finally(() => setLoading(false));
@@ -228,25 +245,89 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Daily trend */}
+      {/* Daily trend with annotations */}
       <div className="card">
-        <div className="card-header"><span className="card-title">Daily visitors</span></div>
+        <div className="card-header">
+          <span className="card-title">Daily visitors</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setAnnotModal({ event_date: new Date().toISOString().slice(0, 10), title: '', description: '', category: 'store_change' })}>+ Add event</button>
+        </div>
         <div className="card-body">
           {daily.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 32, fontSize: '0.88rem' }}>No daily data available.</div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={daily.map(d => ({ ...d, label: new Date(d.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }))}>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={daily.map(d => {
+                const dateStr = typeof d.day === 'string' ? d.day.slice(0, 10) : new Date(d.day).toISOString().slice(0, 10);
+                const ann = annotations.filter(a => a.event_date?.slice?.(0, 10) === dateStr);
+                return { ...d, label: new Date(d.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), annotation: ann.length > 0 ? ann : null, dateStr };
+              })} onClick={(e) => { if (e?.activePayload?.[0]?.payload?.dateStr) setAnnotModal({ event_date: e.activePayload[0].payload.dateStr, title: '', description: '', category: 'store_change' }); }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--c-border)" />
                 <XAxis dataKey="label" fontSize={10} />
                 <YAxis fontSize={11} />
-                <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="entries" name="Visitors" fill="#E85D26" radius={[4, 4, 0, 0]} />
+                <Tooltip content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div style={{ background: '#fff', border: '1px solid var(--c-border)', borderRadius: 8, padding: '8px 14px', fontSize: '0.82rem', maxWidth: 220 }}>
+                      <div style={{ fontWeight: 600, marginBottom: 2 }}>{d.label}</div>
+                      <div style={{ color: '#E85D26' }}>{d.entries} visitors</div>
+                      {d.annotation && d.annotation.map((a, i) => {
+                        const badge = getCategoryBadge(a.category);
+                        return <div key={i} style={{ marginTop: 4, fontSize: '0.75rem' }}><span style={{ background: badge.color, color: '#fff', padding: '1px 5px', borderRadius: 3, fontSize: '0.68rem' }}>{badge.emoji} {badge.label}</span> {a.title}</div>;
+                      })}
+                    </div>
+                  );
+                }} />
+                <Bar dataKey="entries" name="Visitors" fill="#E85D26" radius={[4, 4, 0, 0]}
+                  shape={(props) => {
+                    const { x, y, width, height, payload } = props;
+                    return (
+                      <g>
+                        <rect x={x} y={y} width={width} height={height} fill="#E85D26" rx={4} />
+                        {payload.annotation && <circle cx={x + width / 2} cy={y - 6} r={4} fill={getCategoryBadge(payload.annotation[0].category).color} stroke="#fff" strokeWidth={1.5} />}
+                      </g>
+                    );
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
       </div>
+
+      {/* Recent events sidebar */}
+      {annotations.length > 0 && (
+        <div className="card">
+          <div className="card-header"><span className="card-title">Recent events</span></div>
+          <div className="card-body">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {annotations.slice(0, 5).map(a => {
+                const badge = getCategoryBadge(a.category);
+                return (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--c-border)' }}>
+                    <span style={{ background: badge.color, color: '#fff', padding: '2px 6px', borderRadius: 4, fontSize: '0.7rem', whiteSpace: 'nowrap', marginTop: 2 }}>
+                      {badge.emoji} {badge.label}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{a.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>
+                        {new Date(a.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.72rem', color: 'var(--c-danger)', padding: '2px 6px' }}
+                      onClick={() => { deleteAnnotation(a.id).then(() => { setAnnotations(prev => prev.filter(x => x.id !== a.id)); }).catch(() => {}); }}>
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Annotation modal */}
+      {annotModal && <AnnotationModal initial={annotModal} onClose={() => setAnnotModal(null)} onSave={(ann) => { setAnnotations(prev => [ann, ...prev]); setAnnotModal(null); }} businessId={null} />}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Zone breakdown */}
@@ -875,5 +956,70 @@ function RealtimeTab() {
         </div>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Annotation Modal
+// ---------------------------------------------------------------------------
+
+function AnnotationModal({ initial, onClose, onSave }) {
+  const [form, setForm] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    setSaving(true);
+    try {
+      const { annotation } = await createAnnotation(form);
+      onSave(annotation);
+    } catch {}
+    setSaving(false);
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: 'var(--r-xl)', padding: 28, width: '100%', maxWidth: 440, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>Add event annotation</h3>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="field">
+            <label className="label label-required">Date</label>
+            <input className="input" type="date" value={form.event_date} onChange={e => setForm({ ...form, event_date: e.target.value })} required />
+          </div>
+          <div className="field">
+            <label className="label label-required">Title</label>
+            <input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Launched new menu" maxLength={120} required />
+          </div>
+          <div className="field">
+            <label className="label">Description</label>
+            <textarea className="textarea" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Optional details..." />
+          </div>
+          <div className="field">
+            <label className="label label-required">Category</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {ANNOTATION_CATEGORIES.map(c => (
+                <button key={c.value} type="button"
+                  onClick={() => setForm({ ...form, category: c.value })}
+                  style={{
+                    padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                    background: form.category === c.value ? c.color : 'var(--c-bg-muted)',
+                    color: form.category === c.value ? '#fff' : 'var(--c-text)',
+                    border: form.category === c.value ? 'none' : '1px solid var(--c-border)',
+                  }}>
+                  {c.emoji} {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" type="submit" style={{ flex: 1 }} disabled={saving}>
+              {saving ? <Spinner white /> : 'Save event'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

@@ -107,6 +107,18 @@ export const getAnalyticsDemographics = (params) =>
 export const getAnalyticsZones = (params) =>
   client.get('/api/analytics/zones', { params }).then((r) => r.data);
 
+export const getAnnotations = (params) =>
+  client.get('/api/analytics/annotations', { params }).then((r) => r.data);
+
+export const createAnnotation = (data) =>
+  client.post('/api/analytics/annotations', data).then((r) => r.data);
+
+export const updateAnnotation = (id, data) =>
+  client.put(`/api/analytics/annotations/${id}`, data).then((r) => r.data);
+
+export const deleteAnnotation = (id) =>
+  client.delete(`/api/analytics/annotations/${id}`).then((r) => r.data);
+
 // ── Rota ────────────────────────────────────────────────────
 export const getRota = () =>
   client.get('/api/business/rota').then((r) => r.data);
