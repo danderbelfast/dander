@@ -78,19 +78,20 @@ export default function Analytics() {
     const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     const to = new Date().toISOString().slice(0, 10);
 
+    const safe = (p) => p.catch(() => null);
     Promise.all([
-      getAnalyticsDashboard({ from, to }),
-      getAnalyticsRealtime(),
-      getAnalyticsDemographics({ from, to }),
-      getAnalyticsZones({ from, to }),
-      getAnnotations({ from, to }),
+      safe(getAnalyticsDashboard({ from, to })),
+      safe(getAnalyticsRealtime()),
+      safe(getAnalyticsDemographics({ from, to })),
+      safe(getAnalyticsZones({ from, to })),
+      safe(getAnnotations({ from, to })),
     ])
       .then(([dashData, rtData, dData, zData, aData]) => {
-        setDashboard(dashData.analytics);
-        setRealtime(rtData.realtime);
-        setDemoData(dData.demographics);
-        setZoneData(zData);
-        setAnnotations(aData.annotations || []);
+        if (dashData) setDashboard(dashData.analytics);
+        if (rtData) setRealtime(rtData.realtime);
+        if (dData) setDemoData(dData.demographics);
+        if (zData) setZoneData(zData);
+        if (aData) setAnnotations(aData.annotations || []);
       })
       .catch(() => setError('Failed to load analytics.'))
       .finally(() => setLoading(false));
