@@ -426,7 +426,7 @@ CREATE TABLE IF NOT EXISTS business_stories (
 CREATE INDEX IF NOT EXISTS idx_stories_biz_date
   ON business_stories (business_id, created_at DESC);
 
-Seed default platform settings
+-- Seed default platform settings
 INSERT INTO platform_settings (key, value) VALUES
   ('proximity_radius_default_meters', '500'),
   ('max_coupons_per_user_per_offer',  '1'),
