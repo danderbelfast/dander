@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { getAnalyticsDashboard, getAnalyticsRealtime } from '../api/business';
+import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics } from '../api/business';
 import { Spinner } from '../components/ui/Spinner';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DEMO_COLORS = { male: '#3B82F6', female: '#EC4899', adults: '#6B7280', children: '#F59E0B', staff: '#8B5CF6' };
 
 function MetricCard({ label, value, sub, accent, icon }) {
   return (
@@ -49,9 +51,11 @@ const ChartTooltip = ({ active, payload, label }) => {
 export default function Analytics() {
   const [dashboard, setDashboard] = useState(null);
   const [realtime, setRealtime]   = useState(null);
+  const [demoData, setDemoData]   = useState(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
   const [period, setPeriod]       = useState('7d');
+  const [tab, setTab]             = useState('overview');
 
   function loadData(days) {
     setLoading(true);
@@ -61,10 +65,12 @@ export default function Analytics() {
     Promise.all([
       getAnalyticsDashboard({ from, to }),
       getAnalyticsRealtime(),
+      getAnalyticsDemographics({ from, to }),
     ])
-      .then(([dashData, rtData]) => {
+      .then(([dashData, rtData, dData]) => {
         setDashboard(dashData.analytics);
         setRealtime(rtData.realtime);
+        setDemoData(dData.demographics);
       })
       .catch(() => setError('Failed to load analytics.'))
       .finally(() => setLoading(false));
@@ -137,6 +143,16 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="tab-bar">
+        {[{ key: 'overview', label: 'Overview' }, { key: 'audience', label: 'Audience' }].map(t => (
+          <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && <>
       {/* Realtime status */}
       <div className="card" style={{ borderLeft: `4px solid ${rt.status === 'busy' ? '#E85D26' : rt.status === 'quiet' ? '#EAB308' : '#16A34A'}` }}>
         <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -291,6 +307,141 @@ export default function Analytics() {
           </div>
         </div>
       </div>
+      </>}
+
+      {tab === 'audience' && <AudienceTab demoData={demoData} />}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Audience Tab
+// ---------------------------------------------------------------------------
+
+function ComparisonCard({ label, yours, network, unit = '%' }) {
+  const diff = yours != null && network != null ? parseFloat((yours - network).toFixed(1)) : null;
+  return (
+    <div style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 'var(--r-md)', padding: '14px 18px', flex: '1 1 220px' }}>
+      <div style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)', marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: '1.3rem', fontWeight: 700 }}>{yours != null ? `${yours}${unit}` : '—'}</span>
+        {diff != null && (
+          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: diff >= 0 ? '#16A34A' : '#DC2626' }}>
+            {diff >= 0 ? '▲' : '▼'} {Math.abs(diff)}{unit} vs network
+          </span>
+        )}
+      </div>
+      {network != null && (
+        <div style={{ fontSize: '0.75rem', color: 'var(--c-text-dim)', marginTop: 4 }}>
+          Network avg: {network}{unit}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudienceTab({ demoData }) {
+  if (!demoData) return <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 48, fontSize: '0.88rem' }}>No audience data available yet. Sensor readings with demographics are needed.</div>;
+
+  const t = demoData.totals || {};
+  const gs = demoData.gender_split || {};
+  const hourly = demoData.hourly_breakdown || [];
+  const net = demoData.network_comparison || {};
+
+  const totalGender = (t.male || 0) + (t.female || 0);
+  const totalAge = (t.adults || 0) + (t.children || 0);
+
+  const genderPie = totalGender > 0 ? [
+    { name: 'Male', value: t.male || 0, color: DEMO_COLORS.male },
+    { name: 'Female', value: t.female || 0, color: DEMO_COLORS.female },
+  ] : [];
+
+  const agePie = totalAge > 0 ? [
+    { name: 'Adults', value: t.adults || 0, color: DEMO_COLORS.adults },
+    { name: 'Children', value: t.children || 0, color: DEMO_COLORS.children },
+  ] : [];
+
+  const staffRatio = t.total_entries > 0 ? parseFloat(((t.staff / t.total_entries) * 100).toFixed(1)) : 0;
+
+  return (
+    <>
+      {/* Comparison cards */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <ComparisonCard label="Male visitors" yours={gs.male_pct} network={net.network_male_pct} />
+        <ComparisonCard label="Female visitors" yours={gs.female_pct} network={net.network_female_pct} />
+        <ComparisonCard label="Adult ratio" yours={totalAge > 0 ? parseFloat(((t.adults / totalAge) * 100).toFixed(1)) : null} network={net.network_adult_pct} />
+        <ComparisonCard label="Staff ratio" yours={staffRatio} network={null} />
+      </div>
+
+      {/* Pie charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="card">
+          <div className="card-header"><span className="card-title">Gender split</span></div>
+          <div className="card-body">
+            {genderPie.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.85rem' }}>No gender data.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={genderPie} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {genderPie.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => v.toLocaleString()} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><span className="card-title">Age groups</span></div>
+          <div className="card-body">
+            {agePie.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.85rem' }}>No age data.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={agePie} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {agePie.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => v.toLocaleString()} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stacked bar: peak hours by demographic */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Peak hours by demographic</span></div>
+        <div className="card-body">
+          {hourly.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 32, fontSize: '0.85rem' }}>No hourly demographic data.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={hourly}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--c-border)" />
+                <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} fontSize={11} />
+                <YAxis fontSize={11} />
+                <Tooltip content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div style={{ background: '#fff', border: '1px solid var(--c-border)', borderRadius: 8, padding: '8px 14px', fontSize: '0.82rem' }}>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}:00</div>
+                      {payload.map((p, i) => <div key={i} style={{ color: p.color }}>{p.name}: {p.value}</div>)}
+                    </div>
+                  );
+                }} />
+                <Legend />
+                <Bar dataKey="male" name="Male" stackId="a" fill={DEMO_COLORS.male} />
+                <Bar dataKey="female" name="Female" stackId="a" fill={DEMO_COLORS.female} />
+                <Bar dataKey="children" name="Children" stackId="a" fill={DEMO_COLORS.children} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

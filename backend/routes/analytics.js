@@ -77,4 +77,94 @@ router.post('/placeholder', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/analytics/demographics
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/demographics',
+  [
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    const bizId = req.business.id;
+    const from = req.query.from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const to = req.query.to || new Date().toISOString().slice(0, 10);
+
+    try {
+      const [totals, hourlyDemo, network] = await Promise.all([
+        pool.query(
+          `SELECT
+             COALESCE(SUM(male_count), 0)::int AS male,
+             COALESCE(SUM(female_count), 0)::int AS female,
+             COALESCE(SUM(adult_count), 0)::int AS adults,
+             COALESCE(SUM(child_count), 0)::int AS children,
+             COALESCE(SUM(staff_count), 0)::int AS staff,
+             COALESCE(SUM(entries), 0)::int AS total_entries
+           FROM kilo_people_counting
+           WHERE business_id = $1
+             AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'`,
+          [bizId, from, to]
+        ),
+        pool.query(
+          `SELECT
+             EXTRACT(HOUR FROM timestamp)::int AS hour,
+             COALESCE(SUM(male_count), 0)::int AS male,
+             COALESCE(SUM(female_count), 0)::int AS female,
+             COALESCE(SUM(adult_count), 0)::int AS adults,
+             COALESCE(SUM(child_count), 0)::int AS children,
+             COALESCE(SUM(staff_count), 0)::int AS staff
+           FROM kilo_people_counting
+           WHERE business_id = $1
+             AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+           GROUP BY hour ORDER BY hour`,
+          [bizId, from, to]
+        ),
+        pool.query(
+          `SELECT
+             COALESCE(SUM(male_count), 0)::int AS male,
+             COALESCE(SUM(female_count), 0)::int AS female,
+             COALESCE(SUM(adult_count), 0)::int AS adults,
+             COALESCE(SUM(child_count), 0)::int AS children,
+             COUNT(DISTINCT business_id)::int AS businesses_sampled
+           FROM kilo_people_counting
+           WHERE business_id != $1
+             AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'`,
+          [bizId, from, to]
+        ),
+      ]);
+
+      const t = totals.rows[0];
+      const n = network.rows[0];
+      const totalGender = (t.male || 0) + (t.female || 0);
+      const netTotalGender = (n.male || 0) + (n.female || 0);
+
+      return ok(res, {
+        demographics: {
+          period: { from, to },
+          totals: t,
+          gender_split: {
+            male_pct: totalGender > 0 ? parseFloat(((t.male / totalGender) * 100).toFixed(1)) : 0,
+            female_pct: totalGender > 0 ? parseFloat(((t.female / totalGender) * 100).toFixed(1)) : 0,
+          },
+          hourly_breakdown: hourlyDemo.rows,
+          network_comparison: {
+            businesses_sampled: n.businesses_sampled || 0,
+            network_male_pct: netTotalGender > 0 ? parseFloat(((n.male / netTotalGender) * 100).toFixed(1)) : null,
+            network_female_pct: netTotalGender > 0 ? parseFloat(((n.female / netTotalGender) * 100).toFixed(1)) : null,
+            network_adult_pct: netTotalGender > 0 ? parseFloat(((n.adults / (n.adults + n.children || 1)) * 100).toFixed(1)) : null,
+          },
+        },
+      });
+    } catch (err) {
+      console.error('[analytics/demographics]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to load demographics.');
+    }
+  }
+);
+
 module.exports = router;
