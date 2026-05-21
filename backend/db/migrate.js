@@ -60,8 +60,8 @@ async function runMigrations() {
     await client.connect();
     console.log('[migrate] Connected to database.');
 
-    // Check a representative set of tables
-    const CORE_TABLES = ['users', 'businesses', 'offers', 'coupons', 'platform_settings', 'push_subscriptions', 'business_stories'];
+    // Check a representative set of tables (including new Kilo tables)
+    const CORE_TABLES = ['users', 'businesses', 'offers', 'coupons', 'platform_settings', 'push_subscriptions', 'business_stories', 'kilo_devices'];
 
     const missing = [];
     for (const table of CORE_TABLES) {
