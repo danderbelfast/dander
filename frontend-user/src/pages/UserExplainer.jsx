@@ -112,6 +112,25 @@ export default function UserExplainer() {
 
       </div>
 
+      {/* ── Product suite banner ── */}
+      <div style={{ background: '#0F0E0C', padding: '36px 20px', textAlign: 'center' }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
+          COMING 2026
+        </div>
+        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff', marginBottom: 6 }}>
+          Dander Analytics &bull; Dander Ads &bull; Dander Merchant Center
+        </div>
+        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', maxWidth: 480, margin: '0 auto 16px', lineHeight: 1.55 }}>
+          The complete Google suite for physical retail. Understand your footfall. Drive verified visits. Match shoppers to your inventory.
+        </div>
+        <button
+          style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#E85D26', padding: '8px 20px', borderRadius: 'var(--r-full)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+          onClick={() => navigate('/for-business')}
+        >
+          Learn More About Dander for Business &rarr;
+        </button>
+      </div>
+
       {/* ── Final CTA ── */}
       <div className="ex-final-cta">
         <div className="ex-final-cta-heading">Ready to start saving?</div>

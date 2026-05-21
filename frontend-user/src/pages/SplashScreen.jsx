@@ -19,7 +19,7 @@ export default function SplashScreen() {
         <div className="sp-text sp-text-left">
           <div className="sp-label"><span className="sp-label-pill">For Shoppers</span></div>
           <div className="sp-headline">Deals right<br />where you are.</div>
-          <div className="sp-sub">Belfast's best offers the moment you walk past.</div>
+          <div className="sp-sub">Real offers from real businesses, right when you walk past.</div>
           <button className="sp-cta" onClick={(e) => { e.stopPropagation(); navigate('/for-users'); }}>Find deals near me</button>
         </div>
       </div>
@@ -34,9 +34,9 @@ export default function SplashScreen() {
         <div className="sp-overlay-vignette" />
         <div className="sp-text sp-text-left sp-text-business">
           <div className="sp-label"><span className="sp-label-pill">For Businesses</span></div>
-          <div className="sp-headline">Grow your<br />foot traffic.</div>
-          <div className="sp-sub">They're already walking past. Give them a reason to stop.</div>
-          <button className="sp-cta" onClick={(e) => { e.stopPropagation(); navigate('/for-business'); }}>List my business free</button>
+          <div className="sp-headline">Know your<br />shop floor.</div>
+          <div className="sp-sub">Real-time footfall analytics, AI insights, and targeted offers.</div>
+          <button className="sp-cta" onClick={(e) => { e.stopPropagation(); navigate('/for-business'); }}>Explore the platform</button>
         </div>
       </div>
 
