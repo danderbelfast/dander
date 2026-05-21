@@ -61,13 +61,10 @@ router.get('/realtime', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/analytics/placeholder — dev only
+// POST /api/analytics/placeholder — always visible for testing
 // ---------------------------------------------------------------------------
 
 router.post('/placeholder', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return fail(res, 403, 'FORBIDDEN', 'Placeholder data generation is disabled in production.');
-  }
   try {
     const result = await analytics.generatePlaceholderData(req.business.id);
     return ok(res, result);
