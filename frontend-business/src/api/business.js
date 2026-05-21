@@ -94,6 +94,13 @@ export const addStaff = (data) =>
 export const removeStaff = (id) =>
   client.delete(`/api/business/staff/${id}`).then((r) => r.data);
 
+// ── Analytics ───────────────────────────────────────────────
+export const getAnalyticsDashboard = (params) =>
+  client.get('/api/analytics/dashboard', { params }).then((r) => r.data);
+
+export const getAnalyticsRealtime = () =>
+  client.get('/api/analytics/realtime').then((r) => r.data);
+
 // ── Rota ────────────────────────────────────────────────────
 export const getRota = () =>
   client.get('/api/business/rota').then((r) => r.data);
