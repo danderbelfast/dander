@@ -148,7 +148,7 @@ export default function Analytics() {
 
       {/* Tabs */}
       <div className="tab-bar">
-        {[{ key: 'overview', label: 'Overview' }, { key: 'audience', label: 'Audience' }, { key: 'behaviour', label: 'Behaviour' }].map(t => (
+        {[{ key: 'overview', label: 'Overview' }, { key: 'audience', label: 'Audience' }, { key: 'behaviour', label: 'Behaviour' }, { key: 'realtime', label: 'Real-Time' }].map(t => (
           <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
             {t.label}
           </button>
@@ -314,6 +314,7 @@ export default function Analytics() {
 
       {tab === 'audience' && <AudienceTab demoData={demoData} />}
       {tab === 'behaviour' && <BehaviourTab zoneData={zoneData} />}
+      {tab === 'realtime' && <RealtimeTab />}
     </div>
   );
 }
@@ -637,6 +638,242 @@ function BehaviourTab({ zoneData }) {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Real-Time Tab
+// ---------------------------------------------------------------------------
+
+function RealtimeTab() {
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  function fetchRealtime() {
+    getAnalyticsRealtime()
+      .then(d => { setData(d.realtime); setLastUpdate(new Date()); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    fetchRealtime();
+    const interval = setInterval(fetchRealtime, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><Spinner /></div>;
+  if (!data) return <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 48, fontSize: '0.88rem' }}>Unable to load real-time data.</div>;
+
+  const rt = data;
+  const recentZones = rt.recent_zones || [];
+  const devices = rt.devices || [];
+  const alerts = rt.alerts || [];
+  const todayActivity = rt.today_activity || [];
+
+  const recentEntries = recentZones.reduce((s, z) => s + (z.entries || 0), 0);
+  const recentExits = recentZones.reduce((s, z) => s + (z.exits || 0), 0);
+
+  const zoneOccupancy = {};
+  for (const z of recentZones) {
+    if (!zoneOccupancy[z.zone_number] || new Date(z.timestamp) > new Date(zoneOccupancy[z.zone_number].timestamp)) {
+      zoneOccupancy[z.zone_number] = z;
+    }
+  }
+  const liveZones = Object.values(zoneOccupancy);
+  const staffDetected = liveZones.reduce((s, z) => s + (z.staff_count || 0), 0);
+
+  const smartAlerts = [...alerts];
+  const tillZone = liveZones.find(z => z.zone_number === 3);
+  if (tillZone && tillZone.occupancy >= 4) {
+    smartAlerts.push({ type: 'queue', message: 'Queue forming at till (4+ people)' });
+  }
+  if (rt.current_occupancy > 0 && rt.baseline_expected && rt.current_occupancy > rt.baseline_expected * 0.9) {
+    smartAlerts.push({ type: 'capacity', message: 'Near capacity (90%+ of baseline)' });
+  }
+  const hourNow = new Date().getHours();
+  if ((hourNow < 7 || hourNow > 22) && rt.current_occupancy > 0) {
+    smartAlerts.push({ type: 'after_hours', message: 'Unusual out-of-hours activity detected' });
+  }
+
+  const alertIcons = { device_offline: '⚠️', low_footfall: '📉', queue: '⚠️', capacity: '📊', after_hours: '🔔' };
+
+  return (
+    <>
+      {/* Live indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: -8 }}>
+        <span style={{
+          width: 10, height: 10, borderRadius: '50%', background: '#16A34A',
+          display: 'inline-block', animation: 'story-pulse 2s ease-in-out infinite',
+        }} />
+        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Live
+        </span>
+        {lastUpdate && (
+          <span style={{ fontSize: '0.75rem', color: 'var(--c-text-dim)' }}>
+            Updated {lastUpdate.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+
+      {/* Current status */}
+      <div className="card" style={{ borderLeft: '4px solid #16A34A' }}>
+        <div className="card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--c-primary)', lineHeight: 1 }}>
+                {rt.current_occupancy || 0}
+              </div>
+              <div style={{ fontSize: '0.95rem', color: 'var(--c-text-muted)', marginTop: 4 }}>
+                people inside right now
+              </div>
+            </div>
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <StatusBadge status={rt.status} />
+              {rt.baseline_expected != null && (
+                <div style={{ fontSize: '0.78rem', color: 'var(--c-text-dim)', marginTop: 6 }}>
+                  Expected: {rt.baseline_expected} for this hour
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 24, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--c-border)' }}>
+            <div>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#16A34A' }}>↑ {recentEntries}</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginLeft: 6 }}>entered</span>
+            </div>
+            <div>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#DC2626' }}>↓ {recentExits}</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginLeft: 6 }}>exited</span>
+            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--c-text-dim)' }}>in last 30 minutes</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Active zones */}
+        <div className="card">
+          <div className="card-header"><span className="card-title">Active zones</span></div>
+          <div className="card-body">
+            {liveZones.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.85rem' }}>No recent zone data.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {liveZones.map(z => (
+                  <div key={z.zone_number} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--c-border)' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.88rem' }}>Zone {z.zone_number}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>{z.occupancy || 0}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>people</span>
+                    </div>
+                  </div>
+                ))}
+                {staffDetected > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', color: 'var(--c-text-muted)', fontSize: '0.85rem' }}>
+                    <span>Staff detected</span>
+                    <span style={{ fontWeight: 600 }}>{staffDetected}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Live alerts */}
+        <div className="card">
+          <div className="card-header"><span className="card-title">Live alerts</span></div>
+          <div className="card-body">
+            {smartAlerts.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: 24 }}>
+                <span style={{ fontSize: '2rem' }}>✅</span>
+                <span style={{ fontSize: '0.88rem', color: 'var(--c-text-muted)' }}>All systems normal</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {smartAlerts.map((a, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px', borderRadius: 'var(--r-md)',
+                    background: a.type === 'device_offline' || a.type === 'queue' ? 'var(--c-danger-light)'
+                      : a.type === 'capacity' || a.type === 'after_hours' ? '#FEF3C7' : 'var(--c-bg-muted)',
+                    fontSize: '0.85rem',
+                  }}>
+                    <span>{alertIcons[a.type] || '🔔'}</span>
+                    <span>{a.message || `${a.type}: ${a.device || ''}`}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Today's activity */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Today's activity</span></div>
+        <div className="card-body">
+          {todayActivity.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 32, fontSize: '0.85rem' }}>No activity today yet.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={todayActivity}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--c-border)" />
+                <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} fontSize={11} />
+                <YAxis fontSize={11} />
+                <Tooltip content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div style={{ background: '#fff', border: '1px solid var(--c-border)', borderRadius: 8, padding: '8px 14px', fontSize: '0.82rem' }}>
+                      <div style={{ fontWeight: 600 }}>{label}:00</div>
+                      <div style={{ color: '#E85D26' }}>{payload[0].value} entries</div>
+                    </div>
+                  );
+                }} />
+                <Bar dataKey="entries" fill="#E85D26" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Device health */}
+      {devices.length > 0 && (
+        <div className="card">
+          <div className="card-header"><span className="card-title">Device health</span></div>
+          <div className="card-body">
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Device</th><th>Name</th><th>Status</th><th>Firmware</th><th>Last seen</th></tr></thead>
+                <tbody>
+                  {devices.map((d, i) => {
+                    const ago = d.last_seen ? Math.round((Date.now() - new Date(d.last_seen).getTime()) / 60000) : null;
+                    const online = ago != null && ago < 30;
+                    return (
+                      <tr key={i}>
+                        <td><code style={{ fontSize: '0.8rem' }}>{d.device_sn}</code></td>
+                        <td>{d.device_name || '—'}</td>
+                        <td>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 600, color: online ? '#16A34A' : '#DC2626' }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: online ? '#16A34A' : '#DC2626' }} />
+                            {online ? 'Online' : 'Offline'}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)' }}>{d.firmware_version || '—'}</td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)' }}>
+                          {ago != null ? (ago < 1 ? 'Just now' : ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
