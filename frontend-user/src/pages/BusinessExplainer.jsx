@@ -27,7 +27,7 @@ const FEATURES = [
   {
     icon: '📈',
     title: 'Weather × footfall correlation',
-    body: 'We overlay Met Office weather data with your footfall. See exactly how rain, sun, and cold affect your business — then plan around it.',
+    body: 'We overlay weather data with your footfall patterns. See exactly how rain, sun, and cold affect your business — then plan around it.',
   },
   {
     icon: '🔗',
@@ -94,9 +94,9 @@ export default function BusinessExplainer() {
           </svg>
         </button>
         <div className="ex-hero-label"><span className="ex-label-pill">For Businesses</span></div>
-        <div className="ex-hero-title">Google Analytics<br />for your physical location.</div>
+        <div className="ex-hero-title">The analytics platform<br />for your physical location.</div>
         <div className="ex-hero-sub">
-          You use analytics for your website. Now do the same for your shop floor. Real-time footfall, AI insights, and targeted offers — all from one dashboard.
+          You track every click on your website. Now do the same for your shop floor. Real-time footfall, AI insights, and targeted offers — all from one dashboard.
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
           <a className="ex-hero-cta" href={portalRegister} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
@@ -179,7 +179,6 @@ export default function BusinessExplainer() {
                 </ul>
                 <a href={t.name === 'Pro' ? 'mailto:hello@dander.io?subject=Pro demo request' : portalRegister}
                   target="_blank" rel="noopener noreferrer"
-                  className={t.accent ? 'ex-cta-btn ex-cta-btn-business' : 'ex-cta-btn'}
                   style={{ marginTop: 16, textAlign: 'center', display: 'block', textDecoration: 'none', padding: '10px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, background: t.accent ? '#E85D26' : 'transparent', color: t.accent ? '#fff' : '#E85D26', border: t.accent ? 'none' : '1px solid #E85D26' }}>
                   {t.cta}
                 </a>
@@ -192,14 +191,33 @@ export default function BusinessExplainer() {
         <div style={{ marginTop: 40 }}>
           <div className="ex-section-title" style={{ textAlign: 'center', fontSize: '1.1rem' }}>Built for business intelligence</div>
           <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--c-text-muted)', maxWidth: 520, margin: '0 auto 20px', lineHeight: 1.6 }}>
-            Cafés, restaurants, bars, salons, retail shops, gyms — any business with a physical location and customers who walk through a door. Join the growing number of businesses using Dander to understand their footfall, optimize operations, and drive more customers through the door.
+            Cafés, restaurants, bars, salons, retail shops, gyms — any business with a physical location and customers who walk through a door. Join the growing number of businesses using Dander to understand their footfall and drive more traffic.
+          </p>
+        </div>
+
+        {/* Proof / waitlist */}
+        <div style={{ textAlign: 'center', padding: '32px 20px', margin: '8px 0 0', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--c-text-dim)', textTransform: 'uppercase', marginBottom: 8 }}>
+            EARLY ACCESS
+          </div>
+          <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 6 }}>
+            Launching pilot Q2 2026. Join the waitlist to be first.
+          </div>
+          <p style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', maxWidth: 400, margin: '0 auto', lineHeight: 1.5 }}>
+            We're onboarding our first businesses now. Early adopters get priority access, dedicated onboarding, and founding-member pricing.
           </p>
         </div>
       </div>
 
-      {/* ── CTA ── */}
+      {/* ── Final CTA ── */}
       <div className="ex-cta">
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>Stop Guessing. Start Knowing.</div>
+          <div style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.7)', maxWidth: 460, margin: '0 auto', lineHeight: 1.5 }}>
+            Understand your footfall, optimize your operations, and drive verified customers through your door.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginTop: 16 }}>
           <a className="ex-cta-btn ex-cta-btn-business" href={portalRegister} target="_blank" rel="noopener noreferrer"
             style={{ textDecoration: 'none' }}>
             List My Business Free
@@ -208,8 +226,8 @@ export default function BusinessExplainer() {
             Book a Demo
           </a>
         </div>
-        <div className="ex-cta-note" style={{ marginTop: 12 }}>
-          Dander Ads and Merchant Center launching Q3–Q4 2026. Analytics available now with Pro tier.
+        <div className="ex-cta-note" style={{ marginTop: 14 }}>
+          Dander Ads and Merchant Center launching Q3–Q4 2026. Analytics available now with Growth tier.
         </div>
       </div>
 
