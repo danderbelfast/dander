@@ -127,6 +127,7 @@ app.use('/api/users',       require('../routes/users'));
 app.use('/api/preferences', require('../routes/preferences'));
 app.use('/api/v1',          require('../routes/v1'));
 app.use('/api/kilo',        require('../routes/kilo'));
+app.use('/api/kilo',        require('../routes/kiloWebhook'));
 app.use('/api/billing',     require('../routes/billing'));
 
 // ---------------------------------------------------------------------------
