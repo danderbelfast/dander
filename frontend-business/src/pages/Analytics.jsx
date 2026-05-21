@@ -3,7 +3,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics } from '../api/business';
+import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics, getAnalyticsZones } from '../api/business';
 import { Spinner } from '../components/ui/Spinner';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -52,6 +52,7 @@ export default function Analytics() {
   const [dashboard, setDashboard] = useState(null);
   const [realtime, setRealtime]   = useState(null);
   const [demoData, setDemoData]   = useState(null);
+  const [zoneData, setZoneData]   = useState(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
   const [period, setPeriod]       = useState('7d');
@@ -66,11 +67,13 @@ export default function Analytics() {
       getAnalyticsDashboard({ from, to }),
       getAnalyticsRealtime(),
       getAnalyticsDemographics({ from, to }),
+      getAnalyticsZones({ from, to }),
     ])
-      .then(([dashData, rtData, dData]) => {
+      .then(([dashData, rtData, dData, zData]) => {
         setDashboard(dashData.analytics);
         setRealtime(rtData.realtime);
         setDemoData(dData.demographics);
+        setZoneData(zData);
       })
       .catch(() => setError('Failed to load analytics.'))
       .finally(() => setLoading(false));
@@ -145,7 +148,7 @@ export default function Analytics() {
 
       {/* Tabs */}
       <div className="tab-bar">
-        {[{ key: 'overview', label: 'Overview' }, { key: 'audience', label: 'Audience' }].map(t => (
+        {[{ key: 'overview', label: 'Overview' }, { key: 'audience', label: 'Audience' }, { key: 'behaviour', label: 'Behaviour' }].map(t => (
           <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
             {t.label}
           </button>
@@ -310,6 +313,7 @@ export default function Analytics() {
       </>}
 
       {tab === 'audience' && <AudienceTab demoData={demoData} />}
+      {tab === 'behaviour' && <BehaviourTab zoneData={zoneData} />}
     </div>
   );
 }
@@ -439,6 +443,197 @@ function AudienceTab({ demoData }) {
                 <Bar dataKey="children" name="Children" stackId="a" fill={DEMO_COLORS.children} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Behaviour Tab
+// ---------------------------------------------------------------------------
+
+const ZONE_COLORS = ['#E85D26', '#3B82F6', '#16A34A', '#8B5CF6', '#F59E0B', '#EC4899'];
+
+function HeatBox({ zone, maxVisitors }) {
+  const intensity = maxVisitors > 0 ? Math.min(1, zone.visitors / maxVisitors) : 0;
+  const bg = `rgba(232, 93, 38, ${0.1 + intensity * 0.7})`;
+  const [hover, setHover] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        background: bg, borderRadius: 'var(--r-md)', padding: '20px 16px',
+        position: 'relative', cursor: 'default', border: '1px solid var(--c-border)',
+        transition: 'transform 0.15s', transform: hover ? 'scale(1.03)' : 'scale(1)',
+      }}
+    >
+      <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 4, color: intensity > 0.5 ? '#fff' : 'var(--c-text)' }}>
+        {zone.zone_name}
+      </div>
+      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: intensity > 0.5 ? '#fff' : 'var(--c-primary)' }}>
+        {zone.visitors.toLocaleString()}
+      </div>
+      <div style={{ fontSize: '0.75rem', color: intensity > 0.5 ? 'rgba(255,255,255,0.8)' : 'var(--c-text-muted)', marginTop: 2 }}>
+        visitors
+      </div>
+      {hover && (
+        <div style={{
+          position: 'absolute', top: -8, right: -8, background: '#1A1A19', color: '#fff',
+          padding: '8px 12px', borderRadius: 'var(--r-md)', fontSize: '0.78rem', zIndex: 10,
+          boxShadow: 'var(--shadow-lg)', whiteSpace: 'nowrap',
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{zone.zone_name}</div>
+          <div>Visitors: {zone.visitors.toLocaleString()}</div>
+          <div>Avg dwell: {zone.avg_dwell_seconds > 0 ? `${(zone.avg_dwell_seconds / 60).toFixed(1)}m` : '—'}</div>
+          <div>Rank: #{zone.popularity_rank}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunnelBar({ label, value, total, pct, prevPct, color }) {
+  const width = total > 0 ? Math.max(8, (value / total) * 100) : 0;
+  const dropoff = prevPct != null ? parseFloat((prevPct - pct).toFixed(1)) : null;
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 3 }}>
+        <span style={{ fontWeight: 500 }}>{label}</span>
+        <span>
+          <strong>{value.toLocaleString()}</strong> ({pct}%)
+          {dropoff != null && dropoff > 0 && (
+            <span style={{ color: '#DC2626', fontSize: '0.72rem', marginLeft: 6 }}>-{dropoff}% drop</span>
+          )}
+        </span>
+      </div>
+      <div style={{ height: 24, background: 'var(--c-bg-muted)', borderRadius: 4 }}>
+        <div style={{ height: 24, width: `${width}%`, background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+      </div>
+    </div>
+  );
+}
+
+function BehaviourTab({ zoneData }) {
+  const [sortCol, setSortCol] = useState('visitors');
+  const [sortDir, setSortDir] = useState('desc');
+
+  if (!zoneData) return <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 48, fontSize: '0.88rem' }}>No behaviour data available yet.</div>;
+
+  const zones = zoneData.zones || [];
+  const journey = zoneData.journey || {};
+  const maxVisitors = Math.max(...zones.map(z => z.visitors), 1);
+  const totalEntries = journey.entry || 1;
+
+  const funnelSteps = [
+    { label: 'Entered', value: journey.entry || 0, color: '#E85D26' },
+    { label: 'Browsed >2 min', value: journey.browsed_2min || 0, color: '#F59E0B' },
+    { label: 'Approached till', value: journey.approached_till || 0, color: '#3B82F6' },
+    { label: 'Redeemed offer', value: journey.redeemed || 0, color: '#16A34A' },
+  ].map((s, i, arr) => ({
+    ...s,
+    pct: parseFloat(((s.value / totalEntries) * 100).toFixed(1)),
+    prevPct: i > 0 ? parseFloat(((arr[i - 1].value / totalEntries) * 100).toFixed(1)) : null,
+  }));
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('desc'); }
+  }
+
+  const sorted = [...zones].sort((a, b) => {
+    const av = a[sortCol] ?? 0;
+    const bv = b[sortCol] ?? 0;
+    return sortDir === 'asc' ? av - bv : bv - av;
+  });
+
+  const topZone = zones.reduce((best, z) => z.visitors > (best?.visitors || 0) ? z : best, null);
+
+  return (
+    <>
+      {/* Heat map */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Zone heat map</span></div>
+        <div className="card-body">
+          {zones.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 32, fontSize: '0.85rem' }}>No zone data.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+              {zones.map(z => <HeatBox key={z.zone_number} zone={z} maxVisitors={maxVisitors} />)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Funnel + bounce rate */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        <div className="card">
+          <div className="card-header"><span className="card-title">Customer journey funnel</span></div>
+          <div className="card-body">
+            {funnelSteps.map((s, i) => (
+              <FunnelBar key={i} {...s} total={totalEntries} />
+            ))}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header"><span className="card-title">Bounce rate</span></div>
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <div style={{ fontSize: '2.4rem', fontWeight: 800, color: journey.bounce_rate > 30 ? '#DC2626' : journey.bounce_rate > 15 ? '#F59E0B' : '#16A34A' }}>
+              {journey.bounce_rate || 0}%
+            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', textAlign: 'center' }}>
+              Entered but left within 30 seconds
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--c-text-dim)' }}>
+              {(journey.bounced || 0).toLocaleString()} of {(journey.entry || 0).toLocaleString()} visitors
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Zone performance table */}
+      <div className="card">
+        <div className="card-header"><span className="card-title">Zone performance</span></div>
+        <div className="card-body">
+          {zones.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 32, fontSize: '0.85rem' }}>No zone data.</div>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    {[
+                      { key: 'zone_name', label: 'Zone Name' },
+                      { key: 'visitors', label: 'Visitors' },
+                      { key: 'avg_dwell_seconds', label: 'Avg Dwell Time' },
+                      { key: 'popularity_rank', label: 'Rank' },
+                    ].map(col => (
+                      <th key={col.key} onClick={() => toggleSort(col.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}>
+                        {col.label} {sortCol === col.key ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map(z => (
+                    <tr key={z.zone_number} style={topZone && z.zone_number === topZone.zone_number ? { background: 'rgba(232,93,38,0.06)' } : {}}>
+                      <td style={{ fontWeight: 600 }}>
+                        {z.zone_name}
+                        {topZone && z.zone_number === topZone.zone_number && (
+                          <span style={{ marginLeft: 8, fontSize: '0.7rem', background: 'var(--c-primary)', color: '#fff', padding: '1px 6px', borderRadius: 'var(--r-full)' }}>TOP</span>
+                        )}
+                      </td>
+                      <td>{z.visitors.toLocaleString()}</td>
+                      <td>{z.avg_dwell_seconds > 0 ? `${(z.avg_dwell_seconds / 60).toFixed(1)} min` : '—'}</td>
+                      <td>#{z.popularity_rank}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

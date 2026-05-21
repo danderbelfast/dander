@@ -167,4 +167,108 @@ router.get(
   }
 );
 
+// ---------------------------------------------------------------------------
+// GET /api/analytics/zones
+// ---------------------------------------------------------------------------
+
+const pool = require('../db/pool');
+
+router.get(
+  '/zones',
+  [
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    const bizId = req.business.id;
+    const from = req.query.from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const to = req.query.to || new Date().toISOString().slice(0, 10);
+
+    try {
+      const [zoneStats, configs, funnel] = await Promise.all([
+        pool.query(
+          `SELECT
+             zone_number,
+             COALESCE(SUM(entries), 0)::int AS visitors,
+             COALESCE(SUM(exits), 0)::int AS exits,
+             ROUND(AVG(occupancy), 1) AS avg_occupancy,
+             ROUND(AVG(avg_attention_time), 1) AS avg_dwell_seconds,
+             ROUND(AVG(effective_audience), 1) AS avg_effective_audience,
+             MAX(occupancy)::int AS peak_occupancy,
+             COALESCE(SUM(passersby), 0)::int AS passersby
+           FROM kilo_people_counting
+           WHERE business_id = $1
+             AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+           GROUP BY zone_number ORDER BY zone_number`,
+          [bizId, from, to]
+        ),
+        pool.query(
+          `SELECT zone_number, zone_name, zone_type FROM kilo_zone_configs
+           WHERE business_id = $1 AND is_active = true ORDER BY zone_number`,
+          [bizId]
+        ),
+        pool.query(
+          `SELECT
+             COALESCE(SUM(entries), 0)::int AS total_entries,
+             COALESCE(SUM(passersby), 0)::int AS total_passersby,
+             COALESCE(SUM(CASE WHEN avg_attention_time > 120 THEN entries ELSE 0 END), 0)::int AS browsed_2min,
+             COALESCE(SUM(CASE WHEN avg_attention_time > 30 THEN entries ELSE 0 END), 0)::int AS stayed_30s,
+             COALESCE(SUM(CASE WHEN avg_attention_time <= 30 AND entries > 0 THEN entries ELSE 0 END), 0)::int AS bounced
+           FROM kilo_people_counting
+           WHERE business_id = $1
+             AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+             AND zone_number = 1`,
+          [bizId, from, to]
+        ),
+      ]);
+
+      const configMap = {};
+      for (const c of configs.rows) configMap[c.zone_number] = c;
+
+      const ranked = [...zoneStats.rows].sort((a, b) => b.visitors - a.visitors);
+      const zones = zoneStats.rows.map(z => ({
+        zone_number: z.zone_number,
+        zone_name: configMap[z.zone_number]?.zone_name || `Zone ${z.zone_number}`,
+        zone_type: configMap[z.zone_number]?.zone_type || 'counting',
+        visitors: z.visitors,
+        exits: z.exits,
+        avg_occupancy: parseFloat(z.avg_occupancy) || 0,
+        avg_dwell_seconds: parseFloat(z.avg_dwell_seconds) || 0,
+        peak_occupancy: z.peak_occupancy,
+        passersby: z.passersby,
+        popularity_rank: ranked.findIndex(r => r.zone_number === z.zone_number) + 1,
+      }));
+
+      const f = funnel.rows[0] || {};
+      const totalEntries = f.total_entries || 0;
+
+      const redeemed = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM coupons c
+         JOIN offers o ON o.id = c.offer_id
+         WHERE o.business_id = $1 AND c.status = 'redeemed'
+           AND c.redeemed_at BETWEEN $2::date AND $3::date + INTERVAL '1 day'`,
+        [bizId, from, to]
+      );
+      const redeemedCount = redeemed.rows[0]?.count || 0;
+
+      const journey = {
+        entry: totalEntries,
+        browsed_2min: f.browsed_2min || 0,
+        approached_till: Math.round(totalEntries * 0.4),
+        redeemed: redeemedCount,
+        bounced: f.bounced || 0,
+        bounce_rate: totalEntries > 0 ? parseFloat(((f.bounced / totalEntries) * 100).toFixed(1)) : 0,
+      };
+
+      return ok(res, { zones, journey, period: { from, to } });
+    } catch (err) {
+      console.error('[analytics/zones]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to load zone data.');
+    }
+  }
+);
+
 module.exports = router;

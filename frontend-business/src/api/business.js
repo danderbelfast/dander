@@ -104,6 +104,9 @@ export const getAnalyticsRealtime = () =>
 export const getAnalyticsDemographics = (params) =>
   client.get('/api/analytics/demographics', { params }).then((r) => r.data);
 
+export const getAnalyticsZones = (params) =>
+  client.get('/api/analytics/zones', { params }).then((r) => r.data);
+
 // ── Rota ────────────────────────────────────────────────────
 export const getRota = () =>
   client.get('/api/business/rota').then((r) => r.data);
