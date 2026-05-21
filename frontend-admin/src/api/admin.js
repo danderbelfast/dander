@@ -107,3 +107,10 @@ export const createAdminUser = (data) =>
 // ── Map data ─────────────────────────────────────────────────
 export const getMapData = () =>
   client.get('/api/admin/map').then((r) => r.data);
+
+// ── Plan management ─────────────────────────────────────────
+export const updateBusinessPlan = (id, data) =>
+  client.put(`/api/admin/businesses/${id}/plan`, data).then((r) => r.data);
+
+export const getPlanHistory = (id) =>
+  client.get(`/api/admin/businesses/${id}/plan-history`).then((r) => r.data);

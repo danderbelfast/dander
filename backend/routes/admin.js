@@ -963,4 +963,75 @@ router.post(
   }
 );
 
+// ---------------------------------------------------------------------------
+// PUT /api/admin/businesses/:id/plan — change subscription plan
+// ---------------------------------------------------------------------------
+
+router.put(
+  '/businesses/:id/plan',
+  [
+    param('id').isInt({ min: 1 }),
+    body('tier').isIn(['free', 'starter', 'growth', 'pro']).withMessage('tier must be free, starter, growth, or pro'),
+    body('status').optional().isIn(['inactive', 'active', 'past_due', 'cancelled']),
+    body('reason').notEmpty().trim().withMessage('reason is required'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rows: current } = await pool.query(
+        'SELECT subscription_tier, subscription_status FROM businesses WHERE id = $1',
+        [req.params.id]
+      );
+      if (current.length === 0) return fail(res, 404, 'NOT_FOUND', 'Business not found.');
+
+      const oldTier = current[0].subscription_tier || 'free';
+      const oldStatus = current[0].subscription_status || 'inactive';
+      const newTier = req.body.tier;
+      const newStatus = req.body.status || (newTier === 'free' ? 'inactive' : 'active');
+
+      await pool.query(
+        `UPDATE businesses SET subscription_tier = $1, subscription_status = $2, updated_at = NOW() WHERE id = $3`,
+        [newTier, newStatus, req.params.id]
+      );
+
+      await pool.query(
+        `INSERT INTO plan_changes (business_id, old_tier, new_tier, old_status, new_status, reason, changed_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [req.params.id, oldTier, newTier, oldStatus, newStatus, req.body.reason, req.user.id]
+      );
+
+      return ok(res, { updated: true, old_tier: oldTier, new_tier: newTier });
+    } catch (err) {
+      console.error('[admin/businesses/:id/plan]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to update plan.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/businesses/:id/plan-history — plan change audit trail
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/businesses/:id/plan-history',
+  [param('id').isInt({ min: 1 })],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const { rows } = await pool.query(
+        `SELECT pc.*, u.first_name, u.last_name, u.email AS changed_by_email
+         FROM plan_changes pc
+         LEFT JOIN users u ON u.id = pc.changed_by
+         WHERE pc.business_id = $1
+         ORDER BY pc.created_at DESC LIMIT 10`,
+        [req.params.id]
+      );
+      return ok(res, { history: rows });
+    } catch (err) {
+      console.error('[admin/businesses/:id/plan-history]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch plan history.');
+    }
+  }
+);
+
 module.exports = router;

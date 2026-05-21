@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { getBusinesses, getBusiness, approveBusiness, suspendBusiness, getBusinessProfit, getBusinessHoursAdmin } from '../api/admin';
+import { getBusinesses, getBusiness, approveBusiness, suspendBusiness, getBusinessProfit, getBusinessHoursAdmin, updateBusinessPlan, getPlanHistory } from '../api/admin';
 import { useToast } from '../context/ToastContext';
 import { Spinner, LoadingBlock } from '../components/ui/Spinner';
 import { ConfirmModal, Drawer } from '../components/ui/Modal';
@@ -8,6 +8,16 @@ import { ConfirmModal, Drawer } from '../components/ui/Modal';
 function StatusBadge({ status }) {
   const map = { active: 'badge-active', pending: 'badge-pending', suspended: 'badge-suspended' };
   return <span className={`badge ${map[status] || 'badge-expired'}`}>{status}</span>;
+}
+
+const PLAN_COLORS = { free: '#6B7280', starter: '#3B82F6', growth: '#16A34A', pro: '#E85D26' };
+function PlanBadge({ tier }) {
+  const t = tier || 'free';
+  return (
+    <span style={{ background: PLAN_COLORS[t] || '#6B7280', color: '#fff', padding: '2px 8px', borderRadius: 'var(--r-full)', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>
+      {t}
+    </span>
+  );
 }
 
 const TABS = ['all', 'pending', 'active', 'suspended'];
@@ -219,9 +229,10 @@ export default function Businesses() {
   const [search, setSearch]         = useState('');
 
   const [drawerBizId, setDrawerBizId] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null); // { type, id, name }
+  const [confirmAction, setConfirmAction] = useState(null);
   const [suspendReason, setSuspendReason] = useState('');
   const [acting, setActing]         = useState(false);
+  const [planModal, setPlanModal]   = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -318,6 +329,7 @@ export default function Businesses() {
                   <th>Joined</th>
                   <th>Active offers</th>
                   <th>Redeemed</th>
+                  <th>Plan</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -336,10 +348,12 @@ export default function Businesses() {
                     </td>
                     <td className="table-mono">{b.active_offers ?? 0}</td>
                     <td className="table-mono">{parseInt(b.total_redeemed ?? 0, 10)}</td>
+                    <td><PlanBadge tier={b.subscription_tier} /></td>
                     <td><StatusBadge status={b.status} /></td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => setDrawerBizId(b.id)}>View</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setPlanModal({ id: b.id, name: b.name, tier: b.subscription_tier || 'free', status: b.subscription_status || 'inactive' })}>Plan</button>
                         {b.status === 'pending' && (
                           <button className="btn btn-success btn-sm" onClick={() => openAction('approve', b.id, b.name)}>Approve</button>
                         )}
@@ -369,6 +383,14 @@ export default function Businesses() {
       )}
 
       {/* Confirm modal */}
+      {planModal && (
+        <PlanModal
+          biz={planModal}
+          onClose={() => setPlanModal(null)}
+          onSaved={() => { setPlanModal(null); load(); addToast('Plan updated successfully', 'success'); }}
+        />
+      )}
+
       {confirmAction && (
         <ConfirmModal
           title={confirmAction.type === 'approve' ? `Approve "${confirmAction.name}"?` : `Suspend "${confirmAction.name}"?`}
@@ -391,6 +413,109 @@ export default function Businesses() {
         </ConfirmModal>
       )}
 
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Plan Management Modal
+// ---------------------------------------------------------------------------
+
+function PlanModal({ biz, onClose, onSaved }) {
+  const [tier, setTier]       = useState(biz.tier);
+  const [reason, setReason]   = useState('');
+  const [saving, setSaving]   = useState(false);
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    getPlanHistory(biz.id).then(d => setHistory(d.history || [])).catch(() => {});
+  }, [biz.id]);
+
+  async function handleSave() {
+    if (!reason.trim()) return;
+    setSaving(true);
+    try {
+      await updateBusinessPlan(biz.id, { tier, reason: reason.trim() });
+      onSaved();
+    } catch {}
+    setSaving(false);
+  }
+
+  const changed = tier !== biz.tier;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: 'var(--c-surface)', borderRadius: 'var(--r-xl)', padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 4 }}>Manage plan</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--c-text-muted)', marginBottom: 20 }}>{biz.name}</p>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)' }}>Current:</span>
+          <PlanBadge tier={biz.tier} />
+        </div>
+
+        <div className="field" style={{ marginBottom: 14 }}>
+          <label className="label label-required">New plan</label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['free', 'starter', 'growth', 'pro'].map(t => (
+              <button key={t} type="button"
+                onClick={() => setTier(t)}
+                style={{
+                  padding: '8px 16px', borderRadius: 'var(--r-md)', fontSize: '0.82rem', fontWeight: 600,
+                  cursor: 'pointer', textTransform: 'capitalize', flex: 1,
+                  background: tier === t ? PLAN_COLORS[t] : 'var(--c-bg)',
+                  color: tier === t ? '#fff' : 'var(--c-text)',
+                  border: tier === t ? 'none' : '1px solid var(--c-border)',
+                }}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field" style={{ marginBottom: 16 }}>
+          <label className="label label-required">Reason for change</label>
+          <textarea className="textarea" rows={2} value={reason} onChange={e => setReason(e.target.value)}
+            placeholder="e.g. Upgrading as part of Kilo IoT onboarding" />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" style={{ flex: 1 }} disabled={!changed || !reason.trim() || saving}
+            onClick={handleSave}>
+            {saving ? <Spinner white /> : `Change to ${tier}`}
+          </button>
+        </div>
+
+        {/* History */}
+        {history.length > 0 && (
+          <div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowHistory(!showHistory)} style={{ fontSize: '0.78rem', marginBottom: 8 }}>
+              {showHistory ? '▼' : '▶'} Plan change history ({history.length})
+            </button>
+            {showHistory && (
+              <div style={{ fontSize: '0.78rem' }}>
+                <table className="table" style={{ fontSize: '0.75rem' }}>
+                  <thead><tr><th>Date</th><th>Changed by</th><th>Change</th><th>Reason</th></tr></thead>
+                  <tbody>
+                    {history.map(h => (
+                      <tr key={h.id}>
+                        <td style={{ whiteSpace: 'nowrap' }}>{new Date(h.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</td>
+                        <td>{h.first_name ? `${h.first_name} ${h.last_name || ''}`.trim() : h.changed_by_email || '—'}</td>
+                        <td>
+                          <PlanBadge tier={h.old_tier} /> → <PlanBadge tier={h.new_tier} />
+                        </td>
+                        <td style={{ color: 'var(--c-text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
