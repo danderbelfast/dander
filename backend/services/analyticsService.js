@@ -186,39 +186,29 @@ async function getCurrentStatus(businessId) {
 }
 
 async function generatePlaceholderData(businessId) {
-  const DAYS_BACK = 30;
+  const DAYS_BACK = 14; // Reduced for faster generation
   
   function rand(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
-  function randFloat(min, max, decimals = 1) {
-    return parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
-  }
 
   try {
-    // Ensure device exists
+    // Get or create device
     const { rows: existing } = await pool.query(
-      'SELECT id FROM kilo_devices WHERE business_id = $1 LIMIT 1',
+      'SELECT id, device_id FROM kilo_devices WHERE business_id = $1 LIMIT 1',
       [businessId]
     );
-    let deviceDbId, deviceSn;
+    let deviceSn;
     
     if (existing.length > 0) {
-      deviceDbId = existing[0].id;
-      const { rows: device } = await pool.query(
-        'SELECT device_id FROM kilo_devices WHERE id = $1',
-        [deviceDbId]
-      );
-      deviceSn = device[0].device_id;
+      deviceSn = existing[0].device_id;
     } else {
       deviceSn = `kilo_test_${Date.now()}`;
-      const { rows } = await pool.query(
+      await pool.query(
         `INSERT INTO kilo_devices (business_id, device_id, label, status, device_type, first_reading_at, last_reading_at)
-         VALUES ($1, $2, $3, 'active', 'people_counter', NOW() - INTERVAL '${DAYS_BACK} days', NOW())
-         RETURNING id`,
+         VALUES ($1, $2, $3, 'active', 'people_counter', NOW() - INTERVAL '${DAYS_BACK} days', NOW())`,
         [businessId, deviceSn, 'Test Device']
       );
-      deviceDbId = rows[0].id;
     }
 
     // Seed zones if not exists
@@ -236,7 +226,7 @@ async function generatePlaceholderData(businessId) {
       );
     }
 
-    // Generate readings
+    // Generate readings - batch per day for efficiency
     const now = new Date();
     let readingsInserted = 0;
     
@@ -245,6 +235,7 @@ async function generatePlaceholderData(businessId) {
       date.setDate(date.getDate() - d);
       date.setHours(0, 0, 0, 0);
 
+      // Collect all readings for this day in arrays, then insert in one query per hour
       for (let hour = 8; hour < 20; hour++) {
         const ts = new Date(date);
         ts.setHours(hour, 0, 0, 0);
@@ -256,35 +247,22 @@ async function generatePlaceholderData(businessId) {
         const exits = Math.max(0, entries - rand(-3, 3));
         const occupancy = Math.max(0, rand(5, 25));
 
-        // Main entrance (zone 1)
+        // Insert all 3 zones in one multi-row statement
         await pool.query(
           `INSERT INTO kilo_people_counting
              (business_id, device_sn, zone_number, timestamp, interval_seconds, entries, exits, occupancy)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO UPDATE SET entries=EXCLUDED.entries`,
-          [businessId, deviceSn, 1, tsStr, 3600, entries, exits, occupancy]
+           VALUES 
+             ($1, $2, 1, $3, 3600, $4, $5, $6),
+             ($1, $2, 2, $3, 3600, $7, $8, $9),
+             ($1, $2, 3, $3, 3600, $10, $11, $12)
+           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO NOTHING`,
+          [
+            businessId, deviceSn, tsStr,
+            entries, exits, occupancy,                           // Zone 1
+            Math.round(entries * 0.6), Math.max(0, Math.round(entries * 0.6) - 1), Math.round(occupancy * 0.7),  // Zone 2
+            Math.round(entries * 0.8), Math.round(entries * 0.8), rand(1, 5)  // Zone 3
+          ]
         );
-
-        // Seating (zone 2)
-        const seatingEntries = Math.round(entries * 0.6);
-        await pool.query(
-          `INSERT INTO kilo_people_counting
-             (business_id, device_sn, zone_number, timestamp, interval_seconds, entries, exits, occupancy)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO UPDATE SET entries=EXCLUDED.entries`,
-          [businessId, deviceSn, 2, tsStr, 3600, seatingEntries, Math.max(0, seatingEntries - 1), Math.round(occupancy * 0.7)]
-        );
-
-        // Counter (zone 3)
-        const counterEntries = Math.round(entries * 0.8);
-        await pool.query(
-          `INSERT INTO kilo_people_counting
-             (business_id, device_sn, zone_number, timestamp, interval_seconds, entries, exits, occupancy)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO UPDATE SET entries=EXCLUDED.entries`,
-          [businessId, deviceSn, 3, tsStr, 3600, counterEntries, counterEntries, rand(1, 5)]
-        );
-
         readingsInserted += 3;
       }
     }
