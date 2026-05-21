@@ -157,8 +157,15 @@ export const decommissionDevice = (id) =>
 export const getInventory = () =>
   client.get('/api/business/inventory').then((r) => r.data);
 
-export const addInventoryItem = (data) =>
-  client.post('/api/business/inventory', data).then((r) => r.data);
+export const addInventoryItem = (formData) =>
+  client.post('/api/business/inventory', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((r) => r.data);
+
+export const updateInventoryItem = (id, formData) =>
+  client.put(`/api/business/inventory/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((r) => r.data);
 
 export const removeInventoryItem = (id) =>
   client.delete(`/api/business/inventory/${id}`).then((r) => r.data);

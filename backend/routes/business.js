@@ -854,7 +854,16 @@ router.get('/inventory', async (req, res) => {
       `SELECT * FROM inventory_items WHERE business_id = $1 AND is_active = true ORDER BY sort_order, name`,
       [req.business.id]
     );
-    return ok(res, { items: rows });
+    const totalCount = rows.length;
+    const inStock = rows.filter(r => r.stock_level > (r.low_stock_threshold || 0)).length;
+    const lowStock = rows.filter(r => r.stock_level > 0 && r.stock_level <= (r.low_stock_threshold || 5)).length;
+    const outOfStock = rows.filter(r => (r.stock_level || 0) === 0).length;
+    const categories = [...new Set(rows.map(r => r.category).filter(Boolean))].length;
+
+    return ok(res, {
+      items: rows,
+      stats: { total: totalCount, in_stock: inStock, low_stock: lowStock, out_of_stock: outOfStock, categories },
+    });
   } catch (err) {
     console.error('[business/inventory GET]', err);
     return fail(res, 500, 'SERVER_ERROR', 'Failed to list inventory.');
@@ -865,25 +874,94 @@ router.get('/inventory', async (req, res) => {
 // POST /api/business/inventory
 // ---------------------------------------------------------------------------
 
+const inventoryUpload = upload.single('image');
+
 router.post(
   '/inventory',
+  inventoryUpload,
   [
     body('name').notEmpty().trim().withMessage('name is required.'),
     body('category').optional().trim(),
-    body('is_perishable').optional().isBoolean(),
+    body('is_perishable').optional(),
+    body('sku').optional().trim(),
+    body('barcode').optional().trim(),
+    body('price').optional().isFloat({ min: 0 }),
+    body('cost_price').optional().isFloat({ min: 0 }),
+    body('stock_level').optional().isInt({ min: 0 }),
+    body('low_stock_threshold').optional().isInt({ min: 0 }),
+    body('description').optional().trim(),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;
     try {
+      let imageUrl = null;
+      if (req.file) {
+        imageUrl = await processImage(req.file.buffer, 'offer', req.file.originalname);
+      }
+
       const { rows } = await pool.query(
-        `INSERT INTO inventory_items (business_id, name, category, is_perishable)
-         VALUES ($1, $2, $3, $4) RETURNING *`,
-        [req.business.id, req.body.name, req.body.category || null, req.body.is_perishable ?? true]
+        `INSERT INTO inventory_items
+           (business_id, name, category, is_perishable, sku, barcode, price, cost_price, stock_level, low_stock_threshold, image_url, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+        [
+          req.business.id, req.body.name, req.body.category || null,
+          req.body.is_perishable === 'true' || req.body.is_perishable === true,
+          req.body.sku || null, req.body.barcode || null,
+          req.body.price || null, req.body.cost_price || null,
+          parseInt(req.body.stock_level, 10) || 0,
+          parseInt(req.body.low_stock_threshold, 10) || 5,
+          imageUrl, req.body.description || null,
+        ]
       );
       return ok(res, { item: rows[0] }, 201);
     } catch (err) {
+      if (err.constraint?.includes('sku')) return fail(res, 409, 'DUPLICATE_SKU', 'An item with this SKU already exists.');
       console.error('[business/inventory POST]', err);
       return fail(res, 500, 'SERVER_ERROR', 'Failed to add item.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// PUT /api/business/inventory/:id
+// ---------------------------------------------------------------------------
+
+router.put(
+  '/inventory/:id',
+  inventoryUpload,
+  [param('id').isInt({ min: 1 }).withMessage('Invalid item ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const allowed = ['name', 'category', 'is_perishable', 'sku', 'barcode', 'price', 'cost_price', 'stock_level', 'low_stock_threshold', 'description', 'sort_order'];
+      const updates = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) {
+          if (key === 'is_perishable') updates[key] = req.body[key] === 'true' || req.body[key] === true;
+          else if (['price', 'cost_price'].includes(key)) updates[key] = parseFloat(req.body[key]);
+          else if (['stock_level', 'low_stock_threshold', 'sort_order'].includes(key)) updates[key] = parseInt(req.body[key], 10);
+          else updates[key] = req.body[key];
+        }
+      }
+      if (req.file) {
+        updates.image_url = await processImage(req.file.buffer, 'offer', req.file.originalname);
+      }
+      if (Object.keys(updates).length === 0) return fail(res, 400, 'NO_CHANGES', 'No fields to update.');
+
+      const setClauses = Object.keys(updates).map((col, i) => `${col} = $${i + 2}`);
+      const values = [req.business.id, ...Object.values(updates), req.params.id];
+
+      const { rows } = await pool.query(
+        `UPDATE inventory_items SET ${setClauses.join(', ')}
+         WHERE id = $${values.length} AND business_id = $1 AND is_active = true RETURNING *`,
+        values
+      );
+      if (rows.length === 0) return fail(res, 404, 'NOT_FOUND', 'Item not found.');
+      return ok(res, { item: rows[0] });
+    } catch (err) {
+      if (err.constraint?.includes('sku')) return fail(res, 409, 'DUPLICATE_SKU', 'An item with this SKU already exists.');
+      console.error('[business/inventory PUT]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to update item.');
     }
   }
 );
