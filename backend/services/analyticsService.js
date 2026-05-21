@@ -186,8 +186,114 @@ async function getCurrentStatus(businessId) {
 }
 
 async function generatePlaceholderData(businessId) {
-  const seedScript = require('../scripts/seed-kilo-data');
-  return { generated: true, message: 'Use seed-kilo-data.js script for full placeholder data.' };
+  const DAYS_BACK = 30;
+  
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  function randFloat(min, max, decimals = 1) {
+    return parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
+  }
+
+  try {
+    // Ensure device exists
+    const { rows: existing } = await pool.query(
+      'SELECT id FROM kilo_devices WHERE business_id = $1 LIMIT 1',
+      [businessId]
+    );
+    let deviceDbId, deviceSn;
+    
+    if (existing.length > 0) {
+      deviceDbId = existing[0].id;
+      const { rows: device } = await pool.query(
+        'SELECT device_id FROM kilo_devices WHERE id = $1',
+        [deviceDbId]
+      );
+      deviceSn = device[0].device_id;
+    } else {
+      deviceSn = `kilo_test_${Date.now()}`;
+      const { rows } = await pool.query(
+        `INSERT INTO kilo_devices (business_id, device_id, label, status, device_type, first_reading_at, last_reading_at)
+         VALUES ($1, $2, $3, 'active', 'people_counter', NOW() - INTERVAL '${DAYS_BACK} days', NOW())
+         RETURNING id`,
+        [businessId, deviceSn, 'Test Device']
+      );
+      deviceDbId = rows[0].id;
+    }
+
+    // Seed zones if not exists
+    const zones = [
+      { number: 1, name: 'Main Entrance', type: 'counting' },
+      { number: 2, name: 'Seating Area', type: 'dwell' },
+      { number: 3, name: 'Counter', type: 'counting' },
+    ];
+    for (const z of zones) {
+      await pool.query(
+        `INSERT INTO kilo_zone_configs (business_id, device_sn, zone_number, zone_name, zone_type)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (device_sn, zone_number) DO NOTHING`,
+        [businessId, deviceSn, z.number, z.name, z.type]
+      );
+    }
+
+    // Generate readings
+    const now = new Date();
+    let readingsInserted = 0;
+    
+    for (let d = DAYS_BACK; d >= 0; d--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - d);
+      date.setHours(0, 0, 0, 0);
+
+      for (let hour = 8; hour < 20; hour++) {
+        const ts = new Date(date);
+        ts.setHours(hour, 0, 0, 0);
+        const tsStr = ts.toISOString();
+
+        const baseRates = { 8: 5, 9: 12, 10: 18, 11: 25, 12: 35, 13: 35, 14: 28, 15: 22, 16: 20, 17: 22, 18: 28, 19: 15 };
+        const base = baseRates[hour] || 10;
+        const entries = Math.max(0, base + rand(-5, 5));
+        const exits = Math.max(0, entries - rand(-3, 3));
+        const occupancy = Math.max(0, rand(5, 25));
+
+        // Main entrance (zone 1)
+        await pool.query(
+          `INSERT INTO kilo_people_counting
+             (business_id, device_sn, zone_number, timestamp, interval_seconds, entries, exits, occupancy)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO UPDATE SET entries=EXCLUDED.entries`,
+          [businessId, deviceSn, 1, tsStr, 3600, entries, exits, occupancy]
+        );
+
+        // Seating (zone 2)
+        const seatingEntries = Math.round(entries * 0.6);
+        await pool.query(
+          `INSERT INTO kilo_people_counting
+             (business_id, device_sn, zone_number, timestamp, interval_seconds, entries, exits, occupancy)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO UPDATE SET entries=EXCLUDED.entries`,
+          [businessId, deviceSn, 2, tsStr, 3600, seatingEntries, Math.max(0, seatingEntries - 1), Math.round(occupancy * 0.7)]
+        );
+
+        // Counter (zone 3)
+        const counterEntries = Math.round(entries * 0.8);
+        await pool.query(
+          `INSERT INTO kilo_people_counting
+             (business_id, device_sn, zone_number, timestamp, interval_seconds, entries, exits, occupancy)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (business_id, device_sn, timestamp, zone_number) DO UPDATE SET entries=EXCLUDED.entries`,
+          [businessId, deviceSn, 3, tsStr, 3600, counterEntries, counterEntries, rand(1, 5)]
+        );
+
+        readingsInserted += 3;
+      }
+    }
+
+    return { generated: true, readingsInserted, message: `Generated ${readingsInserted} test readings for ${DAYS_BACK} days` };
+  } catch (err) {
+    console.error('[generatePlaceholderData]', err);
+    throw err;
+  }
 }
 
 module.exports = { getDashboard, getCurrentStatus, generatePlaceholderData };
