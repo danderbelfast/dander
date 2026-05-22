@@ -107,6 +107,9 @@ export const getAnalyticsDemographics = (params) =>
 export const getAnalyticsZones = (params) =>
   client.get('/api/analytics/zones', { params }).then((r) => r.data);
 
+export const generateAnalyticsPlaceholder = () =>
+  client.post('/api/analytics/placeholder').then((r) => r.data);
+
 export const getAnnotations = (params) =>
   client.get('/api/analytics/annotations', { params }).then((r) => r.data);
 

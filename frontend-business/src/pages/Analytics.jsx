@@ -3,9 +3,8 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics, getAnalyticsZones, getAnnotations, createAnnotation, deleteAnnotation } from '../api/business';
+import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics, getAnalyticsZones, getAnnotations, createAnnotation, deleteAnnotation, generateAnalyticsPlaceholder } from '../api/business';
 import { Spinner } from '../components/ui/Spinner';
-import { getAccessToken } from '../api/client';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEMO_COLORS = { male: '#3B82F6', female: '#EC4899', adults: '#6B7280', children: '#F59E0B', staff: '#8B5CF6' };
@@ -106,18 +105,10 @@ export default function Analytics() {
   const generatePlaceholder = async () => {
     setLoading(true);
     try {
-      const token = getAccessToken && getAccessToken();
-      const response = await fetch('/api/analytics/placeholder', { 
-        method: 'POST',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
-      if (response.ok) {
-        window.location.reload();
-      } else {
-        console.error('Failed to generate placeholder data:', response.status, await response.text());
-      }
+      await generateAnalyticsPlaceholder();
+      window.location.reload();
     } catch (error) {
-      console.error('Failed to generate placeholder data:', error);
+      console.error('Failed to generate placeholder data:', error.response?.status, error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
