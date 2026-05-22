@@ -18,6 +18,10 @@ CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_event
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook_id
   ON webhook_deliveries (webhook_id) WHERE webhook_id IS NOT NULL;
 
--- Add shared_secret column to api_keys for HMAC webhook verification
-ALTER TABLE api_keys
+-- Add shared_secret column to api_keys for HMAC webhook verification.
+-- NOTE: no migration in this repo creates the api_keys table, so on databases
+-- that don't already have it this ALTER would abort the whole migration run.
+-- `ALTER TABLE IF EXISTS` skips with a notice instead of erroring, so startup
+-- is not blocked. On databases that DO have api_keys, the column is still added.
+ALTER TABLE IF EXISTS api_keys
   ADD COLUMN IF NOT EXISTS shared_secret VARCHAR(64);
