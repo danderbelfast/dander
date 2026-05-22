@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 
 const couponService = require('../services/couponService');
 const { dispatchEvent } = require('../services/webhookService');
+const loyaltyService = require('../services/loyaltyService');
 const { requireAuth, requireBusiness } = require('../middleware/auth');
 
 const router = Router();
@@ -131,6 +132,24 @@ router.post(
         req.business.id
       );
       dispatchEvent(req.business.id, 'coupon.redeemed', result);
+
+      // Award loyalty points
+      if (result.user?.id && result.offer) {
+        const savedAmount = result.offer.offer_price
+          ? parseFloat(result.offer.offer_price)
+          : result.offer.discount_percent
+          ? parseFloat(result.offer.discount_percent) / 10
+          : 1;
+        const points = Math.max(1, Math.round(savedAmount));
+        loyaltyService.awardPoints(result.user.id, {
+          points,
+          savedGbp: savedAmount,
+          description: `Redeemed: ${result.offer.title}`,
+          referenceType: 'coupon',
+          referenceId: result.couponId,
+        }).catch(() => {});
+      }
+
       return ok(res, result);
     } catch (err) {
       const knownCodes = new Set([
