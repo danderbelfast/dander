@@ -121,7 +121,7 @@ export default function UserExplainer() {
           Dander Analytics &bull; Dander Ads &bull; Dander Merchant Center
         </div>
         <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', maxWidth: 480, margin: '0 auto 16px', lineHeight: 1.55 }}>
-          The complete Google suite for physical retail. Understand your footfall. Drive verified visits. Match shoppers to your inventory.
+          The complete analytics suite for physical retail. Understand your footfall. Drive verified visits. Match shoppers to your inventory.
         </div>
         <button
           style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#E85D26', padding: '8px 20px', borderRadius: 'var(--r-full)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
