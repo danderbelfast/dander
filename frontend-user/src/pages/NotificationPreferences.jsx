@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getNotificationPreferences, saveNotificationPreferences } from '../api/preferences';
 import { useToast } from '../context/ToastContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import * as alertService from '../services/alertService';
 import { Spinner } from '../components/ui/Spinner';
 
 const CATEGORIES = [
@@ -50,6 +51,13 @@ export default function NotificationPreferences() {
   const [togglingGlobal, setTogglingGlobal] = useState(false);
   const [globalOn, setGlobalOn] = useState(false);
 
+  // Sounds & Vibration
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
+  const [alertVolume, setAlertVolume] = useState(0.7);
+  const [testingAlerts, setTestingAlerts] = useState(false);
+  const [muteUntil, setMuteUntil] = useState(null);
+
   // Notification types
   const [notifTypes, setNotifTypes] = useState(
     Object.fromEntries(NOTIF_TYPES.map(t => [t.key, t.default]))
@@ -80,6 +88,17 @@ export default function NotificationPreferences() {
           if (data.quiet_hours.from)  setQuietFrom(data.quiet_hours.from);
           if (data.quiet_hours.until) setQuietUntil(data.quiet_hours.until);
         }
+        // Load sounds & vibration settings
+        if (data.sounds_enabled !== undefined) setSoundsEnabled(data.sounds_enabled);
+        if (data.haptics_enabled !== undefined) setHapticsEnabled(data.haptics_enabled);
+        if (data.alert_volume !== undefined) setAlertVolume(data.alert_volume);
+        
+        // Cache in localStorage for instant access
+        localStorage.setItem('dander_sound_prefs', JSON.stringify({
+          sounds_enabled: data.sounds_enabled ?? true,
+          haptics_enabled: data.haptics_enabled ?? true,
+          alert_volume: data.alert_volume ?? 0.7,
+        }));
       })
       .catch(() => {
         toast({ type: 'error', title: 'Could not load preferences' });
@@ -91,6 +110,30 @@ export default function NotificationPreferences() {
   useEffect(() => {
     if (initialized) setGlobalOn(isSubscribed);
   }, [isSubscribed, initialized]);
+
+  async function handleVolumeChange(newVolume) {
+    setAlertVolume(newVolume);
+    // Play preview sound at new volume
+    const soundService = await import('../services/soundService');
+    soundService.playPreview(soundService.newOffer, newVolume);
+  }
+
+  async function handleTestAlerts() {
+    setTestingAlerts(true);
+    try {
+      await alertService.testAlerts(alertVolume);
+    } finally {
+      setTestingAlerts(false);
+    }
+  }
+
+  function handleMuteSoundsHour() {
+    const oneHourFromNow = new Date();
+    oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
+    setMuteUntil(oneHourFromNow);
+    localStorage.setItem('dander_sound_mute_until', oneHourFromNow.toISOString());
+    toast({ type: 'success', title: 'Sounds muted for 1 hour' });
+  }
 
   async function handleGlobalToggle(enabled) {
     if (togglingGlobal) return;
@@ -140,7 +183,18 @@ export default function NotificationPreferences() {
         preferences: prefs,
         notification_types: notifTypes,
         quiet_hours: { enabled: quietEnabled, from: quietFrom, until: quietUntil },
+        sounds_enabled: soundsEnabled,
+        haptics_enabled: hapticsEnabled,
+        alert_volume: alertVolume,
       });
+      
+      // Cache in localStorage for instant access
+      localStorage.setItem('dander_sound_prefs', JSON.stringify({
+        sounds_enabled: soundsEnabled,
+        haptics_enabled: hapticsEnabled,
+        alert_volume: alertVolume,
+      }));
+      
       toast({ type: 'success', title: 'Preferences saved' });
       navigate(-1);
     } catch {
@@ -174,6 +228,101 @@ export default function NotificationPreferences() {
           </svg>
         </button>
         Notifications
+      </div>
+
+      {/* SOUNDS & VIBRATION SECTION */}
+      <div className="settings-section">
+        <div className="settings-section-title">Sounds & Vibration</div>
+        
+        {/* Sound effects toggle */}
+        <div className="settings-row" style={{ cursor: 'default' }}>
+          <div className="settings-row-left" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+            <span className="settings-row-label">Notification sounds</span>
+            <span className="settings-row-value">Play sounds for nearby deals and coupon actions</span>
+          </div>
+          <Toggle checked={soundsEnabled} onChange={(e) => setSoundsEnabled(e.target.checked)} />
+        </div>
+
+        {/* Volume slider - only visible when sounds are on */}
+        {soundsEnabled && (
+          <div style={{
+            background: 'var(--c-surface)',
+            border: '1px solid var(--c-border)',
+            borderTop: 'none',
+            borderRadius: '0 0 var(--r-md) var(--r-md)',
+            padding: '14px 16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>Volume</span>
+              <span style={{ fontSize: '0.88rem', color: 'var(--c-text-muted)' }}>{Math.round(alertVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={alertVolume}
+              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+              style={{
+                width: '100%',
+                cursor: 'pointer',
+              }}
+            />
+            <p style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: 8, marginBottom: 0 }}>
+              Preview sound plays as you adjust
+            </p>
+          </div>
+        )}
+
+        {/* Haptic feedback toggle */}
+        <div className="settings-row" style={{ cursor: 'default', marginTop: soundsEnabled ? 8 : 0 }}>
+          <div className="settings-row-left" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+            <span className="settings-row-label">Haptic feedback</span>
+            <span className="settings-row-value">Feel a buzz when deals are nearby or when you claim a coupon</span>
+          </div>
+          <Toggle checked={hapticsEnabled} onChange={(e) => setHapticsEnabled(e.target.checked)} />
+        </div>
+
+        {/* Test alerts button */}
+        <div style={{
+          background: 'var(--c-surface)',
+          border: '1px solid var(--c-border)',
+          borderTop: 'none',
+          borderRadius: '0 0 var(--r-md) var(--r-md)',
+          padding: '12px 16px',
+        }}>
+          <button
+            onClick={handleTestAlerts}
+            disabled={testingAlerts}
+            style={{
+              background: 'var(--c-surface-raised)',
+              border: '1px solid var(--c-border)',
+              borderRadius: 'var(--r-sm)',
+              padding: '10px 16px',
+              cursor: testingAlerts ? 'not-allowed' : 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 500,
+              color: 'var(--c-text)',
+              width: '100%',
+              opacity: testingAlerts ? 0.6 : 1,
+            }}
+          >
+            {testingAlerts ? 'Testing...' : 'Test alerts'}
+          </button>
+        </div>
+
+        {/* Alert style (greyed out for future) */}
+        <div className="settings-row" style={{ cursor: 'default', marginTop: 8, opacity: 0.5, pointerEvents: 'none' }}>
+          <div className="settings-row-left" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+            <span className="settings-row-label">Alert style</span>
+            <span className="settings-row-value">Dander Classic — More coming soon</span>
+          </div>
+        </div>
+
+        {/* Info note */}
+        <div style={{ padding: '12px 16px 0', fontSize: '0.78rem', color: 'var(--c-text-muted)', lineHeight: 1.5 }}>
+          Sounds will not play if your phone is on silent or do not disturb
+        </div>
       </div>
 
       {/* Master toggle */}

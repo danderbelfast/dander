@@ -4,6 +4,55 @@ const pool = require('../db/pool');
 const fcmService = require('./fcmService');
 
 // ---------------------------------------------------------------------------
+// NOTIFICATION CHANNELS & SOUNDS
+// ---------------------------------------------------------------------------
+// 
+// For push notifications with custom sounds and channels:
+//
+// ANDROID NOTIFICATION CHANNELS:
+// When Capacitor is added to the native Android app, create these channels:
+//
+//   dander_deals channel:
+//   - Name: "Nearby deals"
+//   - Description: "Alerts when deals appear near you"
+//   - Importance: HIGH
+//   - Sound: deal_nearby.mp3
+//   - Vibration: true
+//   - Lights: true, colour #E85D26 (Dander orange)
+//
+//   dander_coupons channel:
+//   - Name: "Coupon updates"
+//   - Description: "Reminders about your claimed coupons"
+//   - Importance: DEFAULT
+//   - Sound: deal_expiring.mp3
+//   - Vibration: true
+//
+//   dander_offers channel:
+//   - Name: "New offers"
+//   - Description: "New deals posted near you"
+//   - Importance: DEFAULT
+//   - Sound: new_offer.mp3
+//   - Vibration: false
+//
+// TODO (Capacitor integration): Copy sound files from frontend-user/public/sounds/
+// to: android/app/src/main/res/raw/
+//     - deal_nearby.mp3
+//     - deal_expiring.mp3
+//     - new_offer.mp3
+//
+// iOS APNS PAYLOAD:
+// Sound files require bundle in the native app. Custom sounds must be:
+//   - Less than 30 seconds
+//   - Linear PCM or IMA4
+//   - Placed in Xcode project
+//
+// TODO (Capacitor integration): Add sound files to iOS app via Xcode:
+//         ios/App/App/
+//         - deal_nearby.mp3
+//         - deal_expiring.mp3
+//         - new_offer.mp3
+//
+// ---------------------------------------------------------------------------
 // Web Push (VAPID)
 // ---------------------------------------------------------------------------
 
@@ -129,6 +178,8 @@ async function sendPushToUser(userId, payload) {
     title: payload.title || 'Dander',
     body:  payload.body || '',
     data:  payload.data || {},
+    sound: payload.sound,
+    channelId: payload.channelId,
   });
   sent += fcmResult.sent || 0;
 
@@ -148,6 +199,8 @@ async function sendProximityAlert(userId, offer, distanceM) {
     body:  `${offer.title} — ${dist} away`,
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
+    sound: 'deal_nearby',
+    channelId: 'dander_deals',
     data:  { offerId: offer.id, url: `/offer/${offer.id}` },
   });
 }
@@ -160,6 +213,8 @@ async function sendNewOfferNearby(userId, offer) {
     body:  offer.title,
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
+    sound: 'new_offer',
+    channelId: 'dander_offers',
     data:  { offerId: offer.id, url: `/offer/${offer.id}` },
   });
 }
@@ -172,6 +227,8 @@ async function sendExpiringOffer(userId, offer) {
     body:  `${offer.title} expires in less than 2 hours`,
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
+    sound: 'deal_expiring',
+    channelId: 'dander_deals',
     data:  { offerId: offer.id, url: `/offer/${offer.id}` },
   });
 }
@@ -184,6 +241,8 @@ async function sendCouponReminder(userId, coupon) {
     body:  `Your coupon for "${coupon.offer_title || coupon.offerTitle}" expires in less than 2 hours`,
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
+    sound: 'deal_expiring',
+    channelId: 'dander_coupons',
     data:  { url: '/coupons' },
   });
 }

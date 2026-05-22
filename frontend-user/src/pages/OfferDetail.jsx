@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOffer, recordView, saveOffer, unsaveOffer } from '../api/offers';
 import { generateCoupon } from '../api/coupons';
+import * as alertService from '../services/alertService';
 import { useLocation } from '../context/LocationContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -97,6 +98,10 @@ export default function OfferDetail() {
         lng: location?.lng,
       });
       trackCouponClaim();
+      
+      // Play coupon claimed alert
+      await alertService.couponClaimed();
+      
       navigate('/coupons/claimed', {
         state: {
           coupon:      data.coupon,

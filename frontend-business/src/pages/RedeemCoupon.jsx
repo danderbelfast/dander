@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { redeemCoupon } from '../api/coupons';
 import { Spinner } from '../components/ui/Spinner';
 
-function SuccessScreen({ result, code, onReset }) {
+function SuccessScreen({ result, code, onReset, soundsEnabled, onToggleSounds }) {
   return (
     <div className="redeem-result redeem-success">
       <div className="redeem-result-icon">✓</div>
@@ -31,9 +31,23 @@ function SuccessScreen({ result, code, onReset }) {
           </span>
         </div>
       </div>
-      <button className="btn btn-primary btn-block btn-lg" style={{ marginTop: 8 }} onClick={onReset}>
-        Redeem another
-      </button>
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <button className="btn btn-primary btn-block btn-lg" onClick={onReset}>
+          Redeem another
+        </button>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={onToggleSounds}
+          title={soundsEnabled ? 'Mute sounds' : 'Enable sounds'}
+          style={{
+            padding: '10px 12px',
+            fontSize: '1.2rem',
+            minWidth: 'auto',
+          }}
+        >
+          {soundsEnabled ? '🔊' : '🔇'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -58,11 +72,25 @@ export default function RedeemCoupon() {
   const [result, setResult]     = useState(null);  // { success, ...data } | null
   const [screen, setScreen]     = useState('form'); // 'form' | 'success' | 'failure'
   const [failMsg, setFailMsg]   = useState('');
+  const [soundsEnabled, setSoundsEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem('dander_business_sounds_enabled');
+      return stored !== 'false';
+    } catch {
+      return true;
+    }
+  });
   const codeRef = useRef(null);
 
   function reset() {
     setCode(''); setPin(''); setResult(null); setScreen('form'); setFailMsg('');
     setTimeout(() => codeRef.current?.focus(), 50);
+  }
+
+  function handleToggleSounds() {
+    const newState = !soundsEnabled;
+    setSoundsEnabled(newState);
+    localStorage.setItem('dander_business_sounds_enabled', newState);
   }
 
   async function handleSubmit(e) {
@@ -72,6 +100,18 @@ export default function RedeemCoupon() {
       const data = await redeemCoupon(code.toUpperCase().trim(), pin);
       setResult(data);
       setScreen('success');
+
+      // Play coupon redeemed sound if enabled
+      if (soundsEnabled) {
+        try {
+          const soundGenerator = await import('../services/soundGenerator');
+          if (soundGenerator.playCouponRedeemed) {
+            soundGenerator.playCouponRedeemed(0.5).catch(() => {});
+          }
+        } catch (err) {
+          console.warn('[RedeemCoupon] Sound playback failed:', err.message);
+        }
+      }
     } catch (err) {
       setFailMsg(err.response?.data?.message || 'Invalid code or PIN.');
       setScreen('failure');
@@ -80,7 +120,13 @@ export default function RedeemCoupon() {
 
   if (screen === 'success') return (
     <div className="redeem-wrap">
-      <SuccessScreen result={result} code={code} onReset={reset} />
+      <SuccessScreen 
+        result={result} 
+        code={code} 
+        onReset={reset}
+        soundsEnabled={soundsEnabled}
+        onToggleSounds={handleToggleSounds}
+      />
     </div>
   );
 

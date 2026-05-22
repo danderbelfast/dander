@@ -4,6 +4,7 @@ import React, {
 import { getNearby } from '../api/offers';
 import { updateLocation } from '../api/push';
 import { getAccessToken } from '../api/client';
+import * as alertService from '../services/alertService';
 import { useToast } from './ToastContext';
 
 const LocationContext = createContext(null);
@@ -39,6 +40,11 @@ export function LocationProvider({ children }) {
       if (newOffers.length > 0) {
         const first = newOffers[0];
         proximityToast(first.business_name, first.title, first.id);
+        
+        // Play sound and haptic alert
+        const distanceM = first.distance || DEFAULT_RADIUS;
+        await alertService.dealNearby(distanceM);
+        
         newOffers.forEach((o) => seenOfferIds.current.add(o.id));
         sessionStorage.setItem(
           'dander_seen_offers',

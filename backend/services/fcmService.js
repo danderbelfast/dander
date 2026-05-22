@@ -61,7 +61,7 @@ async function deleteFcmToken(userId) {
 // Send via FCM
 // ---------------------------------------------------------------------------
 
-async function sendFcmToUser(userId, { title, body, data = {} }) {
+async function sendFcmToUser(userId, { title, body, data = {}, sound = null, channelId = null }) {
   const admin = getAdmin();
   if (!admin) return { sent: 0, reason: 'fcm_not_configured' };
 
@@ -70,7 +70,7 @@ async function sendFcmToUser(userId, { title, body, data = {} }) {
   if (!token) return { sent: 0, reason: 'no_token' };
 
   try {
-    await admin.messaging().send({
+    const payload = {
       token,
       notification: { title, body },
       data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
@@ -85,7 +85,31 @@ async function sendFcmToUser(userId, { title, body, data = {} }) {
           link: data.url || '/',
         },
       },
-    });
+    };
+
+    // Add Android notification channel and sound if specified
+    if (channelId || sound) {
+      payload.android = {
+        notification: {
+          channelId: channelId || 'default',
+          sound: sound || 'default',
+        },
+      };
+    }
+
+    // Add iOS sound if specified (requires bundled sound file)
+    if (sound) {
+      payload.apns = {
+        payload: {
+          aps: {
+            sound: `${sound}.mp3`,
+            badge: 1,
+          },
+        },
+      };
+    }
+
+    await admin.messaging().send(payload);
     return { sent: 1 };
   } catch (err) {
     // Token expired or invalid — clean it up

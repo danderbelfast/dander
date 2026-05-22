@@ -15,6 +15,9 @@ const router = Router();
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_types JSONB DEFAULT '{"nearby_deals":true,"new_offers":true,"expiring_offers":true,"coupon_reminders":true}'::jsonb`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS quiet_hours JSONB DEFAULT '{"enabled":false,"from":"22:00","until":"08:00"}'::jsonb`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sounds_enabled BOOLEAN NOT NULL DEFAULT TRUE`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS haptics_enabled BOOLEAN NOT NULL DEFAULT TRUE`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS alert_volume DECIMAL(3,2) NOT NULL DEFAULT 0.7`);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_notification_preferences (
         id            SERIAL PRIMARY KEY,
@@ -63,7 +66,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
   const userId = req.user.id;
   try {
     const [userResult, prefsResult] = await Promise.all([
-      pool.query('SELECT notifications_enabled, notification_types, quiet_hours FROM users WHERE id = $1', [userId]),
+      pool.query('SELECT notifications_enabled, notification_types, quiet_hours, sounds_enabled, haptics_enabled, alert_volume FROM users WHERE id = $1', [userId]),
       pool.query(
         'SELECT category, enabled, radius_meters FROM user_notification_preferences WHERE user_id = $1',
         [userId]
@@ -89,6 +92,9 @@ router.get('/notifications', requireAuth, async (req, res) => {
       preferences,
       notification_types: userRow.notification_types || { nearby_deals: true, new_offers: true, expiring_offers: true, coupon_reminders: true },
       quiet_hours: userRow.quiet_hours || { enabled: false, from: '22:00', until: '08:00' },
+      sounds_enabled: userRow.sounds_enabled ?? true,
+      haptics_enabled: userRow.haptics_enabled ?? true,
+      alert_volume: userRow.alert_volume ?? 0.7,
     });
   } catch (err) {
     console.error('[preferences/notifications GET]', err);
@@ -103,7 +109,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
 
 router.put('/notifications', requireAuth, async (req, res) => {
   const userId = req.user.id;
-  const { notifications_enabled, preferences, notification_types, quiet_hours } = req.body;
+  const { notifications_enabled, preferences, notification_types, quiet_hours, sounds_enabled, haptics_enabled, alert_volume } = req.body;
 
   try {
     if (notifications_enabled != null) {
@@ -124,6 +130,28 @@ router.put('/notifications', requireAuth, async (req, res) => {
       await pool.query(
         'UPDATE users SET quiet_hours = $1 WHERE id = $2',
         [JSON.stringify(quiet_hours), userId]
+      );
+    }
+
+    if (sounds_enabled != null) {
+      await pool.query(
+        'UPDATE users SET sounds_enabled = $1 WHERE id = $2',
+        [Boolean(sounds_enabled), userId]
+      );
+    }
+
+    if (haptics_enabled != null) {
+      await pool.query(
+        'UPDATE users SET haptics_enabled = $1 WHERE id = $2',
+        [Boolean(haptics_enabled), userId]
+      );
+    }
+
+    if (alert_volume != null) {
+      const vol = Math.max(0, Math.min(1, parseFloat(alert_volume) || 0.7));
+      await pool.query(
+        'UPDATE users SET alert_volume = $1 WHERE id = $2',
+        [vol, userId]
       );
     }
 
