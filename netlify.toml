@@ -1,6 +1,6 @@
 [build]
-  base    = ""
-  command = "npm install && cd frontend-user && npm run build"
+  base    = "frontend-user"
+  command = "npm install --legacy-peer-deps && npm run build"
   publish = "frontend-user/dist"
 
 [build.environment]
