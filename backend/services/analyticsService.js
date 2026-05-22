@@ -90,7 +90,7 @@ async function getDashboard(businessId, { from, to, zone } = {}) {
 
   const zoneConfigs = await pool.query(
     `SELECT zone_number, zone_name, zone_type FROM kilo_zone_configs
-     WHERE business_id = $1 AND is_active = true ORDER BY zone_number`,
+     WHERE business_id = $1 ORDER BY zone_number`,
     [businessId]
   );
   const zoneMap = {};
