@@ -10,6 +10,7 @@
     "migrate": "node db/migrate.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@electric-sql/pglite": "^0.4.1",
     "@resvg/resvg-js": "^2.6.2",
     "axios": "^1.7.2",

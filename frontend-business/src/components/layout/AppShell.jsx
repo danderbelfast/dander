@@ -5,6 +5,7 @@ import { getProfile } from '../../api/business';
 import { Sidebar } from './Sidebar';
 import { ToastContainer } from '../ui/Toast';
 import { LoadingBlock } from '../ui/Spinner';
+import { AssistantWidget } from '../ui/AssistantWidget';
 
 const PAGE_TITLES = {
   '/dashboard':  'Dashboard',
@@ -59,6 +60,7 @@ export function AppShell() {
       <main className="main-content">
         <Outlet />
       </main>
+      <AssistantWidget />
     </div>
   );
 }

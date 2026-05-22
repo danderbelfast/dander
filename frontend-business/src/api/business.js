@@ -176,3 +176,10 @@ export const updateInventoryItem = (id, formData) =>
 
 export const removeInventoryItem = (id) =>
   client.delete(`/api/business/inventory/${id}`).then((r) => r.data);
+
+// ── AI Assistant ────────────────────────────────────────────
+export const getAssistantSuggestions = (page) =>
+  client.get('/api/assistant/suggestions', { params: { page } }).then((r) => r.data);
+
+export const sendAssistantMessage = (messages, page) =>
+  client.post('/api/assistant/chat', { messages, page }).then((r) => r.data);
