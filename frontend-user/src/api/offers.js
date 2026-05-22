@@ -29,6 +29,10 @@ export const getSavedOffers = () =>
 export const getBusinessStory = (businessId) =>
   client.get(`/api/offers/story/${businessId}`).then((r) => r.data);
 
+// ── Share ───────────────────────────────────────────────────
+export const trackShare = (id) =>
+  client.post(`/api/v1/offers/${id}/share`).then((r) => r.data);
+
 // ── Loyalty ─────────────────────────────────────────────────
 export const getLoyaltyStatus = () =>
   client.get('/api/users/loyalty').then((r) => r.data);

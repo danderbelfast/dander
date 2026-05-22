@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCountdown } from '../../hooks/useCountdown';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import { saveOffer, unsaveOffer } from '../../api/offers';
+import { saveOffer, unsaveOffer, trackShare } from '../../api/offers';
 import { StoryOverlay } from '../ui/StoryOverlay';
 
 // ---------------------------------------------------------------------------
@@ -208,6 +208,23 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
             ) : countdown?.expired ? (
               <span className="offer-card-meta-item text-dim">Expired</span>
             ) : null}
+
+            <button className="offer-card-share-btn" onClick={(e) => {
+              e.stopPropagation();
+              const url = `https://dander.io/o/${offer.id}`;
+              const text = `Check out this deal: ${offer.title} at ${offer.business_name}`;
+              trackShare(offer.id).catch(() => {});
+              if (navigator.share) {
+                navigator.share({ title: offer.title, text, url }).catch(() => {});
+              } else {
+                navigator.clipboard.writeText(url).catch(() => {});
+              }
+            }} aria-label="Share">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
