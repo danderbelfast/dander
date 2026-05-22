@@ -115,12 +115,12 @@ async function requireBusiness(req, res, next) {
   let query, params;
 
   if (requestedId) {
-    query  = `SELECT id, name, status, is_verified
+    query  = `SELECT id, name, status, is_verified, subscription_tier
               FROM businesses
               WHERE id = $1 AND owner_id = $2`;
     params = [requestedId, req.user.id];
   } else {
-    query  = `SELECT id, name, status, is_verified
+    query  = `SELECT id, name, status, is_verified, subscription_tier
               FROM businesses
               WHERE owner_id = $1
               ORDER BY created_at
@@ -158,6 +158,7 @@ async function requireBusiness(req, res, next) {
     name:       business.name,
     status:     business.status,
     isVerified: business.is_verified,
+    tier:       business.subscription_tier || 'free',
   };
 
   return next();
