@@ -147,4 +147,34 @@ router.put('/me/avatar', requireAuth, upload.single('avatar'), async (req, res) 
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/users/loyalty — points balance, tier, milestones
+// ---------------------------------------------------------------------------
+
+const loyaltyService = require('../services/loyaltyService');
+
+router.get('/loyalty', requireAuth, async (req, res) => {
+  try {
+    const status = await loyaltyService.getLoyaltyStatus(req.user.id);
+    return res.json({ success: true, loyalty: status });
+  } catch (err) {
+    console.error('[users/loyalty]', err);
+    return res.status(500).json({ success: false, message: 'Failed to load loyalty status.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/users/loyalty/history — points transaction log
+// ---------------------------------------------------------------------------
+
+router.get('/loyalty/history', requireAuth, async (req, res) => {
+  try {
+    const history = await loyaltyService.getHistory(req.user.id);
+    return res.json({ success: true, history });
+  } catch (err) {
+    console.error('[users/loyalty/history]', err);
+    return res.status(500).json({ success: false, message: 'Failed to load history.' });
+  }
+});
+
 module.exports = router;
