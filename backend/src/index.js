@@ -131,6 +131,7 @@ app.use('/api/kilo',        require('../routes/kiloWebhook'));
 app.use('/api/billing',     require('../routes/billing'));
 app.use('/api/analytics',   require('../routes/analytics'));
 app.use('/api/assistant',   require('../routes/assistant'));
+app.use('/api/wifi',        require('../routes/wifi'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)
