@@ -132,6 +132,7 @@ app.use('/api/billing',     require('../routes/billing'));
 app.use('/api/analytics',   require('../routes/analytics'));
 app.use('/api/assistant',   require('../routes/assistant'));
 app.use('/api/wifi',        require('../routes/wifi'));
+app.use('/api/device',      require('../routes/device'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)

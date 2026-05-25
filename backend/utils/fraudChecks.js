@@ -159,13 +159,103 @@ async function checkMassClaim({ bssid }) {
   };
 }
 
+// ── Device-fingerprint admin / review helpers ───────────────────────────────
+
+/**
+ * All flagged device records, joined to user info for an admin dashboard.
+ * Most recently seen first.
+ */
+async function getFlaggedDevices() {
+  const { rows } = await pool.query(
+    `SELECT df.id, df.user_id, df.install_id, df.fingerprint, df.platform,
+            df.os_version, df.app_version, df.timezone,
+            df.screen_width, df.screen_height,
+            df.first_seen, df.last_seen, df.seen_count,
+            df.flagged, df.flag_reason,
+            u.email, u.first_name, u.last_name,
+            u.created_at AS user_created_at
+     FROM device_fingerprints df
+     JOIN users u ON u.id = df.user_id
+     WHERE df.flagged = true
+     ORDER BY df.last_seen DESC`
+  );
+  return rows;
+}
+
+/**
+ * install_ids seen on 2+ distinct user accounts. Includes the user_id
+ * list and most recent activity time per install.
+ */
+async function getMultiAccountDevices() {
+  const { rows } = await pool.query(
+    `SELECT install_id,
+            COUNT(DISTINCT user_id)::int    AS user_count,
+            ARRAY_AGG(DISTINCT user_id)     AS user_ids,
+            MAX(last_seen)                  AS last_seen
+     FROM device_fingerprints
+     GROUP BY install_id
+     HAVING COUNT(DISTINCT user_id) > 1
+     ORDER BY user_count DESC, last_seen DESC`
+  );
+  return rows;
+}
+
+/**
+ * Accounts created within the last `days` days that own at least one
+ * flagged device. Defaults to 30 days; non-positive integers fall back
+ * to 30 to keep callers safe.
+ */
+async function getSuspiciousNewAccounts(days = 30) {
+  if (!Number.isInteger(days) || days < 1) days = 30;
+  const { rows } = await pool.query(
+    `SELECT u.id AS user_id, u.email, u.first_name, u.last_name,
+            u.created_at,
+            COUNT(df.id)::int               AS flagged_device_count,
+            ARRAY_AGG(DISTINCT df.flag_reason) FILTER (WHERE df.flag_reason IS NOT NULL)
+                                            AS flag_reasons,
+            MAX(df.last_seen)               AS last_device_seen
+     FROM users u
+     JOIN device_fingerprints df ON df.user_id = u.id
+     WHERE u.created_at >= NOW() - ($1 || ' days')::interval
+       AND df.flagged = true
+     GROUP BY u.id, u.email, u.first_name, u.last_name, u.created_at
+     ORDER BY u.created_at DESC`,
+    [String(days)]
+  );
+  return rows;
+}
+
+/**
+ * Manually clear a flag after admin review. Clears every row sharing
+ * that install_id (an install_id with multiple users will typically
+ * have flagged set on all its rows). Returns the number of rows
+ * affected so callers can sanity-check.
+ *
+ * @param {string} installId
+ * @returns {Promise<number>}
+ */
+async function clearFlag(installId) {
+  const { rowCount } = await pool.query(
+    `UPDATE device_fingerprints
+     SET flagged = false, flag_reason = NULL
+     WHERE install_id = $1`,
+    [installId]
+  );
+  return rowCount;
+}
+
 module.exports = {
   // anonymisation
   anonymiseUserId,
-  // checks
+  // wifi checks
   checkImpossibleVelocity,
   checkSameBssidSpam,
   checkMassClaim,
+  // device-fingerprint admin helpers
+  getFlaggedDevices,
+  getMultiAccountDevices,
+  getSuspiciousNewAccounts,
+  clearFlag,
   // exposed for tests / tuning
   MAX_VELOCITY_MPS,
   SAME_BSSID_SPAM_PER_DAY,
