@@ -107,6 +107,11 @@ async function getLoyaltyStatus(userId) {
     tier: loyalty.tier,
     next_tier: loyalty.tier === 'platinum' ? null : Object.keys(TIER_THRESHOLDS).find(t => TIER_THRESHOLDS[t] > loyalty.lifetime_points),
     next_tier_points_needed: loyalty.tier === 'platinum' ? 0 : (TIER_THRESHOLDS[Object.keys(TIER_THRESHOLDS).find(t => TIER_THRESHOLDS[t] > loyalty.lifetime_points)] || 0) - loyalty.lifetime_points,
+    // Steps — cached counters on user_loyalty, maintained by POST /api/steps.
+    // Cross-device authoritative; up to ~5 min stale between client POSTs.
+    steps_today:      loyalty.steps_today      || 0,
+    steps_this_month: loyalty.steps_this_month || 0,
+    steps_all_time:   loyalty.steps_all_time   || 0,
     milestones: milestones.map(m => ({
       ...m,
       threshold_gbp: parseFloat(m.threshold_gbp),

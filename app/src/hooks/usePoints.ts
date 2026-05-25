@@ -66,14 +66,20 @@ export function usePoints(): PointsSummary {
         getMyLeaderboard().catch(() => null),
       ]);
       if (!mounted.current) return;
+      // Server is now the authoritative source for step totals
+      // (loyaltyService.getLoyaltyStatus exposes user_loyalty.steps_*).
+      // Pad stepsToday with the locally-counted total so the UI feels
+      // live between POST cycles — Math.max can only grow within a day.
+      const serverToday = loyalty?.steps_today ?? 0;
+      const localToday  = getTodaySteps();
       setState({
         totalPoints:           loyalty?.total_points ?? 0,
         lifetimePoints:        loyalty?.lifetime_points ?? 0,
         tier:                  loyalty?.tier ?? 'bronze',
         rank:                  me?.rank ?? null,
         pointsThisMonth:       me?.points_this_month ?? 0,
-        stepsToday:            getTodaySteps(),
-        stepsThisMonth:        me?.steps_this_month ?? 0,
+        stepsToday:            Math.max(serverToday, localToday),
+        stepsThisMonth:        loyalty?.steps_this_month ?? me?.steps_this_month ?? 0,
         wifiNetworksThisMonth: me?.wifi_networks_this_month ?? 0,
       });
       setError(null);

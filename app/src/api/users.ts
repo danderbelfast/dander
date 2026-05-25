@@ -25,6 +25,12 @@ export interface LoyaltyStatus {
   tier:                'bronze' | 'silver' | 'gold' | 'platinum';
   next_tier?:          string | null;
   next_tier_points_needed?: number;
+  // Cross-device authoritative step totals from user_loyalty (cached
+  // counters maintained by POST /api/steps; up to ~5 min stale between
+  // client POSTs).
+  steps_today?:        number;
+  steps_this_month?:   number;
+  steps_all_time?:     number;
   milestones?:         unknown[];
   next_milestone?:     unknown;
 }
