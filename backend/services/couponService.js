@@ -163,15 +163,16 @@ async function generateCoupon(userId, offerId, options = {}) {
       throw err;
     }
 
-    // --- Generate a unique code ---
+    // --- Generate a unique code + QR token ---
     const code = await generateUniqueCode(client);
+    const qrToken = crypto.randomBytes(32).toString('hex');
 
     // --- Insert the coupon ---
     const couponResult = await client.query(
-      `INSERT INTO coupons (offer_id, user_id, code, status)
-       VALUES ($1, $2, $3, 'active')
+      `INSERT INTO coupons (offer_id, user_id, code, qr_token, status)
+       VALUES ($1, $2, $3, $4, 'active')
        RETURNING *`,
-      [offerId, userId, code]
+      [offerId, userId, code, qrToken]
     );
     const coupon = couponResult.rows[0];
 

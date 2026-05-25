@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { resolveImageUrl } from '../utils/imageUrl';
 import { submitReview, trackShare } from '../api/offers';
 import { StarInput } from '../components/ui/StarRating';
+import { QRCodeSVG } from 'qrcode.react';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,14 +55,20 @@ function formatExpiryFull(isoString) {
 // Fullscreen code overlay
 // ---------------------------------------------------------------------------
 
-function FullscreenCode({ code, onClose }) {
+function FullscreenQR({ qrToken, code, onClose }) {
+  React.useEffect(() => {
+    const orig = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = '#fff';
+    try { screen.orientation?.lock?.('portrait').catch(() => {}); } catch {}
+    return () => { document.body.style.backgroundColor = orig; };
+  }, []);
+
   return (
-    <div className="cc-fullscreen" onClick={onClose}>
-      <div className="cc-fullscreen-inner">
-        <div className="cc-fullscreen-label">Show this to staff</div>
-        <div className="cc-fullscreen-code">{code}</div>
-        <div className="cc-fullscreen-hint">Tap anywhere to close</div>
-      </div>
+    <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }} onClick={onClose}>
+      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#666' }}>Show this to staff</div>
+      <QRCodeSVG value={qrToken} size={260} level="M" includeMargin />
+      <div style={{ fontFamily: 'monospace', fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.15em', color: '#333' }}>{code}</div>
+      <div style={{ fontSize: '0.78rem', color: '#999', marginTop: 8 }}>Tap anywhere to close</div>
     </div>
   );
 }
@@ -121,7 +128,7 @@ export default function CouponClaimed() {
 
   return (
     <>
-      {fullscreen && <FullscreenCode code={coupon.code} onClose={() => setFullscreen(false)} />}
+      {fullscreen && <FullscreenQR qrToken={coupon.qr_token || coupon.code} code={coupon.code} onClose={() => setFullscreen(false)} />}
 
       <div className="cc-page">
 
@@ -188,25 +195,15 @@ export default function CouponClaimed() {
               <div className="cc-tear-notch cc-tear-notch-right" />
             </div>
 
-            {/* Bottom: code */}
-            <div className="cc-card-bottom">
-              <div className="cc-code-label">Your coupon code</div>
-              <div className="cc-code-box">
-                <span className="cc-code">{coupon.code}</span>
-                <button
-                  className={`cc-copy-btn${copied ? ' cc-copied' : ''}`}
-                  onClick={handleCopy}
-                  aria-label="Copy code"
-                >
-                  {copied
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                  }
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
-                </button>
+            {/* Bottom: QR code */}
+            <div className="cc-card-bottom" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <div className="cc-code-label">Show QR to staff</div>
+              <div onClick={() => setFullscreen(true)} style={{ cursor: 'pointer', padding: 8, background: '#fff', borderRadius: 8 }}>
+                <QRCodeSVG value={coupon.qr_token || coupon.code} size={160} level="M" />
               </div>
-
-              {/* Tap to enlarge */}
+              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--c-text-muted)' }}>
+                {coupon.code}
+              </div>
               <button className="cc-enlarge-btn" onClick={() => setFullscreen(true)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>

@@ -156,6 +156,10 @@ export const registerDevice = (data) =>
 export const decommissionDevice = (id) =>
   client.delete(`/api/kilo/devices/${id}`).then((r) => r.data);
 
+// ── QR Redeem ───────────────────────────────────────────────
+export const redeemQR = (qrToken) =>
+  client.post('/api/coupons/redeem-qr', { qr_token: qrToken }).then((r) => r.data);
+
 // ── Inventory ───────────────────────────────────────────────
 export const getInventory = () =>
   client.get('/api/business/inventory').then((r) => r.data);
