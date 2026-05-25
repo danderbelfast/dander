@@ -4,6 +4,7 @@ import { useCountdown } from '../../hooks/useCountdown';
 import { resolveImageUrl } from '../../utils/imageUrl';
 import { saveOffer, unsaveOffer, trackShare } from '../../api/offers';
 import { StoryOverlay } from '../ui/StoryOverlay';
+import { StarDisplay, NewBadge } from '../ui/StarRating';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -177,6 +178,10 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <BizAvatar offer={offer} onClick={() => setShowStory(true)} />
             <div className="offer-card-biz truncate">{offer.business_name}</div>
+            {offer.business_rating_visible
+              ? <StarDisplay rating={parseFloat(offer.business_avg_rating)} count={offer.business_review_count} visible={true} size={11} />
+              : offer.business_review_count < 5 && <NewBadge />
+            }
           </div>
           <div className="offer-card-title">{toTitleCase(offer.title)}</div>
 

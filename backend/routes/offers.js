@@ -3,8 +3,10 @@
 const { Router } = require('express');
 const { query, param, validationResult } = require('express-validator');
 
+const { body } = require('express-validator');
 const pool       = require('../db/pool');
 const geoService = require('../services/geoService');
+const reviewService = require('../services/reviewService');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = Router();
@@ -239,6 +241,9 @@ router.get(
            b.website       AS business_website,
            b.lat           AS business_lat,
            b.lng           AS business_lng,
+           b.avg_rating    AS business_avg_rating,
+           b.review_count  AS business_review_count,
+           b.rating_visible AS business_rating_visible,
            EXISTS (
              SELECT 1 FROM business_stories bs
              WHERE bs.business_id = o.business_id
@@ -290,6 +295,57 @@ router.post(
     } catch (err) {
       console.error('[offers/:id/view POST]', err);
       return fail(res, 500, 'SERVER_ERROR', 'Failed to record view.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/offers/reviews/:businessId — public reviews for a business
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/reviews/:businessId',
+  [param('businessId').isInt({ min: 1 })],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const data = await reviewService.getBusinessReviews(parseInt(req.params.businessId, 10));
+      return ok(res, data);
+    } catch (err) {
+      console.error('[offers/reviews GET]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to load reviews.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/offers/reviews — submit a review (must have redeemed)
+// ---------------------------------------------------------------------------
+
+router.post(
+  '/reviews',
+  requireAuth,
+  [
+    body('coupon_id').isInt({ min: 1 }).withMessage('coupon_id is required.'),
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('rating must be 1-5.'),
+    body('comment').optional().trim().isLength({ max: 500 }),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const canPost = await reviewService.canReview(req.user.id, req.body.coupon_id);
+      if (!canPost) return fail(res, 409, 'ALREADY_REVIEWED', 'You have already reviewed this redemption.');
+
+      const review = await reviewService.submitReview(req.user.id, {
+        couponId: req.body.coupon_id,
+        rating: req.body.rating,
+        comment: req.body.comment,
+      });
+      return ok(res, { review }, 201);
+    } catch (err) {
+      if (err.status) return fail(res, err.status, 'REVIEW_ERROR', err.message);
+      console.error('[offers/reviews POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to submit review.');
     }
   }
 );

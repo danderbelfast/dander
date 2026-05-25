@@ -138,6 +138,9 @@ async function getOffersNearLocation(lat, lng, radiusMeters, filters = {}) {
       b.city        AS business_city,
       b.lat         AS business_lat,
       b.lng         AS business_lng,
+      b.avg_rating  AS business_avg_rating,
+      b.review_count AS business_review_count,
+      b.rating_visible AS business_rating_visible,
       ROUND(${distanceExpr}::numeric, 1) AS distance_meters
     FROM  offers     o
     JOIN  businesses b ON b.id = o.business_id

@@ -29,6 +29,13 @@ export const getSavedOffers = () =>
 export const getBusinessStory = (businessId) =>
   client.get(`/api/offers/story/${businessId}`).then((r) => r.data);
 
+// ── Reviews ─────────────────────────────────────────────────
+export const getBusinessReviews = (businessId) =>
+  client.get(`/api/offers/reviews/${businessId}`).then((r) => r.data);
+
+export const submitReview = (data) =>
+  client.post('/api/offers/reviews', data).then((r) => r.data);
+
 // ── Share ───────────────────────────────────────────────────
 export const trackShare = (id) =>
   client.post(`/api/v1/offers/${id}/share`).then((r) => r.data);

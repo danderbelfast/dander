@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useCountdown } from '../hooks/useCountdown';
 import { useToast } from '../context/ToastContext';
 import { resolveImageUrl } from '../utils/imageUrl';
+import { submitReview, trackShare } from '../api/offers';
+import { StarInput } from '../components/ui/StarRating';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -114,6 +116,8 @@ export default function CouponClaimed() {
       state: { destLat: businessLat, destLng: businessLng, businessName: business.name, mode: 'walking' },
     });
   }, [businessLat, businessLng, business, navigate]);
+
+  const [reviewDone, setReviewDone] = useState(false);
 
   return (
     <>
@@ -262,6 +266,9 @@ export default function CouponClaimed() {
           </div>
         )}
 
+        {/* ── Review prompt ── */}
+        <ReviewPrompt couponId={coupon.id} businessName={business.name} offerId={state.offerId} />
+
         {/* ── Single-use warning ── */}
         <div className="cc-warning">
           <span>⚠️</span>
@@ -273,5 +280,99 @@ export default function CouponClaimed() {
         <div style={{ height: 20 }} />
       </div>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Review Prompt
+// ---------------------------------------------------------------------------
+
+function ReviewPrompt({ couponId, businessName, offerId }) {
+  const [rating, setRating]     = useState(0);
+  const [comment, setComment]   = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit() {
+    if (rating === 0) return;
+    setSubmitting(true);
+    try {
+      await submitReview({ coupon_id: couponId, rating, comment: comment.trim() || undefined });
+      setSubmitted(true);
+    } catch {}
+    setSubmitting(false);
+  }
+
+  function handleShareReview() {
+    const url = `https://dander.io/o/${offerId || ''}`;
+    const stars = '⭐'.repeat(rating);
+    const text = `I just rated ${businessName} ${stars} on Dander! ${comment ? `"${comment}" ` : ''}Check out their deals:`;
+    trackShare(offerId).catch(() => {});
+    if (navigator.share) {
+      navigator.share({ title: `${businessName} — ${stars}`, text, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${text} ${url}`).catch(() => {});
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="cc-section">
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🎉</div>
+          <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 4 }}>Thanks for your review!</div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginBottom: 12 }}>
+            {'⭐'.repeat(rating)} for {businessName}
+          </div>
+          <button onClick={handleShareReview} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'var(--c-primary)', color: '#fff', border: 'none',
+            padding: '8px 18px', borderRadius: 'var(--r-full)',
+            fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share your review
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cc-section">
+      <div className="cc-section-title">How was your experience?</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+        <StarInput value={rating} onChange={setRating} size={36} />
+        {rating > 0 && (
+          <>
+            <textarea
+              value={comment} onChange={(e) => setComment(e.target.value)}
+              placeholder="Tell others about your experience (optional)"
+              maxLength={500}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 'var(--r-md)',
+                border: '1.5px solid var(--c-border)', fontSize: '0.85rem',
+                resize: 'vertical', minHeight: 60, fontFamily: 'inherit',
+                background: 'var(--c-bg)', color: 'var(--c-text)',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--c-text-dim)' }}>{comment.length}/500</span>
+              <button onClick={handleSubmit} disabled={submitting} style={{
+                background: 'var(--c-primary)', color: '#fff', border: 'none',
+                padding: '8px 20px', borderRadius: 'var(--r-full)',
+                fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                opacity: submitting ? 0.6 : 1,
+              }}>
+                {submitting ? 'Sending...' : 'Submit review'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
