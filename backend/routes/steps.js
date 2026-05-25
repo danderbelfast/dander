@@ -124,7 +124,7 @@ router.post(
           points:        pointsToAward,
           description:   `Steps logged for ${loggedAt}`,
           referenceType: 'steps',
-          referenceId:   null,
+          referenceId:   loggedAt,
         });
       } catch (err) {
         console.error('[steps] loyalty write-through failed:', err.message);

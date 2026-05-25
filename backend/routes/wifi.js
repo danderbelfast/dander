@@ -159,14 +159,14 @@ router.post(
 
       // Forward to the main ledger AFTER commit so a loyalty failure can
       // never roll back the observations. Each awarded BSSID gets its own
-      // points_transactions row — reference_id is INTEGER in that table so
-      // the bssid lives in description; reference_type stays 'wifi'.
+      // points_transactions row. reference_id is VARCHAR(128) (per migration
+      // 028) so the bssid goes there directly.
       for (const bssid of awardedBssids) {
         loyaltyService.awardPoints(userIdReal, {
           points:         POINTS_PER_DISCOVERY,
           description:    `WiFi network discovered: ${bssid}`,
           referenceType:  'wifi',
-          referenceId:    null,
+          referenceId:    bssid,
         }).catch((err) => {
           console.error('[wifi/observations] loyalty write-through failed:', err.message);
         });

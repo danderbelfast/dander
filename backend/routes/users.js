@@ -209,7 +209,7 @@ router.post('/daily-login', requireAuth, async (req, res) => {
       points:         DAILY_LOGIN_BONUS,
       description:    `Daily app open (${today})`,
       referenceType:  'daily_login',
-      referenceId:    null,
+      referenceId:    today,
     });
 
     return res.json({
