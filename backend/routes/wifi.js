@@ -41,7 +41,7 @@ function fail(res, status, code, message) {
   return res.status(status).json({ success: false, code, message });
 }
 
-const POINTS_PER_DISCOVERY         = 10;
+const POINTS_PER_DISCOVERY         = parseInt(process.env.POINTS_PER_DISCOVERY) || 2;
 const MAX_OBSERVATIONS_PER_REQUEST = 200;
 const BSSID_RE = /^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$/;
 
