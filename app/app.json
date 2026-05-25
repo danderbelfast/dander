@@ -12,7 +12,8 @@
       "bundleIdentifier": "io.dander.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Dander uses your location to discover nearby offers and improve coverage.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Dander uses your location in the background to suggest offers as you move around."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Dander uses your location in the background to suggest offers as you move around.",
+        "NSMotionUsageDescription": "Dander uses motion data to count your steps and reward you with points."
       }
     },
     "android": {
@@ -22,7 +23,8 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_WIFI_STATE",
         "CHANGE_WIFI_STATE",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "ACTIVITY_RECOGNITION"
       ]
     },
     "plugins": [

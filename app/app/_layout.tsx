@@ -10,12 +10,16 @@ import { Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
 import { useDeviceFingerprint } from '../src/hooks/useDeviceFingerprint';
 import { useWifiScanner } from '../src/hooks/useWifiScanner';
+import { useDailyLoginBonus } from '../src/hooks/useDailyLoginBonus';
+import { useStepCounter } from '../src/hooks/useStepCounter';
 
 function SideEffects() {
-  // Both hooks gate themselves on isAuth and platform/permissions, so
-  // they're safe to mount unconditionally at the root.
+  // Every hook gates itself on isAuth and platform/permissions, so the
+  // set is safe to mount unconditionally at the root.
   useDeviceFingerprint();
+  useDailyLoginBonus();
   useWifiScanner();
+  useStepCounter();
   return null;
 }
 
