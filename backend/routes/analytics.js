@@ -17,6 +17,13 @@ function fail(res, status, code, message) {
   return res.status(status).json({ success: false, code, message });
 }
 
+// Demographics, zone performance, and dwell time are Pro-only. Non-Pro plans
+// see a blurred sample placeholder client-side; the real data is withheld here
+// so it never reaches the wire.
+function isPro(req) {
+  return req.business?.tier === 'pro';
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/analytics/dashboard
 // ---------------------------------------------------------------------------
@@ -38,7 +45,13 @@ router.get(
         to: req.query.to,
         zone: req.query.zone ? parseInt(req.query.zone, 10) : null,
       });
-      return ok(res, { analytics: data });
+      // Withhold Pro-only metrics: demographics, zone breakdown, dwell time.
+      if (!isPro(req)) {
+        data.demographics = null;
+        data.zones = [];
+        if (data.summary) data.summary.avg_dwell_seconds = null;
+      }
+      return ok(res, { analytics: data, locked: !isPro(req) });
     } catch (err) {
       console.error('[analytics/dashboard]', err);
       return fail(res, 500, 'SERVER_ERROR', 'Failed to load analytics.');
@@ -87,6 +100,9 @@ router.get(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    // Pro-only — withhold demographic data from lower tiers.
+    if (!isPro(req)) return ok(res, { demographics: null, locked: true });
 
     const bizId = req.business.id;
     const from = req.query.from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
@@ -179,6 +195,9 @@ router.get(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return fail(res, 400, 'VALIDATION_ERROR', errors.array()[0].msg);
+
+    // Pro-only — withhold zone performance / dwell data from lower tiers.
+    if (!isPro(req)) return ok(res, { zones: [], journey: {}, locked: true });
 
     const bizId = req.business.id;
     const from = req.query.from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);

@@ -507,6 +507,9 @@ router.post(
   requireScope('smart_specials:read'),
   smartUpload,
   [
+    body('offer_type').optional().isIn(['discount', 'freebie', 'urgency']),
+    body('offer_value').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 100 }),
+    // `labels` is accepted for backward compatibility but no longer used.
     body('labels').optional(),
   ],
   async (req, res) => {
@@ -515,23 +518,28 @@ router.post(
     try {
       const photoUrl = await processImage(req.file.buffer, 'offer', req.file.originalname);
 
-      let labels = [];
-      if (req.body.labels) {
-        try {
-          labels = typeof req.body.labels === 'string' ? JSON.parse(req.body.labels) : req.body.labels;
-        } catch { labels = []; }
-      }
-
-      const assessment = await assessPhoto(req.apiKey.businessId, photoUrl, labels);
+      const assessment = await assessPhoto({
+        businessId: req.apiKey.businessId,
+        photoUrl,
+        offerType:  req.body.offer_type  || 'urgency',
+        offerValue: req.body.offer_value || null,
+      });
 
       return apiSuccess(res, {
-        assessment_id:    assessment.id,
-        photo_url:        assessment.photo_url,
-        items:            assessment.items_detected,
-        freshness_flags:  assessment.freshness_flags,
-        suggested_offers: assessment.suggested_offers,
+        assessment_id:        assessment.id,
+        photo_url:            assessment.photo_url,
+        offer_type:           assessment.offer_type,
+        offer_value:          assessment.offer_value,
+        suggested_title:      assessment.suggested_title,
+        suggested_description:assessment.suggested_description,
+        photo_summary:        assessment.photo_summary,
+        confidence:           assessment.confidence,
+        ai_available:         assessment.ai_available,
       }, 201);
     } catch (err) {
+      if (err.code === 'VALIDATION_ERROR') {
+        return apiError(res, err.status || 400, 'validation_error', err.message);
+      }
       console.error('[api/v1/smart-specials/assess]', err);
       return apiError(res, 500, 'server_error', 'Failed to assess photo.');
     }

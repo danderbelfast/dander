@@ -176,3 +176,25 @@ export const updateInventoryItem = (id, formData) =>
 
 export const removeInventoryItem = (id) =>
   client.delete(`/api/business/inventory/${id}`).then((r) => r.data);
+
+// ── AI Assistant ────────────────────────────────────────────
+export const getAssistantSuggestions = (page) =>
+  client.get('/api/assistant/suggestions', { params: { page } }).then((r) => r.data);
+
+export const sendAssistantMessage = (messages, page) =>
+  client.post('/api/assistant/chat', { messages, page }).then((r) => r.data);
+
+// ── Smart Specials (Claude Vision offer copy) ───────────────
+export const getSmartSpecialsSettings = () =>
+  client.get('/api/business/smart-specials/settings').then((r) => r.data);
+
+export const saveSmartSpecialsSettings = (data) =>
+  client.put('/api/business/smart-specials/settings', data).then((r) => r.data);
+
+export const assessSmartSpecialPhoto = (formData) =>
+  client.post('/api/business/smart-specials/assess', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((r) => r.data);
+
+export const postSmartSpecialOffer = (data) =>
+  client.post('/api/business/smart-specials/post', data).then((r) => r.data);

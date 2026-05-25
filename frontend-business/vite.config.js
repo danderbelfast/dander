@@ -10,4 +10,7 @@ export default defineConfig({
       '/uploads': { target: 'http://localhost:4000', changeOrigin: true },
     },
   },
+  optimizeDeps: {
+    include: ['html5-qrcode'],
+  },
 });

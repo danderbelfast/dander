@@ -353,7 +353,7 @@ export default function Businesses() {
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => setDrawerBizId(b.id)}>View</button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setPlanModal({ id: b.id, name: b.name, tier: b.subscription_tier || 'free', status: b.subscription_status || 'inactive' })}>Plan</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setPlanModal({ id: b.id, name: b.name, tier: b.subscription_tier || 'free', status: b.subscription_status || 'inactive', is_test_account: !!b.is_test_account })}>Plan</button>
                         {b.status === 'pending' && (
                           <button className="btn btn-success btn-sm" onClick={() => openAction('approve', b.id, b.name)}>Approve</button>
                         )}
@@ -423,6 +423,7 @@ export default function Businesses() {
 
 function PlanModal({ biz, onClose, onSaved }) {
   const [tier, setTier]       = useState(biz.tier);
+  const [isTestAccount, setIsTestAccount] = useState(!!biz.is_test_account);
   const [reason, setReason]   = useState('');
   const [saving, setSaving]   = useState(false);
   const [history, setHistory] = useState([]);
@@ -436,13 +437,13 @@ function PlanModal({ biz, onClose, onSaved }) {
     if (!reason.trim()) return;
     setSaving(true);
     try {
-      await updateBusinessPlan(biz.id, { tier, reason: reason.trim() });
+      await updateBusinessPlan(biz.id, { tier, reason: reason.trim(), is_test_account: isTestAccount });
       onSaved();
     } catch {}
     setSaving(false);
   }
 
-  const changed = tier !== biz.tier;
+  const changed = tier !== biz.tier || isTestAccount !== !!biz.is_test_account;
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
@@ -474,6 +475,21 @@ function PlanModal({ biz, onClose, onSaved }) {
           </div>
         </div>
 
+        <div className="field" style={{ marginBottom: 14 }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={isTestAccount}
+              onChange={e => setIsTestAccount(e.target.checked)}
+              style={{ marginTop: 2, flexShrink: 0 }} />
+            <span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Test account</span>
+              <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: 2, lineHeight: 1.5 }}>
+                Bypasses billing — the business keeps the selected tier without a
+                Stripe subscription. Use for internal testing.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="field" style={{ marginBottom: 16 }}>
           <label className="label label-required">Reason for change</label>
           <textarea className="textarea" rows={2} value={reason} onChange={e => setReason(e.target.value)}
@@ -484,7 +500,7 @@ function PlanModal({ biz, onClose, onSaved }) {
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" style={{ flex: 1 }} disabled={!changed || !reason.trim() || saving}
             onClick={handleSave}>
-            {saving ? <Spinner white /> : `Change to ${tier}`}
+            {saving ? <Spinner white /> : tier !== biz.tier ? `Change to ${tier}` : 'Save changes'}
           </button>
         </div>
 

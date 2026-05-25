@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { getAnalyticsDashboard, getAnalyticsRealtime, getAnalyticsDemographics, getAnalyticsZones, getAnnotations, createAnnotation, deleteAnnotation, generateAnalyticsPlaceholder } from '../api/business';
 import { Spinner } from '../components/ui/Spinner';
+import { useAuth } from '../context/AuthContext';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEMO_COLORS = { male: '#3B82F6', female: '#EC4899', adults: '#6B7280', children: '#F59E0B', staff: '#8B5CF6' };
@@ -61,7 +63,98 @@ const ChartTooltip = ({ active, payload, label }) => {
   );
 };
 
+// ---------------------------------------------------------------------------
+// Pro gating — Demographics, Zone Performance, and Dwell Time are Pro-only.
+// Lower tiers see these sections rendered with sample data, blurred behind an
+// "Upgrade to Pro" overlay. Real data is withheld server-side.
+// ---------------------------------------------------------------------------
+
+// Sample data shown (blurred) behind the upgrade overlay for non-Pro plans.
+const SAMPLE_DEMO = { male: 1840, female: 2210, adults: 3360, children: 690, staff: 210 };
+
+const SAMPLE_ZONES = [
+  { zone_number: 1, zone_name: 'Entrance',      zone_type: 'counting', entries: 4120, avg_occupancy: 12.4, avg_dwell: 145 },
+  { zone_number: 2, zone_name: 'Main Aisle',    zone_type: 'counting', entries: 3380, avg_occupancy: 9.1,  avg_dwell: 260 },
+  { zone_number: 3, zone_name: 'Checkout',      zone_type: 'counting', entries: 2740, avg_occupancy: 6.7,  avg_dwell: 95  },
+  { zone_number: 4, zone_name: 'Promo Display', zone_type: 'counting', entries: 1980, avg_occupancy: 4.2,  avg_dwell: 180 },
+];
+
+const SAMPLE_DWELL_SECONDS = 252; // → "4.2m"
+
+const SAMPLE_DEMODATA = {
+  totals: { male: 1840, female: 2210, adults: 3360, children: 690, staff: 210, total_entries: 4260 },
+  gender_split: { male_pct: 45.4, female_pct: 54.6 },
+  hourly_breakdown: [9, 10, 11, 12, 13, 14, 15, 16, 17].map((h, i) => ({
+    hour: h, male: 60 + i * 14, female: 80 + i * 16, adults: 110 + i * 22, children: 20 + i * 5,
+  })),
+  network_comparison: { network_male_pct: 48.2, network_female_pct: 51.8, network_adult_pct: 79.5, businesses_sampled: 34 },
+};
+
+const SAMPLE_ZONEDATA = {
+  zones: SAMPLE_ZONES.map((z, i) => ({
+    zone_number: z.zone_number, zone_name: z.zone_name, zone_type: z.zone_type,
+    visitors: z.entries, exits: Math.round(z.entries * 0.96),
+    avg_occupancy: z.avg_occupancy, avg_dwell_seconds: z.avg_dwell,
+    peak_occupancy: Math.round(z.avg_occupancy * 2.4), passersby: Math.round(z.entries * 1.7),
+    popularity_rank: i + 1,
+  })),
+  journey: { entry: 4120, browsed_2min: 2680, approached_till: 1648, redeemed: 540, bounced: 720, bounce_rate: 17.5 },
+  period: { from: '', to: '' },
+};
+
+/**
+ * Wraps a metric section. When `locked`, renders the children (sample data)
+ * blurred and non-interactive behind an "Upgrade to Pro" overlay.
+ * `compact` is for small cards — a lock badge only, no description/button.
+ */
+function ProGate({ locked, label, compact = false, children }) {
+  if (!locked) return children;
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--r-lg)' }}>
+      <div aria-hidden="true" style={{
+        filter: 'blur(5px) grayscale(0.7)', opacity: 0.55,
+        pointerEvents: 'none', userSelect: 'none',
+      }}>
+        {children}
+      </div>
+
+      {compact ? (
+        <Link to="/settings" title={`${label} — upgrade to Pro`} style={{
+          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 4, textDecoration: 'none',
+          background: 'rgba(255,255,255,0.45)',
+        }}>
+          <span style={{ fontSize: '1.3rem' }}>🔒</span>
+          <span style={{
+            fontSize: '0.68rem', fontWeight: 700, color: 'var(--c-primary)',
+            textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>Pro</span>
+        </Link>
+      ) : (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center',
+          padding: 24, background: 'rgba(255,255,255,0.5)',
+        }}>
+          <span style={{ fontSize: '2rem' }}>🔒</span>
+          <div style={{ fontWeight: 700, fontSize: '1rem' }}>{label} is a Pro feature</div>
+          <div style={{ fontSize: '0.84rem', color: 'var(--c-text-muted)', maxWidth: 320 }}>
+            Upgrade to Pro to unlock {label.toLowerCase()} and see what your customers are really doing.
+          </div>
+          <Link to="/settings" className="btn btn-primary btn-sm" style={{ marginTop: 6 }}>
+            Upgrade to Pro
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Analytics() {
+  const { business } = useAuth();
+  const isPro = business?.subscription_tier === 'pro';
+
   const [dashboard, setDashboard] = useState(null);
   const [realtime, setRealtime]   = useState(null);
   const [demoData, setDemoData]   = useState(null);
@@ -130,6 +223,10 @@ export default function Analytics() {
   const demo = dashboard?.demographics || {};
   const peaks = dashboard?.peak_hours || [];
   const alerts = rt.alerts || [];
+
+  // Pro-gated views: real data when Pro, blurred sample data otherwise.
+  const zonesView = isPro ? zones : SAMPLE_ZONES;
+  const demoView  = isPro ? demo  : SAMPLE_DEMO;
 
   const totalVisitors = parseInt(s.total_entries) || 0;
   const convRate = parseFloat(s.conversion_rate) || 0;
@@ -237,7 +334,13 @@ export default function Analytics() {
         <MetricCard icon="👣" label="Total visitors" value={totalVisitors.toLocaleString()} sub={`${daysTracked} days tracked`} accent />
         <MetricCard icon="📊" label="Avg occupancy" value={s.avg_occupancy || 0} sub={`Peak: ${s.peak_occupancy || 0}`} />
         <MetricCard icon="🔄" label="Conversion rate" value={`${convRate}%`} sub="Passersby → visitors" />
-        <MetricCard icon="⏱" label="Avg dwell time" value={avgDwell > 0 ? `${(avgDwell / 60).toFixed(1)}m` : '—'} sub="Time spent in-store" />
+        <ProGate locked={!isPro} label="Dwell Time" compact>
+          <MetricCard icon="⏱" label="Avg dwell time"
+            value={isPro
+              ? (avgDwell > 0 ? `${(avgDwell / 60).toFixed(1)}m` : '—')
+              : `${(SAMPLE_DWELL_SECONDS / 60).toFixed(1)}m`}
+            sub="Time spent in-store" />
+        </ProGate>
       </div>
 
       {/* Hourly traffic chart */}
@@ -347,14 +450,15 @@ export default function Analytics() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Zone breakdown */}
+        <ProGate locked={!isPro} label="Zone Performance">
         <div className="card">
           <div className="card-header"><span className="card-title">Zones</span></div>
           <div className="card-body">
-            {zones.length === 0 ? (
+            {zonesView.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.88rem' }}>No zone data.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {zones.map(z => (
+                {zonesView.map(z => (
                   <div key={z.zone_number} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--c-border)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{z.zone_name}</div>
@@ -372,23 +476,25 @@ export default function Analytics() {
             )}
           </div>
         </div>
+        </ProGate>
 
         {/* Demographics */}
+        <ProGate locked={!isPro} label="Demographics">
         <div className="card">
           <div className="card-header"><span className="card-title">Demographics</span></div>
           <div className="card-body">
-            {!demo.male && !demo.female ? (
+            {!demoView.male && !demoView.female ? (
               <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.88rem' }}>No demographic data.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { label: 'Male', value: demo.male, color: '#3B82F6' },
-                  { label: 'Female', value: demo.female, color: '#EC4899' },
-                  { label: 'Adults', value: demo.adults, color: '#6B7280' },
-                  { label: 'Children', value: demo.children, color: '#F59E0B' },
-                  { label: 'Staff', value: demo.staff, color: '#8B5CF6' },
+                  { label: 'Male', value: demoView.male, color: '#3B82F6' },
+                  { label: 'Female', value: demoView.female, color: '#EC4899' },
+                  { label: 'Adults', value: demoView.adults, color: '#6B7280' },
+                  { label: 'Children', value: demoView.children, color: '#F59E0B' },
+                  { label: 'Staff', value: demoView.staff, color: '#8B5CF6' },
                 ].filter(d => d.value > 0).map(d => {
-                  const total = (demo.male || 0) + (demo.female || 0);
+                  const total = (demoView.male || 0) + (demoView.female || 0);
                   const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
                   return (
                     <div key={d.label}>
@@ -406,11 +512,20 @@ export default function Analytics() {
             )}
           </div>
         </div>
+        </ProGate>
       </div>
       </>}
 
-      {tab === 'audience' && <AudienceTab demoData={demoData} />}
-      {tab === 'behaviour' && <BehaviourTab zoneData={zoneData} />}
+      {tab === 'audience' && (
+        <ProGate locked={!isPro} label="Demographics">
+          <AudienceTab demoData={isPro ? demoData : SAMPLE_DEMODATA} />
+        </ProGate>
+      )}
+      {tab === 'behaviour' && (
+        <ProGate locked={!isPro} label="Zone Performance">
+          <BehaviourTab zoneData={isPro ? zoneData : SAMPLE_ZONEDATA} />
+        </ProGate>
+      )}
       {tab === 'realtime' && <RealtimeTab />}
     </div>
   );

@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Dander",
+    "slug": "dander",
+    "scheme": "dander",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "io.dander.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Dander uses your location to discover nearby offers and improve coverage.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Dander uses your location in the background to suggest offers as you move around."
+      }
+    },
+    "android": {
+      "package": "io.dander.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_WIFI_STATE",
+        "CHANGE_WIFI_STATE",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}

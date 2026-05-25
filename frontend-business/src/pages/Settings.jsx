@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { getProfile, updateProfile, getNotifPrefs, saveNotifPrefs as saveNotifPrefsApi } from '../api/business';
+import {
+  getProfile, updateProfile,
+  getNotifPrefs, saveNotifPrefs as saveNotifPrefsApi,
+  getSmartSpecialsSettings, saveSmartSpecialsSettings,
+} from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
@@ -122,9 +126,115 @@ export default function Settings() {
         </div>
       </div>
 
+      <SmartSpecialsSection />
+
       <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ alignSelf: 'flex-start' }}>
         {saving ? <Spinner white /> : 'Save settings'}
       </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Smart Specials defaults section
+// ---------------------------------------------------------------------------
+
+function formatTime(t) {
+  if (!t) return '';
+  return String(t).slice(0, 5);
+}
+
+function SmartSpecialsSection() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+
+  const [offerType, setOfferType] = useState('discount');
+  const [pct,       setPct]       = useState(15);
+  const [dur,       setDur]       = useState(24);
+  const [start,     setStart]     = useState('08:00');
+  const [end,       setEnd]       = useState('20:00');
+
+  useEffect(() => {
+    getSmartSpecialsSettings()
+      .then((d) => {
+        const s = d.settings || {};
+        setOfferType(s.ss_default_offer_type || 'discount');
+        setPct(s.ss_default_discount_pct ?? 15);
+        setDur(s.ss_default_duration_hours ?? 24);
+        setStart(formatTime(s.ss_active_hours_start) || '08:00');
+        setEnd(formatTime(s.ss_active_hours_end) || '20:00');
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveSmartSpecialsSettings({
+        ss_default_offer_type:     offerType,
+        ss_default_discount_pct:   parseInt(pct, 10),
+        ss_default_duration_hours: parseInt(dur, 10),
+        ss_active_hours_start:     start,
+        ss_active_hours_end:       end,
+      });
+      toast({ message: 'Smart Specials defaults saved.', type: 'success' });
+    } catch {
+      toast({ message: 'Failed to save Smart Specials defaults.', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header"><span className="card-title">Smart Specials defaults</span></div>
+      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <p style={{ fontSize: '0.86rem', color: 'var(--c-text-muted)', marginTop: 0 }}>
+          These pre-fill the Smart Specials wizard every time you open it. You can change them in the wizard too.
+        </p>
+
+        {loading ? (
+          <Spinner />
+        ) : (
+          <>
+            <div className="field">
+              <label className="label">Default offer type</label>
+              <select className="input" value={offerType} onChange={(e) => setOfferType(e.target.value)}>
+                <option value="discount">Discount</option>
+                <option value="freebie">Freebie</option>
+                <option value="urgency">Urgency</option>
+              </select>
+            </div>
+            <div className="form-grid">
+              <div className="field">
+                <label className="label">Default discount %</label>
+                <input className="input" type="number" min="1" max="100"
+                  value={pct} onChange={(e) => setPct(e.target.value)} />
+              </div>
+              <div className="field">
+                <label className="label">Default duration (hours)</label>
+                <input className="input" type="number" min="1" max="168"
+                  value={dur} onChange={(e) => setDur(e.target.value)} />
+              </div>
+            </div>
+            <div className="form-grid">
+              <div className="field">
+                <label className="label">Active hours from</label>
+                <input className="input" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+              </div>
+              <div className="field">
+                <label className="label">Active hours to</label>
+                <input className="input" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+              </div>
+            </div>
+            <button className="btn btn-primary" onClick={save} disabled={saving} style={{ alignSelf: 'flex-start' }}>
+              {saving ? <Spinner white /> : 'Save Smart Specials defaults'}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@
   publish   = "dist"
 
 [build.environment]
-  VITE_API_URL = "https://web-production-04206.up.railway.app"
+  VITE_API_URL = "https://api.dander.io"
 
 [[redirects]]
   from   = "/*"

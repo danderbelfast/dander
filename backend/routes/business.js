@@ -1230,4 +1230,188 @@ router.get('/reports/weekly', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Smart Specials — Claude Vision-driven offer copy
+// ---------------------------------------------------------------------------
+//
+// Three endpoints:
+//   GET    /api/business/smart-specials/settings  — defaults for the wizard
+//   PUT    /api/business/smart-specials/settings  — save defaults (+ mark setup_complete)
+//   POST   /api/business/smart-specials/assess    — multipart photo + offer type → suggestion
+//   POST   /api/business/smart-specials/post      — approve + create the live offer
+//
+// The owner ALWAYS approves before anything goes live. Claude only writes copy.
+
+const smartSpecialsService = require('../services/smartSpecialsService');
+
+// ── Settings ──────────────────────────────────────────────────────────────
+router.get('/smart-specials/settings', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT ss_setup_complete, ss_default_offer_type, ss_default_discount_pct,
+              ss_default_duration_hours, ss_active_hours_start, ss_active_hours_end
+       FROM businesses WHERE id = $1`,
+      [req.business.id]
+    );
+    return ok(res, { settings: rows[0] || null });
+  } catch (err) {
+    console.error('[smart-specials/settings GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to load settings.');
+  }
+});
+
+router.put(
+  '/smart-specials/settings',
+  [
+    body('ss_default_offer_type').optional().isIn(['discount', 'freebie', 'urgency']),
+    body('ss_default_discount_pct').optional().isInt({ min: 1, max: 100 }),
+    body('ss_default_duration_hours').optional().isInt({ min: 1, max: 168 }),
+    body('ss_active_hours_start').optional().matches(/^\d{2}:\d{2}(:\d{2})?$/),
+    body('ss_active_hours_end').optional().matches(/^\d{2}:\d{2}(:\d{2})?$/),
+    body('mark_setup_complete').optional().isBoolean(),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const fields = [];
+      const values = [];
+      let i = 1;
+      for (const key of [
+        'ss_default_offer_type', 'ss_default_discount_pct', 'ss_default_duration_hours',
+        'ss_active_hours_start', 'ss_active_hours_end',
+      ]) {
+        if (req.body[key] !== undefined) {
+          fields.push(`${key} = $${i++}`);
+          values.push(req.body[key]);
+        }
+      }
+      if (req.body.mark_setup_complete) {
+        fields.push(`ss_setup_complete = true`);
+      }
+      if (fields.length === 0) return ok(res, { updated: false });
+
+      values.push(req.business.id);
+      const { rows } = await pool.query(
+        `UPDATE businesses SET ${fields.join(', ')}, updated_at = NOW()
+         WHERE id = $${i}
+         RETURNING ss_setup_complete, ss_default_offer_type, ss_default_discount_pct,
+                   ss_default_duration_hours, ss_active_hours_start, ss_active_hours_end`,
+        values
+      );
+      return ok(res, { settings: rows[0] });
+    } catch (err) {
+      console.error('[smart-specials/settings PUT]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to save settings.');
+    }
+  }
+);
+
+// ── Assess ─────────────────────────────────────────────────────────────────
+const ssPhotoUpload = upload.single('photo');
+
+router.post(
+  '/smart-specials/assess',
+  ssPhotoUpload,
+  [
+    body('offer_type').isIn(['discount', 'freebie', 'urgency']),
+    body('offer_value').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 100 }),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    if (!req.file) return fail(res, 400, 'VALIDATION_ERROR', 'photo is required');
+
+    try {
+      const photoUrl = await processImage(req.file.buffer, 'offer', req.file.originalname);
+
+      const assessment = await smartSpecialsService.assessPhoto({
+        businessId: req.business.id,
+        photoUrl,
+        offerType:  req.body.offer_type,
+        offerValue: req.body.offer_value || null,
+      });
+
+      return ok(res, { assessment });
+    } catch (err) {
+      if (err.code === 'VALIDATION_ERROR') {
+        return fail(res, err.status || 400, err.code, err.message);
+      }
+      console.error('[smart-specials/assess]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to assess photo.');
+    }
+  }
+);
+
+// ── Post (approve + create live offer) ────────────────────────────────────
+router.post(
+  '/smart-specials/post',
+  [
+    body('assessment_id').isInt({ min: 1 }),
+    body('title').notEmpty().trim().isLength({ max: 80 }),
+    body('description').optional().trim().isLength({ max: 600 }),
+    body('offer_type').isIn(['discount', 'freebie', 'urgency']),
+    body('offer_value').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 100 }),
+    body('duration_hours').isInt({ min: 1, max: 168 }),
+    body('owner_edited').optional().isBoolean(),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      // Verify the assessment belongs to this business.
+      const { rows: aRows } = await pool.query(
+        `SELECT id, photo_url FROM photo_assessments
+         WHERE id = $1 AND business_id = $2`,
+        [req.body.assessment_id, req.business.id]
+      );
+      if (aRows.length === 0) return fail(res, 404, 'NOT_FOUND', 'Assessment not found.');
+      const assessment = aRows[0];
+
+      // Map Smart Specials shape onto the existing offers table.
+      const offerType = req.body.offer_type;
+      const offerValue = req.body.offer_value || null;
+      const expiresAt = new Date(Date.now() + req.body.duration_hours * 3_600_000).toISOString();
+
+      const payload = {
+        title:       req.body.title.trim(),
+        description: (req.body.description || '').trim(),
+        image_url:   assessment.photo_url || undefined,
+        expires_at:  expiresAt,
+      };
+
+      if (offerType === 'discount') {
+        const pctMatch = offerValue && /^\s*(\d{1,3})\s*%\s*$/.exec(offerValue);
+        if (pctMatch) {
+          payload.offer_type = 'percentage';
+          payload.discount_percent = Math.min(100, parseInt(pctMatch[1], 10));
+        } else {
+          payload.offer_type = 'custom';
+          payload.discount_label = offerValue || null;
+        }
+      } else if (offerType === 'freebie') {
+        payload.offer_type = 'free_item';
+        payload.discount_label = offerValue || null;
+      } else {
+        payload.offer_type = 'custom';
+      }
+
+      const offer = await offerService.createOffer(req.business.id, payload);
+      dispatchEvent(req.business.id, 'offer.created', offer);
+
+      await smartSpecialsService.markApproved({
+        assessmentId: req.body.assessment_id,
+        businessId:   req.business.id,
+        userId:       req.user.id,
+        ownerEdited:  !!req.body.owner_edited,
+      });
+
+      return ok(res, { offer }, 201);
+    } catch (err) {
+      if (err.code === 'VALIDATION_ERROR') {
+        return fail(res, err.status || 400, err.code, err.message);
+      }
+      console.error('[smart-specials/post]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to post offer.');
+    }
+  }
+);
+
 module.exports = router;

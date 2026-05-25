@@ -150,10 +150,20 @@ export default function Register() {
               {loading ? <Spinner size="sm" /> : 'Create account'}
             </button>
 
-            <p className="auth-link">
-              Already have an account?{' '}
-              <span onClick={() => navigate('/login')}>Sign in</span>
-            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              style={{
+                marginTop: 12, width: '100%', padding: '12px 24px',
+                border: '2px solid #E85D26', color: '#E85D26',
+                background: 'transparent', borderRadius: 8,
+                fontWeight: 500, fontSize: '0.9rem', cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(232,93,38,0.06)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              Already have an account? Sign in
+            </button>
           </form>
         </>
       )}
