@@ -3,7 +3,7 @@
     "name": "Dander",
     "slug": "dander",
     "scheme": "dander",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "io.dander.app",
+      "versionCode": 1,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
