@@ -133,6 +133,8 @@ app.use('/api/analytics',   require('../routes/analytics'));
 app.use('/api/assistant',   require('../routes/assistant'));
 app.use('/api/wifi',        require('../routes/wifi'));
 app.use('/api/device',      require('../routes/device'));
+app.use('/api/steps',       require('../routes/steps'));
+app.use('/api/leaderboard', require('../routes/leaderboard'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)

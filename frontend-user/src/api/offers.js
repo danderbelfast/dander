@@ -46,3 +46,17 @@ export const getLoyaltyStatus = () =>
 
 export const getLoyaltyHistory = () =>
   client.get('/api/users/loyalty/history').then((r) => r.data);
+
+export const claimDailyLogin = () =>
+  client.post('/api/users/daily-login').then((r) => r.data);
+
+// ── Steps ───────────────────────────────────────────────────
+export const postSteps = (data) =>
+  client.post('/api/steps', data).then((r) => r.data);
+
+// ── Leaderboard ─────────────────────────────────────────────
+export const getMonthlyLeaderboard = () =>
+  client.get('/api/leaderboard/monthly').then((r) => r.data);
+
+export const getMyLeaderboard = () =>
+  client.get('/api/leaderboard/me').then((r) => r.data);

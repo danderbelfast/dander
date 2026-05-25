@@ -177,4 +177,50 @@ router.get('/loyalty/history', requireAuth, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /api/users/daily-login — once-per-UTC-day points bonus
+// ---------------------------------------------------------------------------
+//
+// Dedupes by querying points_transactions for an 'earn' row with
+// reference_type='daily_login' since midnight UTC today. If found, this is
+// a no-op and returns already_claimed: true.
+
+const DAILY_LOGIN_BONUS = parseInt(process.env.DAILY_LOGIN_BONUS) || 5;
+
+router.post('/daily-login', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const today  = new Date().toISOString().slice(0, 10);
+
+    const { rows } = await pool.query(
+      `SELECT 1 FROM points_transactions
+       WHERE user_id = $1
+         AND type = 'earn'
+         AND reference_type = 'daily_login'
+         AND created_at >= (NOW() AT TIME ZONE 'UTC')::date
+       LIMIT 1`,
+      [userId]
+    );
+    if (rows.length > 0) {
+      return res.json({ success: true, ok: true, points_awarded: 0, already_claimed: true });
+    }
+
+    await loyaltyService.awardPoints(userId, {
+      points:         DAILY_LOGIN_BONUS,
+      description:    `Daily app open (${today})`,
+      referenceType:  'daily_login',
+      referenceId:    null,
+    });
+
+    return res.json({
+      success: true, ok: true,
+      points_awarded: DAILY_LOGIN_BONUS,
+      already_claimed: false,
+    });
+  } catch (err) {
+    console.error('[users/daily-login]', err);
+    return res.status(500).json({ success: false, message: 'Failed to claim daily bonus.' });
+  }
+});
+
 module.exports = router;

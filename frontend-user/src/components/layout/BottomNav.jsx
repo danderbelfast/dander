@@ -30,6 +30,17 @@ const items = [
     ),
   },
   {
+    to: '/leaderboard',
+    label: 'Ranks',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="4" y1="20" x2="4" y2="12" />
+        <line x1="12" y1="20" x2="12" y2="6" />
+        <line x1="20" y1="20" x2="20" y2="14" />
+      </svg>
+    ),
+  },
+  {
     to: '/saved',
     label: 'Saved',
     icon: (

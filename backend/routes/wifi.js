@@ -30,6 +30,7 @@ const {
   anonymiseUserId,
   checkImpossibleVelocity,
 } = require('../utils/fraudChecks');
+const loyaltyService  = require('../services/loyaltyService');
 
 const router = Router();
 router.use(requireAuth);
@@ -130,7 +131,12 @@ router.post(
         accepted++;
       }
 
-      // Points pass — cross-user daily dedup via the UNIQUE index.
+      // Points pass — cross-user daily dedup via the UNIQUE index. Each
+      // successful insert is then forwarded into the canonical loyalty
+      // ledger (user_loyalty + points_transactions) via loyaltyService.
+      // wifi_points_log stays as the source of truth for the WiFi-specific
+      // admin/fraud queries.
+      const awardedBssids = [];
       if (!blockedPoints) {
         const uniqueBssids = [...new Set(observations.map((o) => o.bssid))];
         for (const bssid of uniqueBssids) {
@@ -142,11 +148,29 @@ router.post(
              RETURNING id`,
             [userIdReal, bssid, POINTS_PER_DISCOVERY, awardDay]
           );
-          if (ins.rows.length > 0) pointsEarned += POINTS_PER_DISCOVERY;
+          if (ins.rows.length > 0) {
+            pointsEarned += POINTS_PER_DISCOVERY;
+            awardedBssids.push(bssid);
+          }
         }
       }
 
       await client.query('COMMIT');
+
+      // Forward to the main ledger AFTER commit so a loyalty failure can
+      // never roll back the observations. Each awarded BSSID gets its own
+      // points_transactions row — reference_id is INTEGER in that table so
+      // the bssid lives in description; reference_type stays 'wifi'.
+      for (const bssid of awardedBssids) {
+        loyaltyService.awardPoints(userIdReal, {
+          points:         POINTS_PER_DISCOVERY,
+          description:    `WiFi network discovered: ${bssid}`,
+          referenceType:  'wifi',
+          referenceId:    null,
+        }).catch((err) => {
+          console.error('[wifi/observations] loyalty write-through failed:', err.message);
+        });
+      }
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
       console.error('[wifi/observations]', err);

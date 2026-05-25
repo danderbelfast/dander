@@ -20,6 +20,7 @@ import Home         from './pages/Home';
 import OfferDetail  from './pages/OfferDetail';
 import MyCoupons      from './pages/MyCoupons';
 import Rewards        from './pages/Rewards';
+import Leaderboard    from './pages/Leaderboard';
 import CouponClaimed  from './pages/CouponClaimed';
 import SavedOffers  from './pages/SavedOffers';
 import Settings                from './pages/Settings';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/coupons"                  element={<MyCoupons />} />
           <Route path="/coupons/claimed"          element={<CouponClaimed />} />
           <Route path="/rewards"                  element={<Rewards />} />
+          <Route path="/leaderboard"              element={<Leaderboard />} />
           <Route path="/saved"                    element={<SavedOffers />} />
           <Route path="/settings"                 element={<Settings />} />
           <Route path="/notification-preferences" element={<NotificationPreferences />} />
