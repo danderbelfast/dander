@@ -7,6 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "lint": "eslint src/",
+    "test": "node --test utils/*.test.js",
     "migrate": "node db/migrate.js"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "express-rate-limit": "^7.3.1",
     "express-validator": "^7.1.0",
     "firebase-admin": "^13.8.0",
+    "h3-js": "^4.4.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",

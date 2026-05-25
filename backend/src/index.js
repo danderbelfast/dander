@@ -195,6 +195,7 @@ const { scheduleOfferExpiry } = require('../services/offerService');
 const { expireCoupons }       = require('../services/couponService');
 const { scheduleNotificationReminders, scheduleSmartSpecialsReminder, scheduleWeeklyReport } = require('../services/notificationCron');
 const { scheduleWeatherCollection } = require('../services/weatherService');
+const { scheduleWifiAggregation } = require('../jobs/aggregateWifi');
 
 scheduleOfferExpiry();              // every 15 minutes — deactivates expired offers + their coupons
 expireCoupons();                    // every 30 minutes — belt-and-suspenders coupon expiry
@@ -202,6 +203,7 @@ scheduleNotificationReminders();    // every 30 minutes — expiring-offer + cou
 scheduleWeatherCollection();        // every 30 minutes — fetch weather for businesses with active IoT devices
 scheduleSmartSpecialsReminder();    // daily 8am — remind businesses to take stock photos
 scheduleWeeklyReport();             // Monday 8am — notify businesses their weekly report is ready
+scheduleWifiAggregation();          // daily 2am — aggregate wifi_observations → wifi_fingerprints + prune 30-day-old rows
 
 // ---------------------------------------------------------------------------
 // Start
