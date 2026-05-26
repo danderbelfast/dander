@@ -1,9 +1,11 @@
 /**
- * AuthContext.tsx — login / register / logout, with token persistence.
+ * AuthContext.tsx — login / register / logout with token persistence.
  *
- * Holds the access token in memory and mirrors it to AsyncStorage so it
- * survives app restarts. Refresh-token rotation isn't wired up yet —
- * Chris can layer that on top once the auth flow has UI.
+ * Both login and register are 2-step (email OTP). The context exposes the
+ * raw step calls so screens can drive the flow; only `completeLogin` actually
+ * sets the session, since that's the only response that includes an access
+ * token. Register-verify only flips `is_verified` on the backend — the user
+ * still has to log in afterwards.
  */
 
 import React, {
@@ -12,27 +14,32 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
-  login    as loginApi,
-  register as registerApi,
-  LoginPayload, RegisterPayload,
+  login             as loginApi,
+  verifyLoginOtp    as verifyLoginOtpApi,
+  register          as registerApi,
+  verifyRegisterOtp as verifyRegisterOtpApi,
+  LoginPayload, RegisterPayload, AuthUser,
 } from '../api/auth';
 import {
   setAccessToken, restoreAccessToken,
 } from '../api/client';
 
-interface AuthUser {
-  id:    number;
-  email: string;
-  [k: string]: unknown;
-}
-
 interface AuthContextValue {
-  user:     AuthUser | null;
-  loading:  boolean;
-  isAuth:   boolean;
-  login:    (p: LoginPayload) => Promise<void>;
-  register: (p: RegisterPayload) => Promise<void>;
-  logout:   () => Promise<void>;
+  user:    AuthUser | null;
+  loading: boolean;
+  isAuth:  boolean;
+
+  /** Step 1 of login — verifies password, triggers OTP email, returns tempToken. */
+  requestLoginOtp:   (p: LoginPayload) => Promise<{ tempToken: string }>;
+  /** Step 2 of login — verifies OTP and persists the session. */
+  completeLogin:     (tempToken: string, code: string) => Promise<void>;
+
+  /** Step 1 of register — creates account, triggers OTP email, returns userId. */
+  register:          (p: RegisterPayload) => Promise<{ userId: number }>;
+  /** Step 2 of register — verifies OTP and marks account as verified. */
+  verifyRegisterOtp: (userId: number, code: string) => Promise<void>;
+
+  logout: () => Promise<void>;
 }
 
 const USER_KEY = 'dander_auth_user';
@@ -43,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session on boot.
   useEffect(() => {
     (async () => {
       try {
@@ -64,18 +70,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
   }, []);
 
-  const login = useCallback(async (p: LoginPayload) => {
+  const requestLoginOtp = useCallback(async (p: LoginPayload) => {
     const data = await loginApi(p);
-    // Expected backend shape: { accessToken, user, ... }
+    return { tempToken: data.tempToken };
+  }, []);
+
+  const completeLogin = useCallback(async (tempToken: string, code: string) => {
+    const data = await verifyLoginOtpApi(tempToken, code);
     await persistSession(data.accessToken, data.user);
   }, [persistSession]);
 
   const register = useCallback(async (p: RegisterPayload) => {
     const data = await registerApi(p);
-    if (data?.accessToken && data?.user) {
-      await persistSession(data.accessToken, data.user);
-    }
-  }, [persistSession]);
+    return { userId: data.userId };
+  }, []);
+
+  const verifyRegisterOtp = useCallback(async (userId: number, code: string) => {
+    await verifyRegisterOtpApi(userId, code);
+  }, []);
 
   const logout = useCallback(async () => {
     setAccessToken(null);
@@ -85,8 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextValue>(() => ({
     user, loading, isAuth: !!user,
-    login, register, logout,
-  }), [user, loading, login, register, logout]);
+    requestLoginOtp, completeLogin,
+    register, verifyRegisterOtp,
+    logout,
+  }), [user, loading, requestLoginOtp, completeLogin, register, verifyRegisterOtp, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

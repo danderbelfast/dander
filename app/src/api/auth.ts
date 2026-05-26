@@ -1,8 +1,9 @@
 /**
- * auth.ts — login / register endpoints.
+ * auth.ts — Dander auth endpoints.
  *
- * The backend's response shape isn't pinned in code here — the AuthContext
- * narrows what it needs from `data` (accessToken, refreshToken, user).
+ * Both login and register are 2-step flows: the first call triggers an email
+ * OTP and the second call verifies it. Login returns a tempToken to bind the
+ * second step to the first; register returns a userId.
  */
 
 import { client } from './client';
@@ -13,15 +14,59 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  email: string;
-  password: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
+  email:     string;
+  password:  string;
+  firstName: string;
+  lastName:  string;
+  phone?:    string;
+}
+
+export interface LoginInitResponse {
+  success:     true;
+  requires2FA: true;
+  tempToken:   string;
+}
+
+export interface RegisterInitResponse {
+  success: true;
+  message: string;
+  userId:  number;
+}
+
+export interface AuthUser {
+  id:        number;
+  email:     string;
+  firstName: string | null;
+  lastName:  string | null;
+  avatarUrl: string | null;
+  role:      string;
+}
+
+export interface LoginCompleteResponse {
+  success:      true;
+  accessToken:  string;
+  refreshToken: string;
+  expiresIn:    string;
+  user:         AuthUser;
 }
 
 export const login = (payload: LoginPayload) =>
-  client.post('/api/auth/login', payload).then((r) => r.data);
+  client.post<LoginInitResponse>('/api/auth/login', payload).then((r) => r.data);
+
+export const verifyLoginOtp = (tempToken: string, totpCode: string) =>
+  client
+    .post<LoginCompleteResponse>('/api/auth/login/verify', { tempToken, totpCode })
+    .then((r) => r.data);
 
 export const register = (payload: RegisterPayload) =>
-  client.post('/api/auth/register', payload).then((r) => r.data);
+  client.post<RegisterInitResponse>('/api/auth/register', payload).then((r) => r.data);
+
+export const verifyRegisterOtp = (userId: number, token: string) =>
+  client
+    .post<{ success: true; message: string }>('/api/auth/verify-2fa', { userId, token })
+    .then((r) => r.data);
+
+export const resendOtp = (userId: number, purpose: 'register' | 'login' | 'reset_password') =>
+  client
+    .post<{ success: true; message: string }>('/api/auth/resend-otp', { userId, purpose })
+    .then((r) => r.data);
