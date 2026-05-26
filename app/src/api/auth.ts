@@ -61,9 +61,14 @@ export const verifyLoginOtp = (tempToken: string, totpCode: string) =>
 export const register = (payload: RegisterPayload) =>
   client.post<RegisterInitResponse>('/api/auth/register', payload).then((r) => r.data);
 
+export interface RegisterVerifyResponse extends LoginCompleteResponse {
+  verified: true;
+  message:  string;
+}
+
 export const verifyRegisterOtp = (userId: number, token: string) =>
   client
-    .post<{ success: true; message: string }>('/api/auth/verify-2fa', { userId, token })
+    .post<RegisterVerifyResponse>('/api/auth/verify-2fa', { userId, token })
     .then((r) => r.data);
 
 export const resendOtp = (userId: number, purpose: 'register' | 'login' | 'reset_password') =>

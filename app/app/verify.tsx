@@ -63,16 +63,11 @@ export default function VerifyScreen() {
       if (purpose === 'login') {
         if (!tempToken) throw new Error('Missing session — please sign in again.');
         await completeLogin(tempToken, code);
-        router.replace('/');
       } else {
         if (!userId) throw new Error('Missing user — please sign up again.');
         await verifyRegisterOtp(userId, code);
-        Alert.alert(
-          'Account verified',
-          'Your email is verified. Please sign in to continue.',
-          [{ text: 'OK', onPress: () => router.replace('/login') }],
-        );
       }
+      router.replace('/');
     } catch (e) {
       setError(extractApiError(e, 'Verification failed. Please try again.'));
     } finally {

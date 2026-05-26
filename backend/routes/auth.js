@@ -87,8 +87,11 @@ router.post(
 
     try {
       const { userId, token } = req.body;
-      await authService.verifyRegistrationOtp(userId, token);
-      return ok(res, { message: 'Email verified. Your account is now active.' });
+      const result = await authService.verifyRegistrationOtp(userId, token);
+      return ok(res, {
+        message: 'Email verified. Your account is now active.',
+        ...result,
+      });
     } catch (err) {
       if (err.code === 'INVALID_OTP' || err.code === 'OTP_EXPIRED') return fail(res, 401, err.code, err.message);
       if (err.status === 404) return fail(res, 404, 'NOT_FOUND', err.message);

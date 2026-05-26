@@ -200,13 +200,23 @@ async function registerUser(email, phone, password, firstName, lastName) {
 
 /**
  * Verifies the email OTP submitted after registration.
- * Marks the account as verified on success.
+ * Marks the account as verified and immediately issues full access +
+ * refresh tokens so the new user can land on the home screen without
+ * having to log in again.
  *
- * @returns {{ verified: boolean }}
+ * @returns {{
+ *   verified:     true,
+ *   accessToken:  string,
+ *   refreshToken: string,
+ *   expiresIn:    string,
+ *   user:         { id, email, firstName, lastName, avatarUrl, role }
+ * }}
  */
 async function verifyRegistrationOtp(userId, code) {
   const { rows } = await pool.query(
-    'SELECT id, is_active, email FROM users WHERE id = $1',
+    `SELECT id, email, first_name, last_name, avatar_url, role, is_active
+     FROM users
+     WHERE id = $1`,
     [userId]
   );
   if (rows.length === 0 || !rows[0].is_active) {
@@ -222,7 +232,24 @@ async function verifyRegistrationOtp(userId, code) {
     [userId]
   );
 
-  return { verified: true };
+  const user         = rows[0];
+  const accessToken  = signAccessToken(user);
+  const refreshToken = signRefreshToken(user.id);
+
+  return {
+    verified:     true,
+    accessToken,
+    refreshToken,
+    expiresIn:    ACCESS_TOKEN_TTL,
+    user: {
+      id:        user.id,
+      email:     user.email,
+      firstName: user.first_name,
+      lastName:  user.last_name,
+      avatarUrl: user.avatar_url ?? null,
+      role:      user.role ?? 'user',
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

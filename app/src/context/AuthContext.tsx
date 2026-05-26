@@ -36,7 +36,7 @@ interface AuthContextValue {
 
   /** Step 1 of register — creates account, triggers OTP email, returns userId. */
   register:          (p: RegisterPayload) => Promise<{ userId: number }>;
-  /** Step 2 of register — verifies OTP and marks account as verified. */
+  /** Step 2 of register — verifies OTP, marks account active, and persists the session. */
   verifyRegisterOtp: (userId: number, code: string) => Promise<void>;
 
   logout: () => Promise<void>;
@@ -86,8 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const verifyRegisterOtp = useCallback(async (userId: number, code: string) => {
-    await verifyRegisterOtpApi(userId, code);
-  }, []);
+    const data = await verifyRegisterOtpApi(userId, code);
+    await persistSession(data.accessToken, data.user);
+  }, [persistSession]);
 
   const logout = useCallback(async () => {
     setAccessToken(null);
