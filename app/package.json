@@ -8,6 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
+    "build:preview": "eas build --platform android --profile preview --non-interactive",
+    "build:dev": "eas build --platform android --profile development --non-interactive",
     "lint": "expo lint"
   },
   "dependencies": {
