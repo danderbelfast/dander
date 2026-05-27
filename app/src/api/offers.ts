@@ -12,12 +12,18 @@ export interface Offer {
   business_id:       number;
   title:             string;
   description:       string | null;
+  terms:             string | null;
+  category:          string | null;
   offer_type:        string | null;
   original_price:    number | null;
   offer_price:       number | null;
+  discount_percent:  number | null;
+  max_redemptions:   number | null;
+  current_redemptions: number;
   expires_at:        string | null;
   is_active:         boolean;
   business_name?:    string;
+  business_category?: string | null;
   business_logo_url?: string | null;
   business_address?: string | null;
   business_city?:    string | null;
@@ -33,6 +39,18 @@ export interface NearbyParams {
 export const getNearbyOffers = (params: NearbyParams) =>
   client
     .get<{ success: true; count: number; offers: Offer[] }>('/api/offers/nearby', { params })
+    .then((r) => r.data.offers);
+
+export interface ListParams {
+  limit?:  number;
+  status?: 'active' | 'all';
+}
+
+export const listOffers = (params?: ListParams) =>
+  client
+    .get<{ success: true; count: number; offers: Offer[] }>('/api/offers', {
+      params: { limit: 50, status: 'active', ...(params || {}) },
+    })
     .then((r) => r.data.offers);
 
 export const getOfferById = (id: number) =>

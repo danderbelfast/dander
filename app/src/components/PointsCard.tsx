@@ -16,6 +16,10 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../constants/colors';
 import { Tier } from '../api/users';
 import useLiveSteps from '../hooks/useLiveSteps';
+import { hapticLight, hapticMedium } from '../services/haptics';
+import { soundPoints, soundMilestone } from '../services/sounds';
+
+const STEP_MILESTONES = [1000, 5000, 10000, 20000];
 
 interface Props {
   pointsThisMonth: number | null;
@@ -40,6 +44,17 @@ function fmt(n: number | null) {
 export function PointsCard({ pointsThisMonth, steps, wifiNetworks, rank, tier }: Props) {
   const liveSteps = useLiveSteps();
   const stepsDisplay = liveSteps != null ? liveSteps : steps;
+
+  // Subtle ping when the server's monthly points value ticks up. Skip the
+  // first observation to avoid firing on initial mount.
+  const prevPoints = useRef<number | null>(null);
+  useEffect(() => {
+    if (pointsThisMonth != null && prevPoints.current != null && pointsThisMonth > prevPoints.current) {
+      hapticLight();
+      soundPoints();
+    }
+    prevPoints.current = pointsThisMonth;
+  }, [pointsThisMonth]);
 
   return (
     <View style={styles.card}>
@@ -82,6 +97,7 @@ function Stat({ icon, value, label }: { icon: string; value: string; label: stri
 function StepsStat({ value }: { value: number | null }) {
   const scale = useRef(new Animated.Value(1)).current;
   const prev  = useRef<number | null>(null);
+  const lastMilestone = useRef<number>(0);
 
   useEffect(() => {
     if (value == null) return;
@@ -90,6 +106,15 @@ function StepsStat({ value }: { value: number | null }) {
         Animated.timing(scale, { toValue: 1.2, duration: 110, useNativeDriver: true }),
         Animated.timing(scale, { toValue: 1.0, duration: 140, useNativeDriver: true }),
       ]).start();
+    }
+    // Milestone — fire once per session per threshold crossed upward.
+    for (const m of STEP_MILESTONES) {
+      if (value >= m && lastMilestone.current < m) {
+        lastMilestone.current = m;
+        hapticMedium();
+        soundMilestone();
+        break;
+      }
     }
     prev.current = value;
   }, [value, scale]);

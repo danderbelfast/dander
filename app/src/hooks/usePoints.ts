@@ -17,6 +17,8 @@ import {
   LoyaltyStatus,
 } from '../api/users';
 import { getMyRank, LeaderboardRow } from '../api/leaderboard';
+import { hapticMedium } from '../services/haptics';
+import { soundDailyBonus } from '../services/sounds';
 
 interface UsePointsResult {
   loyalty:  LoyaltyStatus | null;
@@ -58,8 +60,13 @@ export function usePoints(): UsePointsResult {
       dailyClaimed.current = true;
       claimDailyLogin()
         .then((res) => {
-          // If we actually earned points, refresh so the new balance shows.
-          if (res.points_awarded > 0) void load();
+          // If we actually earned points, refresh so the new balance shows
+          // and fire haptic + sound feedback for the daily-bonus moment.
+          if (res.points_awarded > 0) {
+            hapticMedium();
+            soundDailyBonus();
+            void load();
+          }
         })
         .catch(() => { /* non-fatal */ });
     }

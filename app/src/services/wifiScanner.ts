@@ -29,6 +29,7 @@ import { AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { postObservations, WifiObservation } from '../api/wifi';
+import { hapticLight } from './haptics';
 
 // ── Tunables ────────────────────────────────────────────────────────────────
 const SCAN_INTERVAL_MS  = 30_000;
@@ -101,6 +102,9 @@ function isUsableBssid(bssid: unknown): bssid is string {
 
 async function bumpPendingPoints(earned: number): Promise<void> {
   if (!earned || earned <= 0) return;
+  // Subtle tap when WiFi scan earned points. No sound — these can fire
+  // frequently and a chime every 30s would be tiresome.
+  hapticLight();
   try {
     const prior = parseInt((await AsyncStorage.getItem(PENDING_POINTS_KEY)) || '0', 10) || 0;
     await AsyncStorage.setItem(PENDING_POINTS_KEY, String(prior + earned));

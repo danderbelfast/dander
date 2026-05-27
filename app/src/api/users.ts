@@ -7,14 +7,16 @@ import { client } from './client';
 export type Tier = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 export interface LoyaltyStatus {
-  total_points:    number;
-  lifetime_points: number;
-  total_saved_gbp: number;
-  tier:            Tier;
-  next_tier:       Tier | null;
+  total_points:     number;
+  lifetime_points:  number;
+  total_saved_gbp:  number;
+  tier:             Tier;
+  next_tier:        Tier | null;
   next_tier_points_needed: number;
-  steps_today:     number;
-  wifi_today:      number;
+  steps_today:      number;
+  steps_this_month: number;
+  steps_all_time:   number;
+  wifi_today:       number;
 }
 
 export interface LoyaltyTransaction {

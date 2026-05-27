@@ -33,6 +33,55 @@ function validate(req, res) {
 // Returns live counts for the user-facing explainer page.
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// GET /api/offers  — paginated list of active offers (no location required)
+// ?limit=50&status=active
+// Used by the app's Offers tab for general browsing.
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/',
+  [
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 200 })
+      .withMessage('limit must be 1..200.'),
+    query('status')
+      .optional()
+      .isIn(['active', 'all'])
+      .withMessage('status must be "active" or "all".'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    try {
+      const limit  = parseInt(req.query.limit || '50', 10);
+      const status = req.query.status || 'active';
+      const activeFilter = status === 'active'
+        ? `AND o.is_active = true AND (o.expires_at IS NULL OR o.expires_at > NOW())
+           AND b.status = 'active'`
+        : '';
+      const { rows } = await pool.query(
+        `SELECT o.*,
+                b.name       AS business_name,
+                b.category   AS business_category,
+                b.logo_url   AS business_logo_url,
+                b.address    AS business_address,
+                b.city       AS business_city
+           FROM offers     o
+           JOIN businesses b ON b.id = o.business_id
+          WHERE 1 = 1 ${activeFilter}
+          ORDER BY o.created_at DESC
+          LIMIT $1`,
+        [limit]
+      );
+      return ok(res, { count: rows.length, offers: rows });
+    } catch (err) {
+      console.error('[offers/]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch offers.');
+    }
+  }
+);
+
 router.get('/stats', async (_req, res) => {
   try {
     const { rows } = await pool.query(`
