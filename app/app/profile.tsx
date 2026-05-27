@@ -9,10 +9,14 @@ import {
   Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 
 import { useAuth } from '../src/context/AuthContext';
 import { colors } from '../src/constants/colors';
 import { ProfileAvatar } from '../src/components/ProfileAvatar';
+
+const TOKEN_KEY = 'dander_access_token';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -25,6 +29,20 @@ export default function ProfileScreen() {
         router.replace('/login');
       } },
     ]);
+  }
+
+  async function copyToken() {
+    try {
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        Alert.alert('No token', 'No JWT in storage — try signing in again.');
+        return;
+      }
+      await Clipboard.setStringAsync(token);
+      Alert.alert('Copied', 'JWT copied to clipboard.');
+    } catch (err) {
+      Alert.alert('Copy failed', 'Could not read or copy the token.');
+    }
   }
 
   return (
@@ -57,6 +75,11 @@ export default function ProfileScreen() {
       <Pressable style={styles.signOutBtn} onPress={confirmSignOut}>
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
+
+      {/* Temporary dev tool — remove before production launch. */}
+      <Pressable style={styles.devBtn} onPress={copyToken} hitSlop={6}>
+        <Text style={styles.devBtnText}>Copy JWT (dev only)</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -82,4 +105,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   signOutText: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  devBtn: {
+    marginTop: 16,
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  devBtnText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
 });
