@@ -10,8 +10,7 @@
  *
  *   - steps   → step_logs.steps for today (UTC)
  *   - wifi    → COUNT(DISTINCT bssid) in wifi_points_log for today (UTC)
- *   - login   → COUNT(DISTINCT day) in points_transactions
- *                  where reference_type='daily_login' this UTC month
+ *   - login   → consecutive daily-login streak (see calcLoginStreak)
  *   - visit   → 0 (visit tracking not built yet)
  *   - explore → 0 (hex coverage not built yet)
  *
@@ -83,6 +82,41 @@ const ACTIVE_CHALLENGES = [
   },
 ];
 
+/**
+ * Consecutive daily-login streak in UTC.
+ *
+ * Walks back from today (or yesterday if today isn't in the set yet —
+ * user hasn't opened the app today, but the streak should still hold
+ * until they miss a full day) and counts uninterrupted dates. First
+ * gap stops the count.
+ *
+ *   Mon, Tue, Wed, Thu (today=Thu)                → 4
+ *   Mon, Tue,        Thu (today=Thu, Wed missing) → 1
+ *   Mon, Tue, Wed       (today=Thu, Thu missing)  → 3  (starts from Wed)
+ *   no rows                                       → 0
+ */
+function calcLoginStreak(dayStrings) {
+  if (!dayStrings || dayStrings.length === 0) return 0;
+  const set = new Set(dayStrings);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const cursor = new Date();
+
+  // If today isn't in the set, the streak can still be "alive" via
+  // yesterday — give the user a grace day before counting it broken.
+  if (!set.has(today)) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+    if (!set.has(cursor.toISOString().slice(0, 10))) return 0;
+  }
+
+  let streak = 0;
+  while (set.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
+}
+
 async function fetchProgress(userId) {
   const [stepRes, wifiRes, loginRes] = await Promise.all([
     pool.query(
@@ -101,19 +135,23 @@ async function fetchProgress(userId) {
       [userId]
     ).catch(() => ({ rows: [] })),
     pool.query(
-      `SELECT COUNT(DISTINCT (created_at AT TIME ZONE 'UTC')::date)::int AS n
+      // Stringify the date here so the result is independent of the
+      // node-postgres DATE parser and the server timezone — we just want
+      // 'YYYY-MM-DD' for a Set lookup on the JS side.
+      `SELECT DISTINCT to_char((created_at AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS d
          FROM points_transactions
         WHERE user_id        = $1
           AND reference_type = 'daily_login'
-          AND created_at    >= date_trunc('month', (NOW() AT TIME ZONE 'UTC'))`,
+        ORDER BY d DESC
+        LIMIT 400`,
       [userId]
     ).catch(() => ({ rows: [] })),
   ]);
 
   return {
-    steps:   stepRes.rows[0]?.n  ?? 0,
-    wifi:    wifiRes.rows[0]?.n  ?? 0,
-    login:   loginRes.rows[0]?.n ?? 0,
+    steps:   stepRes.rows[0]?.n ?? 0,
+    wifi:    wifiRes.rows[0]?.n ?? 0,
+    login:   calcLoginStreak(loginRes.rows.map((r) => r.d)),
     visit:   0,
     explore: 0,
   };
