@@ -21,5 +21,9 @@ export function extractApiError(err: unknown, fallback = 'Something went wrong. 
     if (err.code === 'ECONNABORTED') return 'Request timed out. Please try again.';
     if (!err.response)               return 'Network error. Check your connection.';
   }
+  // Plain Errors thrown locally (e.g. "Missing session — please sign in
+  // again.") carry their own user-facing message; surface it rather than
+  // collapsing to the generic fallback.
+  if (err instanceof Error && err.message) return err.message;
   return fallback;
 }

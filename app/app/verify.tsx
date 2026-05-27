@@ -59,20 +59,28 @@ export default function VerifyScreen() {
     if (!canSubmit) return;
     setError(null);
     setSubmitting(true);
+
+    // Decide where to navigate inside the try, but navigate _after_ the
+    // try/finally so that a synchronous throw from the router can't be
+    // misreported as a verification failure.
+    let dest: '/' | '/login' | null = null;
     try {
       if (purpose === 'login') {
         if (!tempToken) throw new Error('Missing session — please sign in again.');
         await completeLogin(tempToken, code);
+        dest = '/';
       } else {
         if (!userId) throw new Error('Missing user — please sign up again.');
-        await verifyRegisterOtp(userId, code);
+        const { signedIn } = await verifyRegisterOtp(userId, code);
+        dest = signedIn ? '/' : '/login';
       }
-      router.replace('/');
     } catch (e) {
       setError(extractApiError(e, 'Verification failed. Please try again.'));
     } finally {
       setSubmitting(false);
     }
+
+    if (dest) router.replace(dest);
   }
 
   async function handleResend() {

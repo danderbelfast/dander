@@ -22,6 +22,7 @@ import { useAuth } from '../src/context/AuthContext';
 import { extractApiError } from '../src/api/errors';
 import { authStyles } from '../src/components/authStyles';
 import { Brand } from '../src/components/Brand';
+import { PasswordInput } from '../src/components/PasswordInput';
 import { colors } from '../src/constants/colors';
 
 function validatePassword(p: string): string | null {
@@ -156,15 +157,11 @@ export default function RegisterScreen() {
 
         <View style={authStyles.inputWrap}>
           <Text style={authStyles.fieldLabel}>Password</Text>
-          <TextInput
-            style={authStyles.input}
+          <PasswordInput
             value={password}
             onChangeText={setPassword}
             placeholder="At least 8 chars, 1 uppercase, 1 number"
             placeholderTextColor={colors.textDim}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
             autoComplete="new-password"
             textContentType="newPassword"
             returnKeyType="next"
@@ -174,15 +171,11 @@ export default function RegisterScreen() {
 
         <View style={authStyles.inputWrap}>
           <Text style={authStyles.fieldLabel}>Confirm password</Text>
-          <TextInput
-            style={authStyles.input}
+          <PasswordInput
             value={confirm}
             onChangeText={setConfirm}
             placeholder="Re-enter password"
             placeholderTextColor={colors.textDim}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
             autoComplete="new-password"
             textContentType="newPassword"
             returnKeyType="go"

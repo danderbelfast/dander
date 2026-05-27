@@ -23,6 +23,7 @@ import { useAuth } from '../src/context/AuthContext';
 import { extractApiError } from '../src/api/errors';
 import { authStyles } from '../src/components/authStyles';
 import { Brand } from '../src/components/Brand';
+import { PasswordInput } from '../src/components/PasswordInput';
 import { colors } from '../src/constants/colors';
 
 export default function LoginScreen() {
@@ -92,15 +93,11 @@ export default function LoginScreen() {
 
         <View style={authStyles.inputWrap}>
           <Text style={authStyles.fieldLabel}>Password</Text>
-          <TextInput
-            style={authStyles.input}
+          <PasswordInput
             value={password}
             onChangeText={setPassword}
             placeholder="Your password"
             placeholderTextColor={colors.textDim}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
             autoComplete="current-password"
             textContentType="password"
             returnKeyType="go"
