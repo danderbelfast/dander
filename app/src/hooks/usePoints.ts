@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { useAuth } from '../context/AuthContext';
 import {
@@ -63,6 +64,16 @@ export function usePoints(): UsePointsResult {
         .catch(() => { /* non-fatal */ });
     }
   }, [isAuth, load]);
+
+  // Refresh whenever the app comes back to the foreground — fixes the
+  // "balance is stale after backgrounding" complaint without a constant
+  // polling timer.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => sub.remove();
+  }, [load]);
 
   return { loyalty, me, loading, refresh: load };
 }
