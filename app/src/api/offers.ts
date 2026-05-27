@@ -1,0 +1,41 @@
+/**
+ * offers.ts — nearby offers + single offer lookup.
+ *
+ * `/api/offers` (without query params) doesn't exist on the backend yet;
+ * callers should `try/catch` and fall back to an empty list.
+ */
+
+import { client } from './client';
+
+export interface Offer {
+  id:                number;
+  business_id:       number;
+  title:             string;
+  description:       string | null;
+  offer_type:        string | null;
+  original_price:    number | null;
+  offer_price:       number | null;
+  expires_at:        string | null;
+  is_active:         boolean;
+  business_name?:    string;
+  business_logo_url?: string | null;
+  business_address?: string | null;
+  business_city?:    string | null;
+}
+
+export interface NearbyParams {
+  lat:      number;
+  lng:      number;
+  radius?:  number;
+  category?: string;
+}
+
+export const getNearbyOffers = (params: NearbyParams) =>
+  client
+    .get<{ success: true; count: number; offers: Offer[] }>('/api/offers/nearby', { params })
+    .then((r) => r.data.offers);
+
+export const getOfferById = (id: number) =>
+  client
+    .get<{ success: true; offer: Offer }>(`/api/offers/${id}`)
+    .then((r) => r.data.offer);
