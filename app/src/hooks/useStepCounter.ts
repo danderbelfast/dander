@@ -1,48 +1,30 @@
 /**
- * useStepCounter — start the Pedometer-driven step accumulator once
- * the user is authenticated. Requests Motion & Fitness / activity-
- * recognition permission before starting; no-ops cleanly if the device
- * can't provide it (simulator, no pedometer hardware, denied permission).
+ * useStepCounter — start the Pedometer subscription once the user is
+ * authenticated and stop it on unmount / logout. Mirrors the gating used
+ * by useWifiScanner so step counting never runs for an anonymous user.
  *
- * The stepCounter service handles the watch loop, AsyncStorage day-
- * bounded caching, and periodic POSTs to /api/steps.
+ * Devices without a pedometer (most simulators, very old phones) are
+ * handled inside startStepCounting() itself — it returns false and the
+ * service no-ops, so this hook is safe to mount unconditionally.
  */
 
 import { useEffect } from 'react';
-import { Pedometer } from 'expo-sensors';
 
 import { startStepCounting, stopStepCounting } from '../services/stepCounter';
 import { useAuth } from '../context/AuthContext';
 
-export function useStepCounter() {
+function useStepCounter() {
   const { isAuth } = useAuth();
 
   useEffect(() => {
     if (!isAuth) return;
-    let cancelled = false;
 
-    (async () => {
-      try {
-        const available = await Pedometer.isAvailableAsync();
-        if (!available) {
-          console.warn('[useStepCounter] Pedometer not available on this device.');
-          return;
-        }
-        const perm = await Pedometer.requestPermissionsAsync();
-        if (!perm?.granted) {
-          console.warn('[useStepCounter] Motion permission not granted — steps disabled.');
-          return;
-        }
-        if (cancelled) return;
-        await startStepCounting();
-      } catch (err) {
-        if (__DEV__) console.warn('[useStepCounter] start failed:', err);
-      }
-    })();
+    startStepCounting().catch((err) => {
+      console.warn('[useStepCounter] start failed:', err);
+    });
 
-    return () => {
-      cancelled = true;
-      stopStepCounting();
-    };
+    return () => stopStepCounting();
   }, [isAuth]);
 }
+
+export default useStepCounter;

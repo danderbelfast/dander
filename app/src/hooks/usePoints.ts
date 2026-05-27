@@ -1,147 +1,79 @@
 /**
- * usePoints — composite hook that fetches the user's loyalty status +
- * their monthly leaderboard row, and pairs it with the locally-tracked
- * step count from the in-app Pedometer service.
+ * usePoints — single source of truth for the user's loyalty status and
+ * monthly leaderboard position. Also fires the once-per-UTC-day login
+ * claim the first time it mounts in an authenticated session.
  *
- *   • GET /api/users/loyalty       — totalPoints, tier
- *   • GET /api/leaderboard/me      — rank + monthly totals
- *   • getTodaySteps() (local)      — today's running step count
- *
- * Refresh cadence:
- *   - on mount and on auth/user change
- *   - every REFRESH_MS while the app is in the foreground
- *   - whenever the app returns to 'active' from background
- *
- * Quietly no-ops while the user is unauthenticated; values default to 0.
+ * Callers can read `{ loyalty, me, loading, refresh }` and use any of the
+ * derived fields without needing to think about how they're fetched.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState } from 'react-native';
 
 import { useAuth } from '../context/AuthContext';
-import { getLoyaltyStatus } from '../api/users';
-import { getMyLeaderboard } from '../api/leaderboard';
-import { getTodaySteps } from '../services/stepCounter';
+import {
+  getLoyalty,
+  claimDailyLogin,
+  LoyaltyStatus,
+} from '../api/users';
+import { getMyRank, LeaderboardRow } from '../api/leaderboard';
 
-const REFRESH_MS = 30_000;
-
-export interface PointsSummary {
-  totalPoints:           number;
-  lifetimePoints:        number;
-  tier:                  string;
-  rank:                  number | null;
-  pointsThisMonth:       number;
-  stepsToday:            number;
-  stepsThisMonth:        number;
-  wifiNetworksThisMonth: number;
-  loading:               boolean;
-  error:                 string | null;
-  refresh:               () => Promise<void>;
+interface UsePointsResult {
+  loyalty:  LoyaltyStatus | null;
+  me:       LeaderboardRow | null;
+  loading:  boolean;
+  refresh:  () => Promise<void>;
 }
 
-const EMPTY = {
-  totalPoints:           0,
-  lifetimePoints:        0,
-  tier:                  'bronze',
-  rank:                  null as number | null,
-  pointsThisMonth:       0,
-  stepsToday:            0,
-  stepsThisMonth:        0,
-  wifiNetworksThisMonth: 0,
-};
+export function usePoints(): UsePointsResult {
+  const { isAuth } = useAuth();
+  const [loyalty, setLoyalty] = useState<LoyaltyStatus | null>(null);
+  const [me, setMe]           = useState<LeaderboardRow | null>(null);
+  const [loading, setLoading] = useState(false);
 
-export function usePoints(): PointsSummary {
-  const { isAuth, user } = useAuth();
-  const [state, setState]   = useState(EMPTY);
-  const [loading, setLoad]  = useState(false);
-  const [error, setError]   = useState<string | null>(null);
-  const mounted = useRef(true);
+  // Daily-login claim is fire-and-forget; the ref guards against double
+  // claims on remount during the same session.
+  const dailyClaimed = useRef(false);
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!isAuth) return;
-    setLoad(true);
-    try {
-      const [loyalty, me] = await Promise.all([
-        getLoyaltyStatus().catch(() => null),
-        getMyLeaderboard().catch(() => null),
-      ]);
-      if (!mounted.current) return;
-      // Server is now the authoritative source for step totals
-      // (loyaltyService.getLoyaltyStatus exposes user_loyalty.steps_*).
-      // Pad stepsToday with the locally-counted total so the UI feels
-      // live between POST cycles — Math.max can only grow within a day.
-      const serverToday = loyalty?.steps_today ?? 0;
-      const localToday  = getTodaySteps();
-      setState({
-        totalPoints:           loyalty?.total_points ?? 0,
-        lifetimePoints:        loyalty?.lifetime_points ?? 0,
-        tier:                  loyalty?.tier ?? 'bronze',
-        rank:                  me?.rank ?? null,
-        pointsThisMonth:       me?.points_this_month ?? 0,
-        stepsToday:            Math.max(serverToday, localToday),
-        stepsThisMonth:        loyalty?.steps_this_month ?? me?.steps_this_month ?? 0,
-        wifiNetworksThisMonth: me?.wifi_networks_this_month ?? 0,
-      });
-      setError(null);
-    } catch (err: unknown) {
-      if (!mounted.current) return;
-      const msg = err instanceof Error ? err.message : 'Failed to load points.';
-      setError(msg);
-    } finally {
-      if (mounted.current) setLoad(false);
-    }
+    setLoading(true);
+    const [l, r] = await Promise.allSettled([getLoyalty(), getMyRank()]);
+    if (l.status === 'fulfilled') setLoyalty(l.value);
+    if (r.status === 'fulfilled') setMe(r.value);
+    setLoading(false);
   }, [isAuth]);
 
-  // Track mounted to avoid setState on unmounted components.
-  useEffect(() => {
-    mounted.current = true;
-    return () => { mounted.current = false; };
-  }, []);
-
-  // Initial fetch + re-fetch when auth flips or the user id changes.
   useEffect(() => {
     if (!isAuth) {
-      setState(EMPTY);
-      setError(null);
+      setLoyalty(null);
+      setMe(null);
+      dailyClaimed.current = false;
       return;
     }
-    void refresh();
-  }, [isAuth, user?.id, refresh]);
 
-  // Polling — only while authenticated and foregrounded.
+    void load();
+
+    if (!dailyClaimed.current) {
+      dailyClaimed.current = true;
+      claimDailyLogin()
+        .then((res) => {
+          // If we actually earned points, refresh so the new balance shows.
+          if (res.points_awarded > 0) void load();
+        })
+        .catch(() => { /* non-fatal */ });
+    }
+  }, [isAuth, load]);
+
+  // Refresh whenever the app comes back to the foreground — fixes the
+  // "balance is stale after backgrounding" complaint without a constant
+  // polling timer.
   useEffect(() => {
-    if (!isAuth) return;
-
-    let timer: ReturnType<typeof setInterval> | null = null;
-    let foreground = AppState.currentState === 'active';
-
-    const arm = () => {
-      if (timer || !foreground) return;
-      timer = setInterval(() => { void refresh(); }, REFRESH_MS);
-    };
-    const disarm = () => {
-      if (!timer) return;
-      clearInterval(timer);
-      timer = null;
-    };
-    arm();
-
-    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      const becameActive = foreground !== true && next === 'active';
-      foreground = next === 'active';
-      if (foreground) {
-        if (becameActive) void refresh();
-        arm();
-      } else {
-        disarm();
-      }
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
     });
+    return () => sub.remove();
+  }, [load]);
 
-    return () => {
-      disarm();
-      sub.remove();
-    };
-  }, [isAuth, refresh]);
-
-  return { ...state, loading, error, refresh };
+  return { loyalty, me, loading, refresh: load };
 }

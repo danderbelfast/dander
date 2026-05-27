@@ -1,9 +1,11 @@
 /**
- * AuthContext.tsx — login / register / logout, with token persistence.
+ * AuthContext.tsx — login / register / logout with token persistence.
  *
- * Holds the access token in memory and mirrors it to AsyncStorage so it
- * survives app restarts. Refresh-token rotation isn't wired up yet —
- * Chris can layer that on top once the auth flow has UI.
+ * Both login and register are 2-step (email OTP). The context exposes the
+ * raw step calls so screens can drive the flow; only `completeLogin` actually
+ * sets the session, since that's the only response that includes an access
+ * token. Register-verify only flips `is_verified` on the backend — the user
+ * still has to log in afterwards.
  */
 
 import React, {
@@ -12,27 +14,34 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
-  login    as loginApi,
-  register as registerApi,
-  LoginPayload, RegisterPayload,
+  login             as loginApi,
+  verifyLoginOtp    as verifyLoginOtpApi,
+  register          as registerApi,
+  verifyRegisterOtp as verifyRegisterOtpApi,
+  LoginPayload, RegisterPayload, AuthUser,
 } from '../api/auth';
 import {
   setAccessToken, restoreAccessToken,
 } from '../api/client';
 
-interface AuthUser {
-  id:    number;
-  email: string;
-  [k: string]: unknown;
-}
-
 interface AuthContextValue {
-  user:     AuthUser | null;
-  loading:  boolean;
-  isAuth:   boolean;
-  login:    (p: LoginPayload) => Promise<void>;
-  register: (p: RegisterPayload) => Promise<void>;
-  logout:   () => Promise<void>;
+  user:    AuthUser | null;
+  loading: boolean;
+  isAuth:  boolean;
+
+  /** Step 1 of login — verifies password, triggers OTP email, returns tempToken. */
+  requestLoginOtp:   (p: LoginPayload) => Promise<{ tempToken: string }>;
+  /** Step 2 of login — verifies OTP and persists the session. */
+  completeLogin:     (tempToken: string, code: string) => Promise<void>;
+
+  /** Step 1 of register — creates account, triggers OTP email, returns userId. */
+  register:          (p: RegisterPayload) => Promise<{ userId: number }>;
+  /** Step 2 of register — verifies OTP and (when the backend returns them) persists the session.
+   *  Returns `{ signedIn }` so the caller can decide whether to land on /
+   *  or send the user to /login. */
+  verifyRegisterOtp: (userId: number, code: string) => Promise<{ signedIn: boolean }>;
+
+  logout: () => Promise<void>;
 }
 
 const USER_KEY = 'dander_auth_user';
@@ -43,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session on boot.
   useEffect(() => {
     (async () => {
       try {
@@ -58,23 +66,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const persistSession = useCallback(async (token: string, u: AuthUser) => {
+  const persistSession = useCallback(async (
+    token: string | undefined | null,
+    u:     AuthUser | undefined | null,
+  ): Promise<boolean> => {
+    if (!token || !u) return false;
     setAccessToken(token);
     setUser(u);
-    await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
+    try {
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
+    } catch {
+      // Disk full or similar — session is still live in memory; storage is
+      // best-effort. Don't surface as a verification failure.
+    }
+    return true;
   }, []);
 
-  const login = useCallback(async (p: LoginPayload) => {
+  const requestLoginOtp = useCallback(async (p: LoginPayload) => {
     const data = await loginApi(p);
-    // Expected backend shape: { accessToken, user, ... }
-    await persistSession(data.accessToken, data.user);
+    return { tempToken: data.tempToken };
+  }, []);
+
+  const completeLogin = useCallback(async (tempToken: string, code: string) => {
+    const data = await verifyLoginOtpApi(tempToken, code);
+    const signedIn = await persistSession(data?.accessToken, data?.user);
+    if (!signedIn) {
+      throw new Error('Verified, but the server didn\'t return a session. Please sign in again.');
+    }
   }, [persistSession]);
 
   const register = useCallback(async (p: RegisterPayload) => {
     const data = await registerApi(p);
-    if (data?.accessToken && data?.user) {
-      await persistSession(data.accessToken, data.user);
-    }
+    return { userId: data.userId };
+  }, []);
+
+  const verifyRegisterOtp = useCallback(async (userId: number, code: string) => {
+    const data = await verifyRegisterOtpApi(userId, code);
+    const signedIn = await persistSession(data?.accessToken, data?.user);
+    return { signedIn };
   }, [persistSession]);
 
   const logout = useCallback(async () => {
@@ -85,8 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextValue>(() => ({
     user, loading, isAuth: !!user,
-    login, register, logout,
-  }), [user, loading, login, register, logout]);
+    requestLoginOtp, completeLogin,
+    register, verifyRegisterOtp,
+    logout,
+  }), [user, loading, requestLoginOtp, completeLogin, register, verifyRegisterOtp, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

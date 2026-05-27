@@ -86,19 +86,34 @@ async function checkMilestones(userId, totalSaved) {
 async function getLoyaltyStatus(userId) {
   const loyalty = await getOrCreateLoyalty(userId);
 
-  const { rows: milestones } = await pool.query(
-    `SELECT * FROM loyalty_milestones WHERE is_active = true ORDER BY threshold_gbp`, []
-  );
+  const [
+    { rows: milestones },
+    { rows: unlocks },
+    { rows: wifiRows },
+  ] = await Promise.all([
+    pool.query(
+      `SELECT * FROM loyalty_milestones WHERE is_active = true ORDER BY threshold_gbp`
+    ),
+    pool.query(
+      `SELECT milestone_id, unlocked_at, redeemed_at FROM user_milestone_unlocks WHERE user_id = $1`,
+      [userId]
+    ),
+    pool.query(
+      `SELECT COUNT(DISTINCT bssid)::int AS wifi_today
+         FROM wifi_points_log
+        WHERE user_id   = $1
+          AND award_day = (NOW() AT TIME ZONE 'UTC')::date`,
+      [userId]
+    ),
+  ]);
 
-  const { rows: unlocks } = await pool.query(
-    `SELECT milestone_id, unlocked_at, redeemed_at FROM user_milestone_unlocks WHERE user_id = $1`,
-    [userId]
-  );
   const unlockMap = {};
   for (const u of unlocks) unlockMap[u.milestone_id] = u;
 
   const totalSaved = parseFloat(loyalty.total_saved_gbp);
   const nextMilestone = milestones.find(m => parseFloat(m.threshold_gbp) > totalSaved);
+
+  const wifiToday = wifiRows[0]?.wifi_today ?? 0;
 
   return {
     total_points: loyalty.total_points,
@@ -112,6 +127,8 @@ async function getLoyaltyStatus(userId) {
     steps_today:      loyalty.steps_today      || 0,
     steps_this_month: loyalty.steps_this_month || 0,
     steps_all_time:   loyalty.steps_all_time   || 0,
+    // WiFi — direct count of today's distinct BSSIDs for this user.
+    wifi_today:       wifiToday,
     milestones: milestones.map(m => ({
       ...m,
       threshold_gbp: parseFloat(m.threshold_gbp),

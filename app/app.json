@@ -3,7 +3,7 @@
     "name": "Dander",
     "slug": "dander",
     "scheme": "dander",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,21 +13,18 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Dander uses your location to discover nearby offers and improve coverage.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Dander uses your location in the background to suggest offers as you move around.",
-        "NSMotionUsageDescription": "Dander uses motion data to count your steps and reward you with points."
+        "NSMotionUsageDescription": "Dander counts your steps to reward you for exploring the high street."
       }
     },
     "android": {
       "package": "io.dander.app",
-      "versionCode": 1,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_WIFI_STATE",
         "CHANGE_WIFI_STATE",
         "ACCESS_NETWORK_STATE",
-        "ACTIVITY_RECOGNITION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "ACTIVITY_RECOGNITION"
       ]
     },
     "plugins": [
@@ -42,7 +39,8 @@
           }
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

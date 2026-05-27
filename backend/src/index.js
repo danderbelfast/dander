@@ -135,6 +135,8 @@ app.use('/api/wifi',        require('../routes/wifi'));
 app.use('/api/device',      require('../routes/device'));
 app.use('/api/steps',       require('../routes/steps'));
 app.use('/api/leaderboard', require('../routes/leaderboard'));
+app.use('/api/challenges',  require('../routes/challenges'));
+app.use('/api/debug',       require('../routes/debug'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)

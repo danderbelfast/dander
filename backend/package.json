@@ -8,7 +8,8 @@
     "dev": "nodemon src/index.js",
     "lint": "eslint src/",
     "test": "node --test utils/*.test.js",
-    "migrate": "node db/migrate.js"
+    "migrate": "node db/migrate.js",
+    "seed:demo": "node scripts/seedDemoData.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

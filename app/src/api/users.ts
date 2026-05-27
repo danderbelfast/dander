@@ -1,40 +1,50 @@
 /**
- * users.ts — user-account endpoints.
- *
- * Currently just the daily-login bonus claim. The backend dedups on its
- * side (one award per UTC day), so calling this is always safe; the
- * `already_claimed` flag tells the app whether new points were granted.
+ * users.ts — loyalty status, points history, and the daily-login claim.
  */
 
 import { client } from './client';
 
+export type Tier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface LoyaltyStatus {
+  total_points:    number;
+  lifetime_points: number;
+  total_saved_gbp: number;
+  tier:            Tier;
+  next_tier:       Tier | null;
+  next_tier_points_needed: number;
+  steps_today:     number;
+  wifi_today:      number;
+}
+
+export interface LoyaltyTransaction {
+  id:             number;
+  type:           'earn' | 'redeem';
+  points:         number;
+  description:    string | null;
+  reference_type: string | null;
+  reference_id:   string | null;
+  created_at:     string;
+}
+
+export const getLoyalty = () =>
+  client
+    .get<{ success: true; loyalty: LoyaltyStatus }>('/api/users/loyalty')
+    .then((r) => r.data.loyalty);
+
+export const getLoyaltyHistory = () =>
+  client
+    .get<{ success: true; history: LoyaltyTransaction[] }>('/api/users/loyalty/history')
+    .then((r) => r.data.history);
+
 export interface DailyLoginResponse {
-  ok:               boolean;
-  points_awarded:   number;
-  already_claimed:  boolean;
+  success:         true;
+  ok:              true;
+  points_awarded:  number;
+  already_claimed: boolean;
 }
 
 export const claimDailyLogin = () =>
-  client.post<DailyLoginResponse>('/api/users/daily-login').then((r) => r.data);
-
-// ── Loyalty status ─────────────────────────────────────────
-export interface LoyaltyStatus {
-  total_points:        number;
-  lifetime_points:     number;
-  total_saved_gbp:     number;
-  tier:                'bronze' | 'silver' | 'gold' | 'platinum';
-  next_tier?:          string | null;
-  next_tier_points_needed?: number;
-  // Cross-device authoritative step totals from user_loyalty (cached
-  // counters maintained by POST /api/steps; up to ~5 min stale between
-  // client POSTs).
-  steps_today?:        number;
-  steps_this_month?:   number;
-  steps_all_time?:     number;
-  milestones?:         unknown[];
-  next_milestone?:     unknown;
-}
-
-export const getLoyaltyStatus = () =>
-  client.get<{ success: boolean; loyalty: LoyaltyStatus }>('/api/users/loyalty')
-    .then((r) => r.data.loyalty);
+  client
+    .post<DailyLoginResponse>('/api/users/daily-login')
+    .then((r) => r.data);
