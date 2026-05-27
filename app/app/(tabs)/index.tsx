@@ -26,7 +26,7 @@ import { usePoints } from '../../src/hooks/usePoints';
 import { getLoyaltyHistory, LoyaltyTransaction } from '../../src/api/users';
 import { getMonthlyLeaderboard, LeaderboardRow as TRow } from '../../src/api/leaderboard';
 import { getActiveChallenges, Challenge } from '../../src/api/challenges';
-import { getNearbyOffers, Offer } from '../../src/api/offers';
+import { listOffers, Offer } from '../../src/api/offers';
 
 import { colors } from '../../src/constants/colors';
 import { ProfileAvatar } from '../../src/components/ProfileAvatar';
@@ -66,10 +66,9 @@ export default function HomeScreen() {
       getLoyaltyHistory(),
       getMonthlyLeaderboard(),
       getActiveChallenges(),
-      // We don't have device location plumbed in yet; the nearby endpoint
-      // requires lat/lng, so this will reject and we'll fall through to the
-      // empty state. That's intentional — the section hides itself.
-      getNearbyOffers({ lat: 0, lng: 0, radius: 5000 }),
+      // Use the no-location list endpoint so the home matches the Offers
+      // tab. When device location is plumbed in we can switch to /nearby.
+      listOffers({ limit: 10, status: 'active' }),
     ]);
     if (h.status  === 'fulfilled') setHistory(h.value);
     if (lb.status === 'fulfilled') setTopBoard(lb.value);
@@ -189,7 +188,7 @@ export default function HomeScreen() {
       {loadingExtras && topThree.length === 0 ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} />
       ) : topThree.length === 0 ? (
-        <Text style={styles.empty}>The leaderboard is empty so far this month</Text>
+        <Text style={styles.empty}>Start exploring to appear here</Text>
       ) : (
         topThree.map((row) => (
           <LeaderboardRow key={row.user_id} row={row} isMe={user?.id === row.user_id} />
