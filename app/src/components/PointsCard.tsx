@@ -2,15 +2,20 @@
  * PointsCard — orange hero card for the home dashboard.
  *
  * Big number = points earned this UTC month.
- * Three stat columns: steps, wifi networks, rank.
+ * Three stat columns: steps (live from device), wifi networks, rank.
  * Tier badge bottom-right.
+ *
+ * Steps display reads from useLiveSteps when the pedometer is available so
+ * the count ticks up in real time. The `steps` prop (from the server) is
+ * used as a fallback on devices without a pedometer.
  */
 
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../constants/colors';
 import { Tier } from '../api/users';
+import useLiveSteps from '../hooks/useLiveSteps';
 
 interface Props {
   pointsThisMonth: number | null;
@@ -33,6 +38,9 @@ function fmt(n: number | null) {
 }
 
 export function PointsCard({ pointsThisMonth, steps, wifiNetworks, rank, tier }: Props) {
+  const liveSteps = useLiveSteps();
+  const stepsDisplay = liveSteps != null ? liveSteps : steps;
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -43,7 +51,7 @@ export function PointsCard({ pointsThisMonth, steps, wifiNetworks, rank, tier }:
       <Text style={styles.bigLabel}>points</Text>
 
       <View style={styles.statsRow}>
-        <Stat icon="👟" value={fmt(steps)}        label="steps today" />
+        <StepsStat value={stepsDisplay} />
         <Stat icon="📶" value={fmt(wifiNetworks)} label="wifi today" />
         <Stat icon="🏆" value={rank == null ? '—' : `#${rank}`} label="rank" />
       </View>
@@ -63,6 +71,34 @@ function Stat({ icon, value, label }: { icon: string; value: string; label: stri
       <Text style={styles.statIcon}>{icon}</Text>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * StepsStat — same layout as Stat, but pops the icon briefly on each
+ * increment so the live tick is visible without watching the digits move.
+ */
+function StepsStat({ value }: { value: number | null }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const prev  = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (value == null) return;
+    if (prev.current != null && value !== prev.current) {
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.2, duration: 110, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1.0, duration: 140, useNativeDriver: true }),
+      ]).start();
+    }
+    prev.current = value;
+  }, [value, scale]);
+
+  return (
+    <View style={styles.stat}>
+      <Animated.Text style={[styles.statIcon, { transform: [{ scale }] }]}>👟</Animated.Text>
+      <Text style={styles.statValue}>{fmt(value)}</Text>
+      <Text style={styles.statLabel}>steps today</Text>
     </View>
   );
 }

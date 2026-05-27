@@ -158,3 +158,28 @@ export function stopStepCounting(): void {
 export function getTodaySteps(): number {
   return Math.round(stepsToday);
 }
+
+// ---------------------------------------------------------------------------
+// Live display subscription
+//
+// Separate from the server-sync subscription above so a display consumer
+// can attach/detach independently of the background ingest pipeline. Each
+// callback receives the watcher's cumulative steps since *this* subscription
+// started (not since midnight) — callers add it to whatever baseline they're
+// tracking.
+// ---------------------------------------------------------------------------
+
+export function watchLiveSteps(callback: (steps: number) => void): () => void {
+  let sub: { remove: () => void } | null = null;
+  try {
+    sub = Pedometer.watchStepCount((data) => {
+      if (Number.isFinite(data?.steps)) callback(data.steps);
+    });
+  } catch (err) {
+    console.warn('[stepCounter] watchLiveSteps failed:', err);
+    return () => {};
+  }
+  return () => {
+    try { sub?.remove(); } catch { /* ignore */ }
+  };
+}
