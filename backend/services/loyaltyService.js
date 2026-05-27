@@ -86,19 +86,44 @@ async function checkMilestones(userId, totalSaved) {
 async function getLoyaltyStatus(userId) {
   const loyalty = await getOrCreateLoyalty(userId);
 
-  const { rows: milestones } = await pool.query(
-    `SELECT * FROM loyalty_milestones WHERE is_active = true ORDER BY threshold_gbp`, []
-  );
+  const [
+    { rows: milestones },
+    { rows: unlocks },
+    { rows: stepRows },
+    { rows: wifiRows },
+  ] = await Promise.all([
+    pool.query(
+      `SELECT * FROM loyalty_milestones WHERE is_active = true ORDER BY threshold_gbp`
+    ),
+    pool.query(
+      `SELECT milestone_id, unlocked_at, redeemed_at FROM user_milestone_unlocks WHERE user_id = $1`,
+      [userId]
+    ),
+    pool.query(
+      `SELECT steps
+         FROM step_logs
+        WHERE user_id   = $1
+          AND logged_at = (NOW() AT TIME ZONE 'UTC')::date
+        LIMIT 1`,
+      [userId]
+    ),
+    pool.query(
+      `SELECT COUNT(DISTINCT bssid)::int AS wifi_today
+         FROM wifi_points_log
+        WHERE user_id   = $1
+          AND award_day = (NOW() AT TIME ZONE 'UTC')::date`,
+      [userId]
+    ),
+  ]);
 
-  const { rows: unlocks } = await pool.query(
-    `SELECT milestone_id, unlocked_at, redeemed_at FROM user_milestone_unlocks WHERE user_id = $1`,
-    [userId]
-  );
   const unlockMap = {};
   for (const u of unlocks) unlockMap[u.milestone_id] = u;
 
   const totalSaved = parseFloat(loyalty.total_saved_gbp);
   const nextMilestone = milestones.find(m => parseFloat(m.threshold_gbp) > totalSaved);
+
+  const stepsToday = stepRows[0]?.steps ?? 0;
+  const wifiToday  = wifiRows[0]?.wifi_today ?? 0;
 
   return {
     total_points: loyalty.total_points,
@@ -107,6 +132,8 @@ async function getLoyaltyStatus(userId) {
     tier: loyalty.tier,
     next_tier: loyalty.tier === 'platinum' ? null : Object.keys(TIER_THRESHOLDS).find(t => TIER_THRESHOLDS[t] > loyalty.lifetime_points),
     next_tier_points_needed: loyalty.tier === 'platinum' ? 0 : (TIER_THRESHOLDS[Object.keys(TIER_THRESHOLDS).find(t => TIER_THRESHOLDS[t] > loyalty.lifetime_points)] || 0) - loyalty.lifetime_points,
+    steps_today: stepsToday,
+    wifi_today:  wifiToday,
     milestones: milestones.map(m => ({
       ...m,
       threshold_gbp: parseFloat(m.threshold_gbp),

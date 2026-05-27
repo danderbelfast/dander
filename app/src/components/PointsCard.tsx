@@ -43,8 +43,8 @@ export function PointsCard({ pointsThisMonth, steps, wifiNetworks, rank, tier }:
       <Text style={styles.bigLabel}>points</Text>
 
       <View style={styles.statsRow}>
-        <Stat icon="👟" value={fmt(steps)}        label="steps" />
-        <Stat icon="📶" value={fmt(wifiNetworks)} label="WiFi" />
+        <Stat icon="👟" value={fmt(steps)}        label="steps today" />
+        <Stat icon="📶" value={fmt(wifiNetworks)} label="wifi today" />
         <Stat icon="🏆" value={rank == null ? '—' : `#${rank}`} label="rank" />
       </View>
 

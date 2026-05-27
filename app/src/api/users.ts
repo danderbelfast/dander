@@ -13,6 +13,8 @@ export interface LoyaltyStatus {
   tier:            Tier;
   next_tier:       Tier | null;
   next_tier_points_needed: number;
+  steps_today:     number;
+  wifi_today:      number;
 }
 
 export interface LoyaltyTransaction {

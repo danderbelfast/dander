@@ -123,8 +123,8 @@ export default function HomeScreen() {
       ) : (
         <PointsCard
           pointsThisMonth={me?.points_this_month ?? 0}
-          steps={me?.steps_this_month ?? 0}
-          wifiNetworks={me?.wifi_networks_this_month ?? 0}
+          steps={loyalty?.steps_today ?? 0}
+          wifiNetworks={loyalty?.wifi_today ?? 0}
           rank={me?.rank ?? null}
           tier={loyalty?.tier ?? null}
         />
