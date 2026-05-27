@@ -11,7 +11,9 @@
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 import {
   login             as loginApi,
@@ -21,7 +23,7 @@ import {
   LoginPayload, RegisterPayload, AuthUser,
 } from '../api/auth';
 import {
-  setAccessToken, restoreAccessToken,
+  setAccessToken, restoreAccessToken, registerAuthFailureHandler,
 } from '../api/client';
 
 interface AuthContextValue {
@@ -64,6 +66,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     })();
+  }, []);
+
+  // Wire up the auth-failure handler so the axios response interceptor
+  // can punt us back to /login when the server says our token has
+  // expired. Token + AsyncStorage cleanup already happened in client.ts;
+  // here we just clear the in-memory user, alert once, and navigate.
+  useEffect(() => {
+    registerAuthFailureHandler(() => {
+      setUser(null);
+      Alert.alert(
+        'Session expired',
+        'Your session expired — please sign in again.',
+      );
+      router.replace('/login');
+    });
+    return () => registerAuthFailureHandler(null);
   }, []);
 
   const persistSession = useCallback(async (
