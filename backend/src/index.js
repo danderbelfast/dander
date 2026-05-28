@@ -14,6 +14,8 @@ const morgan  = require('morgan');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server }       = require('socket.io');
+const { WebSocketServer } = require('ws');
+const pool             = require('../db/pool');
 
 // ---------------------------------------------------------------------------
 // App + HTTP server
@@ -196,6 +198,74 @@ io.on('connection', (socket) => {
 });
 
 // ---------------------------------------------------------------------------
+// WebSocket — FootfallCam Pro2 devices connect to /ws/footfallcam.
+//
+// Shares httpServer (Railway exposes a single port). We use noServer mode
+// and route 'upgrade' events ourselves so this coexists with the Socket.IO
+// server already bound to httpServer: requests for /ws/footfallcam are
+// handled here, everything else is left for Socket.IO's own upgrade
+// listener. (Socket.IO's destroyUpgrade timer won't kill our socket because
+// handleUpgrade writes the 101 response synchronously, well within its 1s
+// window.)
+// ---------------------------------------------------------------------------
+
+const footfallWss = new WebSocketServer({ noServer: true });
+
+httpServer.on('upgrade', (request, socket, head) => {
+  let pathname;
+  try {
+    pathname = new URL(request.url, 'http://localhost').pathname;
+  } catch {
+    return; // malformed URL — leave for other listeners
+  }
+  if (pathname === '/ws/footfallcam') {
+    footfallWss.handleUpgrade(request, socket, head, (ws) => {
+      footfallWss.emit('connection', ws, request);
+    });
+  }
+  // Other paths (e.g. Socket.IO's /socket.io/) are intentionally untouched.
+});
+
+footfallWss.on('connection', (ws, request) => {
+  const ip = request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown';
+
+  // The device expects an 'OK' handshake on connect.
+  ws.send('OK');
+  console.log(`[footfallcam/ws] device connected from ${ip}`);
+
+  ws.on('message', async (data) => {
+    const text = typeof data === 'string' ? data : data.toString();
+    console.log('[footfallcam/ws] raw message:', text);
+
+    // Store valid JSON as-is; wrap anything else so the JSONB column stays
+    // valid and nothing is lost.
+    let payload;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = { _unparsed: true, text };
+    }
+
+    try {
+      await pool.query(
+        'INSERT INTO footfallcam_raw_messages (remote_ip, raw_payload) VALUES ($1, $2)',
+        [typeof ip === 'string' ? ip.slice(0, 64) : null, payload]
+      );
+    } catch (err) {
+      console.error('[footfallcam/ws] failed to store message:', err.message);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log(`[footfallcam/ws] device disconnected (${ip})`);
+  });
+
+  ws.on('error', (err) => {
+    console.error('[footfallcam/ws] socket error:', err.message);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Background jobs
 // ---------------------------------------------------------------------------
 
@@ -227,8 +297,6 @@ httpServer.listen(PORT, () => {
 // ---------------------------------------------------------------------------
 // Graceful shutdown on SIGTERM / SIGINT
 // ---------------------------------------------------------------------------
-
-const pool = require('../db/pool');
 
 async function shutdown(signal) {
   console.log(`\n[server] ${signal} received — shutting down gracefully…`);
