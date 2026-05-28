@@ -40,12 +40,12 @@ const NAV = [
   {
     section: 'Analytics',
     items: [
-      { to: '/analytics', label: 'Footfall', icon: (
+      { to: '/footfall', label: 'Footfall', icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
       )},
-      { to: '/footfall', label: 'Live Footfall', icon: (
+      { to: '/analytics', label: 'Analytics (Legacy)', icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
         </svg>
