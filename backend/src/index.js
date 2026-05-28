@@ -137,6 +137,8 @@ app.use('/api/steps',       require('../routes/steps'));
 app.use('/api/leaderboard', require('../routes/leaderboard'));
 app.use('/api/challenges',  require('../routes/challenges'));
 app.use('/api/debug',       require('../routes/debug'));
+app.use('/api/webhooks',    require('../routes/webhooks'));
+app.use('/api/devices',     require('../routes/devices'));
 
 // ---------------------------------------------------------------------------
 // API documentation (static HTML)
