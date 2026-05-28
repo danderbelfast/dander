@@ -209,6 +209,53 @@ io.on('connection', (socket) => {
 // window.)
 // ---------------------------------------------------------------------------
 
+// Parse one "ffc-eventrawdata" Data object into a structured reading row.
+// CameraSerial maps to footfallcam_devices.device_serial (the value a
+// business supplies when registering a device), so we resolve business_id
+// off that. MetricId selects which counter the event increments:
+//   1000 = IN, 2000 = OUT, 3000 = occupancy.
+async function storeFootfallEvent(d) {
+  const cameraSerial = typeof d.CameraSerial === 'string' ? d.CameraSerial : null;
+  if (!cameraSerial) {
+    console.warn('[footfallcam/ws] event missing CameraSerial — structured insert skipped (raw kept).');
+    return;
+  }
+
+  const metricId   = Number(d.MetricId);
+  const peopleType = d.PeopleTypeId != null ? Number(d.PeopleTypeId) : null;
+  const roiId      = d.RoiId != null ? Number(d.RoiId) : null;
+
+  let ts = d.EventStartUTCTime ? new Date(d.EventStartUTCTime) : new Date();
+  if (Number.isNaN(ts.getTime())) ts = new Date();
+
+  let businessId = null;
+  const { rows } = await pool.query(
+    'SELECT business_id FROM footfallcam_devices WHERE device_serial = $1',
+    [cameraSerial]
+  );
+  if (rows.length > 0) businessId = rows[0].business_id;
+
+  await pool.query(
+    `INSERT INTO footfallcam_readings
+       (business_id, device_serial, timestamp, count_in, count_out, occupancy,
+        people_type, zone_id, raw_payload)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      businessId,
+      cameraSerial,
+      ts,
+      metricId === 1000 ? 1 : 0,
+      metricId === 2000 ? 1 : 0,
+      metricId === 3000 ? 1 : 0,
+      peopleType,
+      roiId,
+      d,
+    ]
+  );
+
+  console.log(`[footfallcam/ws] event: MetricId=${metricId} PeopleTypeId=${peopleType} RoiId=${roiId}`);
+}
+
 const footfallWss = new WebSocketServer({ noServer: true });
 
 httpServer.on('upgrade', (request, socket, head) => {
@@ -246,13 +293,30 @@ footfallWss.on('connection', (ws, request) => {
       payload = { _unparsed: true, text };
     }
 
+    // Always capture the raw frame first — nothing is lost even if the
+    // structured parse below misreads the shape.
     try {
       await pool.query(
         'INSERT INTO footfallcam_raw_messages (remote_ip, raw_payload) VALUES ($1, $2)',
         [typeof ip === 'string' ? ip.slice(0, 64) : null, payload]
       );
     } catch (err) {
-      console.error('[footfallcam/ws] failed to store message:', err.message);
+      console.error('[footfallcam/ws] failed to store raw message:', err.message);
+    }
+
+    // Then act on the topic.
+    try {
+      const topic = payload && payload.Topic;
+      if (topic === 'generic-test-topic') {
+        ws.send(JSON.stringify({
+          Topic: 'generic-test-topic-response',
+          Data:  { Message: 'OK' },
+        }));
+      } else if (topic === 'ffc-eventrawdata' && payload.Data) {
+        await storeFootfallEvent(payload.Data);
+      }
+    } catch (err) {
+      console.error('[footfallcam/ws] failed to process topic:', err.message);
     }
   });
 
