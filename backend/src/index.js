@@ -224,6 +224,7 @@ async function storeFootfallEvent(d) {
   const metricId   = Number(d.MetricId);
   const peopleType = d.PeopleTypeId != null ? Number(d.PeopleTypeId) : null;
   const roiId      = d.RoiId != null ? Number(d.RoiId) : null;
+  const peopleId   = d.PeopleId != null ? Number(d.PeopleId) : null;
 
   let ts = d.EventStartUTCTime ? new Date(d.EventStartUTCTime) : new Date();
   if (Number.isNaN(ts.getTime())) ts = new Date();
@@ -235,11 +236,14 @@ async function storeFootfallEvent(d) {
   );
   if (rows.length > 0) businessId = rows[0].business_id;
 
+  // ON CONFLICT DO NOTHING dedups exact resends after a device reconnect.
+  // The conflict target matches the UNIQUE constraint from migration 032.
   await pool.query(
     `INSERT INTO footfallcam_readings
        (business_id, device_serial, timestamp, count_in, count_out, occupancy,
-        people_type, zone_id, raw_payload)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        people_type, zone_id, people_id, raw_payload)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     ON CONFLICT (device_serial, timestamp, people_id, count_in, count_out) DO NOTHING`,
     [
       businessId,
       cameraSerial,
@@ -249,6 +253,7 @@ async function storeFootfallEvent(d) {
       metricId === 3000 ? 1 : 0,
       peopleType,
       roiId,
+      peopleId,
       d,
     ]
   );

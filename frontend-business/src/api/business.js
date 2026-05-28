@@ -166,6 +166,13 @@ export const registerFootfallDevice = (data) =>
 export const getFootfallLive = () =>
   client.get('/api/devices/footfallcam/live').then((r) => r.data);
 
+// ── FootfallCam analytics ───────────────────────────────────
+export const getFootfallSummary = (date) =>
+  client.get('/api/analytics/footfall/summary', { params: date ? { date } : {} }).then((r) => r.data);
+
+export const getFootfallHourly = (date) =>
+  client.get('/api/analytics/footfall/hourly', { params: date ? { date } : {} }).then((r) => r.data);
+
 // ── QR Redeem ───────────────────────────────────────────────
 export const redeemQR = (qrToken) =>
   client.post('/api/coupons/redeem-qr', { qr_token: qrToken }).then((r) => r.data);

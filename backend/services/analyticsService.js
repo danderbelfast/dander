@@ -274,4 +274,95 @@ async function generatePlaceholderData(businessId) {
   }
 }
 
-module.exports = { getDashboard, getCurrentStatus, generatePlaceholderData };
+// ---------------------------------------------------------------------------
+// FootfallCam — sourced from footfallcam_readings (one row per device event;
+// count_in / count_out / occupancy are 0/1 flags). All windowing is in UTC to
+// stay consistent with the rest of the platform.
+// ---------------------------------------------------------------------------
+
+async function getFootfallSummary(businessId, date) {
+  const day = date || new Date().toISOString().slice(0, 10);
+
+  const [todayRes, peakRes, hourRes, yestRes] = await Promise.all([
+    pool.query(
+      `SELECT COALESCE(SUM(count_in), 0)::int  AS entries,
+              COALESCE(SUM(count_out), 0)::int AS exits
+         FROM footfallcam_readings
+        WHERE business_id = $1
+          AND (timestamp AT TIME ZONE 'UTC')::date = $2::date`,
+      [businessId, day]
+    ),
+    pool.query(
+      `SELECT date_part('hour', timestamp AT TIME ZONE 'UTC')::int AS hour,
+              SUM(count_in)::int AS entries
+         FROM footfallcam_readings
+        WHERE business_id = $1
+          AND (timestamp AT TIME ZONE 'UTC')::date = $2::date
+          AND count_in = 1
+        GROUP BY hour
+        ORDER BY entries DESC, hour ASC
+        LIMIT 1`,
+      [businessId, day]
+    ),
+    pool.query(
+      `SELECT COALESCE(SUM(count_in), 0)::int AS entries
+         FROM footfallcam_readings
+        WHERE business_id = $1
+          AND (timestamp AT TIME ZONE 'UTC') >= date_trunc('hour', (NOW() AT TIME ZONE 'UTC'))`,
+      [businessId]
+    ),
+    pool.query(
+      `SELECT COALESCE(SUM(count_in), 0)::int AS entries
+         FROM footfallcam_readings
+        WHERE business_id = $1
+          AND (timestamp AT TIME ZONE 'UTC')::date = ($2::date - INTERVAL '1 day')::date`,
+      [businessId, day]
+    ),
+  ]);
+
+  const entriesToday     = todayRes.rows[0].entries;
+  const exitsToday       = todayRes.rows[0].exits;
+  const entriesYesterday = yestRes.rows[0].entries;
+  const vsYesterdayPct   = entriesYesterday > 0
+    ? Math.round(((entriesToday - entriesYesterday) / entriesYesterday) * 100)
+    : null;
+
+  return {
+    date:             day,
+    entriesToday,
+    exitsToday,
+    currentOccupancy: Math.max(0, entriesToday - exitsToday),
+    entriesThisHour:  hourRes.rows[0].entries,
+    peakHour:         peakRes.rows[0] ? peakRes.rows[0].hour : null,  // 0-23 UTC, or null
+    entriesYesterday,
+    vsYesterdayPct,                                                   // null if no baseline
+  };
+}
+
+async function getHourlyFootfall(businessId, date) {
+  const day = date || new Date().toISOString().slice(0, 10);
+  const { rows } = await pool.query(
+    `SELECT date_part('hour', timestamp AT TIME ZONE 'UTC')::int AS hour,
+            COALESCE(SUM(count_in), 0)::int  AS entries,
+            COALESCE(SUM(count_out), 0)::int AS exits
+       FROM footfallcam_readings
+      WHERE business_id = $1
+        AND (timestamp AT TIME ZONE 'UTC')::date = $2::date
+      GROUP BY hour`,
+    [businessId, day]
+  );
+
+  // Fill every hour 0-23 so the chart axis is continuous.
+  const byHour = new Map(rows.map((r) => [r.hour, r]));
+  const out = [];
+  for (let h = 0; h < 24; h++) {
+    const r = byHour.get(h);
+    out.push({ hour: h, entries: r ? r.entries : 0, exits: r ? r.exits : 0 });
+  }
+  return out;
+}
+
+module.exports = {
+  getDashboard, getCurrentStatus, generatePlaceholderData,
+  getFootfallSummary, getHourlyFootfall,
+};

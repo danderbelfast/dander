@@ -25,6 +25,39 @@ function isPro(req) {
 }
 
 // ---------------------------------------------------------------------------
+// FootfallCam — GET /api/analytics/footfall/summary?date=YYYY-MM-DD
+//               GET /api/analytics/footfall/hourly?date=YYYY-MM-DD
+// ---------------------------------------------------------------------------
+
+router.get(
+  '/footfall/summary',
+  [query('date').optional().isISO8601().withMessage('date must be YYYY-MM-DD.')],
+  async (req, res) => {
+    try {
+      const summary = await analytics.getFootfallSummary(req.business.id, req.query.date);
+      return ok(res, { summary });
+    } catch (err) {
+      console.error('[analytics/footfall/summary]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to load footfall summary.');
+    }
+  }
+);
+
+router.get(
+  '/footfall/hourly',
+  [query('date').optional().isISO8601().withMessage('date must be YYYY-MM-DD.')],
+  async (req, res) => {
+    try {
+      const hourly = await analytics.getHourlyFootfall(req.business.id, req.query.date);
+      return ok(res, { hourly });
+    } catch (err) {
+      console.error('[analytics/footfall/hourly]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to load hourly footfall.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
 // GET /api/analytics/dashboard
 // ---------------------------------------------------------------------------
 

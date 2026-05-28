@@ -16,6 +16,7 @@ import BusinessProfile  from './pages/BusinessProfile';
 import Guide            from './pages/Guide';
 import Reports          from './pages/Reports';
 import Analytics        from './pages/Analytics';
+import Footfall          from './pages/Footfall';
 import SmartSpecials    from './pages/SmartSpecials';
 import MySensors        from './pages/MySensors';
 import StaffRota        from './pages/StaffRota';
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/sensors"          element={<MySensors />} />
           <Route path="/reports"          element={<Reports />} />
           <Route path="/analytics"       element={<Analytics />} />
+          <Route path="/footfall"         element={<Footfall />} />
           <Route path="/rota"             element={<StaffRota />} />
           <Route path="/api-keys"         element={<ApiKeys />} />
           <Route path="/settings"         element={<Settings />} />
