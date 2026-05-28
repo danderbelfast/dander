@@ -156,6 +156,16 @@ export const registerDevice = (data) =>
 export const decommissionDevice = (id) =>
   client.delete(`/api/kilo/devices/${id}`).then((r) => r.data);
 
+// ── FootfallCam Devices ─────────────────────────────────────
+export const getFootfallDevices = () =>
+  client.get('/api/devices/footfallcam').then((r) => r.data);
+
+export const registerFootfallDevice = (data) =>
+  client.post('/api/devices/footfallcam/register', data).then((r) => r.data);
+
+export const getFootfallLive = () =>
+  client.get('/api/devices/footfallcam/live').then((r) => r.data);
+
 // ── QR Redeem ───────────────────────────────────────────────
 export const redeemQR = (qrToken) =>
   client.post('/api/coupons/redeem-qr', { qr_token: qrToken }).then((r) => r.data);

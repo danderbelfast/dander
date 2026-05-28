@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { getDevices, registerDevice, decommissionDevice } from '../api/business';
+import {
+  getDevices, registerDevice, decommissionDevice,
+  getFootfallDevices, registerFootfallDevice, getFootfallLive,
+} from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
+
+// A FootfallCam device is "connected" if it reported within this window.
+const FOOTFALL_ONLINE_MS = 5 * 60 * 1000;
 
 const STATUS_BADGE = {
   assigned: 'badge-scheduled',
@@ -19,6 +25,15 @@ export default function MySensors() {
   const [label, setLabel]       = useState('');
   const [adding, setAdding]     = useState(false);
 
+  // ── FootfallCam state ─────────────────────────────────────
+  const [ffDevices, setFfDevices] = useState([]);
+  const [ffLoading, setFfLoading] = useState(true);
+  const [ffSerial, setFfSerial]   = useState('');
+  const [ffName, setFfName]       = useState('');
+  const [ffAdding, setFfAdding]   = useState(false);
+  const [ffLive, setFfLive]       = useState({});   // serial -> latest_reading | null
+  const [ffLiveBusy, setFfLiveBusy] = useState(null); // serial currently loading
+
   function load() {
     setLoading(true);
     getDevices()
@@ -27,7 +42,52 @@ export default function MySensors() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  function loadFootfall() {
+    setFfLoading(true);
+    getFootfallDevices()
+      .then((d) => setFfDevices(d.devices || []))
+      .catch(() => toast({ message: 'Failed to load FootfallCam devices.', type: 'error' }))
+      .finally(() => setFfLoading(false));
+  }
+
+  useEffect(() => { load(); loadFootfall(); }, []);
+
+  async function handleRegisterFootfall(e) {
+    e.preventDefault();
+    if (!ffSerial.trim()) return;
+    setFfAdding(true);
+    try {
+      await registerFootfallDevice({
+        device_serial: ffSerial.trim(),
+        device_name:   ffName.trim() || null,
+      });
+      setFfSerial(''); setFfName('');
+      toast({ message: 'FootfallCam device registered.', type: 'success' });
+      loadFootfall();
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Failed to register device.', type: 'error' });
+    }
+    setFfAdding(false);
+  }
+
+  async function handleLiveData(serial) {
+    setFfLiveBusy(serial);
+    try {
+      const res = await getFootfallLive();
+      const match = (res.devices || []).find((d) => d.device_serial === serial);
+      setFfLive((prev) => ({ ...prev, [serial]: match ? match.latest_reading : null }));
+    } catch {
+      toast({ message: 'Failed to load live data.', type: 'error' });
+    }
+    setFfLiveBusy(null);
+  }
+
+  function ffStatus(lastSeen) {
+    if (!lastSeen) return 'disconnected';
+    return (Date.now() - new Date(lastSeen).getTime()) <= FOOTFALL_ONLINE_MS
+      ? 'connected'
+      : 'disconnected';
+  }
 
   async function handleRegister(e) {
     e.preventDefault();
@@ -126,6 +186,98 @@ export default function MySensors() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── FootfallCam ─────────────────────────────────────── */}
+      <div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0 0' }}>FootfallCam</h2>
+        <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
+          Register a FootfallCam Pro2 camera by its serial number, then watch live counts.
+        </p>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span className="card-title">Add FootfallCam device</span></div>
+        <div className="card-body">
+          <form onSubmit={handleRegisterFootfall} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="form-grid">
+              <div className="field">
+                <label className="label label-required">Device serial number</label>
+                <input className="input" value={ffSerial} onChange={(e) => setFfSerial(e.target.value)} placeholder="e.g. 15F010242750" required />
+              </div>
+              <div className="field">
+                <label className="label">Device name</label>
+                <input className="input" value={ffName} onChange={(e) => setFfName(e.target.value)} placeholder="e.g. Front entrance" />
+              </div>
+            </div>
+            <button className="btn btn-primary" type="submit" disabled={ffAdding} style={{ alignSelf: 'flex-start' }}>
+              {ffAdding ? <Spinner white /> : 'Register Device'}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-body">
+          {ffLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
+          ) : ffDevices.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--c-text-muted)', fontSize: '0.88rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 12, opacity: 0.3 }}>📷</div>
+              No FootfallCam devices registered yet. Add one above using its serial number.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Name</th><th>Serial</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  {ffDevices.map((d) => {
+                    const status = ffStatus(d.last_seen);
+                    const live   = ffLive[d.device_serial];
+                    return (
+                      <React.Fragment key={d.device_serial}>
+                        <tr>
+                          <td>{d.device_name || '—'}</td>
+                          <td><code style={{ fontSize: '0.82rem' }}>{d.device_serial}</code></td>
+                          <td style={{ color: 'var(--c-text-muted)', fontSize: '0.85rem' }}>{timeAgo(d.last_seen)}</td>
+                          <td>
+                            <span className={`badge ${status === 'connected' ? 'badge-active' : 'badge-expired'}`}>
+                              {status}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => handleLiveData(d.device_serial)}
+                              disabled={ffLiveBusy === d.device_serial}
+                            >
+                              {ffLiveBusy === d.device_serial ? 'Loading…' : 'Live Data'}
+                            </button>
+                          </td>
+                        </tr>
+                        {live !== undefined && (
+                          <tr>
+                            <td colSpan={5} style={{ background: 'var(--c-bg-subtle, #f7f7f8)', fontSize: '0.85rem' }}>
+                              {live ? (
+                                <span>
+                                  <strong>Latest reading</strong> ({timeAgo(live.timestamp)}):{' '}
+                                  In {live.count_in ?? 0} · Out {live.count_out ?? 0} ·
+                                  Occupancy {live.occupancy ?? 0} · WiFi {live.wifi_devices ?? 0}
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--c-text-muted)' }}>No readings received yet.</span>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
