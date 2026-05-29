@@ -109,4 +109,47 @@ router.post('/footfallcam', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /api/webhooks/phone-counter
+//
+// Dander Node Android PoC posts a counts-only summary here every 60s. No
+// auth (proof of concept). Always 200 so the device never backs off. Null
+// numeric fields are accepted as "sensor unavailable" on the device.
+// ---------------------------------------------------------------------------
+
+router.post('/phone-counter', async (req, res) => {
+  const p = req.body && typeof req.body === 'object' ? req.body : {};
+  console.log('[webhooks/phone-counter] payload:', JSON.stringify(p));
+
+  try {
+    const num = (v) => (v == null || v === '' || Number.isNaN(Number(v)) ? null : Number(v));
+
+    let ts = p.timestamp ? new Date(p.timestamp) : new Date();
+    if (Number.isNaN(ts.getTime())) ts = new Date();
+
+    await pool.query(
+      `INSERT INTO phone_counter_readings
+         (device_id, timestamp, count_in, count_out, noise_db, noise_label,
+          wifi_count, bluetooth_count, light_lux)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null,
+        ts,
+        num(p.count_in),
+        num(p.count_out),
+        num(p.noise_db),
+        typeof p.noise_label === 'string' ? p.noise_label.slice(0, 20) : null,
+        num(p.wifi_count),
+        num(p.bluetooth_count),
+        num(p.light_lux),
+      ]
+    );
+  } catch (err) {
+    console.error('[webhooks/phone-counter] store failed:', err.message);
+    // fall through — still 200
+  }
+
+  return res.status(200).json({ success: true, received: true });
+});
+
 module.exports = router;
