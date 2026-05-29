@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Live camera feed -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:scaleType="fillCenter" />
+
+    <!-- Counting line + detection boxes -->
+    <io.dander.node.OverlayView
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- IN count (left) -->
+    <TextView
+        android:id="@+id/txtIn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:textColor="#00E676"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowRadius="6"
+        android:text="IN 0" />
+
+    <!-- OUT count (right) -->
+    <TextView
+        android:id="@+id/txtOut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:textColor="#FF7043"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowRadius="6"
+        android:text="OUT 0" />
+
+    <!-- Sensor HUD (bottom strip) -->
+    <TextView
+        android:id="@+id/txtSensors"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#99000000"
+        android:padding="10dp"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:fontFamily="monospace"
+        android:text="initialising…" />
+
+    <!-- LIVE indicator -->
+    <TextView
+        android:id="@+id/txtLive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="44dp"
+        android:layout_marginEnd="16dp"
+        android:background="#CC000000"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"
+        android:textColor="#FF5252"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:text="● LIVE —" />
+
+</FrameLayout>
