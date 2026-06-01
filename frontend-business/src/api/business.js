@@ -170,6 +170,13 @@ export const getFootfallLive = () =>
 export const getLiveZones = () =>
   client.get('/api/analytics/zones/live').then((r) => r.data);
 
+// ── Dander Node — phones (remote control) ───────────────────
+export const getNodes = () =>
+  client.get('/api/nodes').then((r) => r.data);
+
+export const setNodeCommand = (deviceId, payload) =>
+  client.post(`/api/nodes/${encodeURIComponent(deviceId)}/commands`, payload).then((r) => r.data);
+
 // ── FootfallCam analytics ───────────────────────────────────
 export const getFootfallSummary = (date) =>
   client.get('/api/analytics/footfall/summary', { params: date ? { date } : {} }).then((r) => r.data);

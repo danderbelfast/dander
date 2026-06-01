@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   getDevices, registerDevice, decommissionDevice,
   getFootfallDevices, registerFootfallDevice, getFootfallLive,
+  getNodes, setNodeCommand,
 } from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
@@ -34,6 +35,56 @@ export default function MySensors() {
   const [ffLive, setFfLive]       = useState({});   // serial -> latest_reading | null
   const [ffLiveBusy, setFfLiveBusy] = useState(null); // serial currently loading
 
+  // ── Dander Node state ─────────────────────────────────────
+  const [nodes, setNodes]               = useState([]);
+  const [nodesLoading, setNodesLoading] = useState(true);
+  const [nodeBusy, setNodeBusy]         = useState(null);  // device_id currently being toggled
+  const [editingZone, setEditingZone]   = useState(null);  // device_id in inline-edit mode
+  const [zoneDraft, setZoneDraft]       = useState({ name: '', type: '' });
+
+  function loadNodes() {
+    return getNodes()
+      .then((d) => setNodes(d.nodes || []))
+      .catch(() => toast({ message: 'Failed to load Dander Node phones.', type: 'error' }))
+      .finally(() => setNodesLoading(false));
+  }
+
+  async function handleToggleCounting(node) {
+    setNodeBusy(node.device_id);
+    try {
+      await setNodeCommand(node.device_id, { counting_enabled: !node.counting_enabled });
+      toast({
+        message: `${node.counting_enabled ? 'Paused' : 'Resumed'} counting on ${node.zone_name || node.device_id}.`,
+        type: 'success',
+      });
+      await loadNodes();
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Failed to update node.', type: 'error' });
+    }
+    setNodeBusy(null);
+  }
+
+  function startZoneEdit(node) {
+    setEditingZone(node.device_id);
+    setZoneDraft({ name: node.zone_name || '', type: node.zone_type || 'general' });
+  }
+
+  async function saveZoneEdit(node) {
+    const name = zoneDraft.name.trim();
+    const type = zoneDraft.type.trim();
+    if (!name) { setEditingZone(null); return; }
+    setNodeBusy(node.device_id);
+    try {
+      await setNodeCommand(node.device_id, { zone_name: name, zone_type: type || 'general' });
+      toast({ message: 'Zone updated. Phone will pick it up on the next upload.', type: 'success' });
+      setEditingZone(null);
+      await loadNodes();
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Failed to update zone.', type: 'error' });
+    }
+    setNodeBusy(null);
+  }
+
   function load() {
     setLoading(true);
     getDevices()
@@ -50,7 +101,13 @@ export default function MySensors() {
       .finally(() => setFfLoading(false));
   }
 
-  useEffect(() => { load(); loadFootfall(); }, []);
+  useEffect(() => {
+    load();
+    loadFootfall();
+    loadNodes();
+    const t = setInterval(loadNodes, 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   async function handleRegisterFootfall(e) {
     e.preventDefault();
@@ -276,6 +333,121 @@ export default function MySensors() {
                           </tr>
                         )}
                       </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Dander Nodes (phone-counter PoC) ───────────────── */}
+      <div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0 0' }}>Dander Nodes</h2>
+        <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
+          Repurposed Android phones running the Dander Node app — counting people, scanning Bluetooth, listening to room noise.
+          Toggle each node on or off from here; changes reach the phone on its next 60-second upload.
+        </p>
+      </div>
+
+      <div className="card">
+        <div className="card-body">
+          {nodesLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
+          ) : nodes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--c-text-muted)', fontSize: '0.88rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 12, opacity: 0.3 }}>📱</div>
+              No Dander Node phones paired yet. Download the app and enter your business code.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Zone</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Last seen</th>
+                    <th>Counting</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nodes.map((n) => {
+                    const isEditing = editingZone === n.device_id;
+                    const busy      = nodeBusy === n.device_id;
+                    return (
+                      <tr key={n.device_id}>
+                        <td>
+                          {isEditing ? (
+                            <input
+                              className="input"
+                              autoFocus
+                              value={zoneDraft.name}
+                              onChange={(e) => setZoneDraft({ ...zoneDraft, name: e.target.value })}
+                              onBlur={() => saveZoneEdit(n)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveZoneEdit(n);
+                                if (e.key === 'Escape') setEditingZone(null);
+                              }}
+                              style={{ maxWidth: 200 }}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => startZoneEdit(n)}
+                              style={{
+                                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                                color: 'var(--c-text)', fontSize: '0.95rem', textAlign: 'left', textDecoration: 'underline dotted',
+                              }}
+                              title="Click to rename — phone picks it up on next upload"
+                            >
+                              {n.zone_name || '(unnamed)'}
+                            </button>
+                          )}
+                        </td>
+                        <td>
+                          {isEditing ? (
+                            <select
+                              className="input"
+                              value={zoneDraft.type}
+                              onChange={(e) => setZoneDraft({ ...zoneDraft, type: e.target.value })}
+                              style={{ maxWidth: 140 }}
+                            >
+                              <option value="entrance">entrance</option>
+                              <option value="display">display</option>
+                              <option value="till">till</option>
+                              <option value="general">general</option>
+                            </select>
+                          ) : (
+                            <span className="badge badge-scheduled" style={{ textTransform: 'capitalize' }}>
+                              {n.zone_type || 'general'}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`badge ${n.online ? 'badge-active' : 'badge-expired'}`}>
+                            {n.online ? 'online' : 'offline'}
+                          </span>
+                        </td>
+                        <td style={{ color: 'var(--c-text-muted)', fontSize: '0.85rem' }}>{timeAgo(n.last_seen)}</td>
+                        <td>
+                          <label
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: busy ? 'wait' : 'pointer' }}
+                            title={n.counting_enabled ? 'Counting is enabled' : 'Counting is paused remotely'}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!n.counting_enabled}
+                              disabled={busy}
+                              onChange={() => handleToggleCounting(n)}
+                            />
+                            <span style={{ fontSize: '0.85rem', color: 'var(--c-text-muted)' }}>
+                              {busy ? '…' : (n.counting_enabled ? 'enabled' : 'paused')}
+                            </span>
+                          </label>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
