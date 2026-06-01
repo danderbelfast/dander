@@ -42,6 +42,12 @@ class Uploader(
         val lightLux: Float?,
         val zoneName: String,
         val zoneType: String,
+        val avgDwellSeconds: Double,
+        val maxDwellSeconds: Double,
+        val dwellUnder30: Int,
+        val dwell30To2Min: Int,
+        val dwell2To5Min: Int,
+        val dwellOver5Min: Int,
         val heartbeat: Boolean = false,
     )
 
@@ -85,6 +91,12 @@ class Uploader(
             put("light_lux", s.lightLux ?: JSONObject.NULL)
             put("zone_name", s.zoneName)
             put("zone_type", s.zoneType)
+            put("avg_dwell_seconds", s.avgDwellSeconds)
+            put("max_dwell_seconds", s.maxDwellSeconds)
+            put("dwell_under_30s",  s.dwellUnder30)
+            put("dwell_30_to_2min", s.dwell30To2Min)
+            put("dwell_2_to_5min",  s.dwell2To5Min)
+            put("dwell_over_5min",  s.dwellOver5Min)
             put("heartbeat", s.heartbeat)
         }.toString()
 

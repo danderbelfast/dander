@@ -159,6 +159,10 @@ class MainActivity : AppCompatActivity() {
     private fun buildSummary(): Uploader.Summary {
         val open = isOpen
         val (din, dout) = if (open) analyzer.drainCounts() else Pair(0, 0)
+        // Dwell stats only meaningful while we're actually counting; during
+        // closed hours `clearTracking()` already wiped the in-flight IDs.
+        val dwell = if (open) analyzer.drainDwell()
+                    else PeopleAnalyzer.DwellWindow(0.0, 0.0, 0, 0, 0, 0)
         return Uploader.Summary(
             deviceId = deviceId,
             businessId = prefs.businessId,
@@ -171,6 +175,12 @@ class MainActivity : AppCompatActivity() {
             lightLux = if (open) sensorHub.lightLux else null,
             zoneName = prefs.zoneName,
             zoneType = prefs.zoneType,
+            avgDwellSeconds = dwell.avgSeconds,
+            maxDwellSeconds = dwell.maxSeconds,
+            dwellUnder30 = dwell.under30,
+            dwell30To2Min = dwell.from30To120,
+            dwell2To5Min = dwell.from120To300,
+            dwellOver5Min = dwell.over300,
             heartbeat = !open,
         )
     }
@@ -207,6 +217,9 @@ class MainActivity : AppCompatActivity() {
     private fun unbindCamera() {
         if (!cameraBound) return
         ProcessCameraProvider.getInstance(this).get()?.unbindAll()
+        // Clear tracking state so any person mid-frame at unbind doesn't
+        // get a stale dwell of "minutes since the camera last ran".
+        analyzer.clearTracking()
         cameraBound = false
     }
 
