@@ -1,22 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- Live camera feed -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
+    <!-- Privacy display surface — manually composited frames (greyscale
+         background + orange silhouettes + counting line) are pushed here
+         from PeopleAnalyzer. No raw camera feed is shown. -->
+    <ImageView
+        android:id="@+id/displayView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:scaleType="fillCenter" />
-
-    <!-- Counting line + detection boxes -->
-    <io.dander.node.OverlayView
-        android:id="@+id/overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:scaleType="centerCrop"
+        android:contentDescription="@null" />
 
     <!-- IN count (left) -->
     <TextView

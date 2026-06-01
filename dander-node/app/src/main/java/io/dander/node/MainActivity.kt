@@ -12,7 +12,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import io.dander.node.databinding.ActivityMainBinding
@@ -38,19 +37,26 @@ class MainActivity : AppCompatActivity() {
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private val ui = Handler(Looper.getMainLooper())
 
-    private val analyzer = PeopleAnalyzer { inCount, outCount, dets ->
-        runOnUiThread {
-            binding.txtIn.text = "IN $inCount"
-            binding.txtOut.text = "OUT $outCount"
-            binding.overlay.setDetections(dets)
-        }
-    }
+    private val analyzer = PeopleAnalyzer(
+        onResult = { inCount, outCount ->
+            runOnUiThread {
+                binding.txtIn.text = "IN $inCount"
+                binding.txtOut.text = "OUT $outCount"
+            }
+        },
+        displayCallback = { bitmap ->
+            // Push the privacy-composited frame to the display ImageView.
+            // setImageBitmap takes ownership of the reference; we don't
+            // recycle here — the next frame will replace it and the old
+            // bitmap becomes GC-eligible once ImageView lets go.
+            runOnUiThread { binding.displayView.setImageBitmap(bitmap) }
+        },
+    )
 
     private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            // Start regardless of which were granted; each subsystem self-guards.
             onPermissionsSettled()
         }
 
@@ -95,10 +101,10 @@ class MainActivity : AppCompatActivity() {
         future.addListener({
             val provider = future.get()
 
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.previewView.surfaceProvider)
-            }
-
+            // ImageAnalysis is the ONLY output now — the analyzer
+            // composites a privacy frame from each ImageProxy and pushes
+            // it into displayView. Raw camera bytes never reach a
+            // SurfaceView / PreviewView on screen.
             val analysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
@@ -107,7 +113,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 provider.unbindAll()
                 provider.bindToLifecycle(
-                    this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis
+                    this, CameraSelector.DEFAULT_BACK_CAMERA, analysis
                 )
             } catch (e: Exception) {
                 binding.txtIn.text = "camera error"

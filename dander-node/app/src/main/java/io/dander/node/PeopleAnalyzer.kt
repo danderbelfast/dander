@@ -1,6 +1,13 @@
 package io.dander.node
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
+import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import androidx.camera.core.ImageAnalysis
@@ -10,41 +17,41 @@ import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 
 /**
- * PeopleAnalyzer — on-device people counting via ML Kit object detection
- * with tracking IDs, plus horizontal line-crossing logic.
+ * PeopleAnalyzer — on-device people counting (ML Kit object detection +
+ * tracking IDs + line crossing) AND a privacy-preserving display
+ * compositor. Counting logic is unchanged from earlier; what's new is
+ * `displayCallback` which receives a per-frame Bitmap composed of:
  *
- * PoC NOTE on the model: ML Kit's base object detector tracks prominent
- * moving objects (giving each a stable trackingId) but is NOT a dedicated
- * person detector. For a wall/doorway PoC that's usually "good enough" —
- * the only moving things over a threshold are people. For production,
- * swap in a person-specific TFLite model via the custom-model object
- * detector; the crossing logic below is unchanged.
+ *   - a greyscale render of the camera frame, upright (background)
+ *   - solid Dander-orange rectangles where people are detected
+ *   - a white horizontal counting line across the midpoint
  *
- * Coordinates: ML Kit boxes come back in the unrotated camera-buffer
- * space. We transform them into an upright, normalised (0..1) space so the
- * crossing test and the overlay are both rotation-independent. The counting
- * line is the horizontal midline (normalised y = 0.5).
+ * Why rectangles, not silhouette segmentation: subject/selfie
+ * segmentation is the "ideal" path for this view, but it doubles the
+ * per-frame ML cost and the result is hard to validate without a real
+ * device. The spec lists "fill bounding box with orange rectangle" as
+ * the explicit fallback when segmentation is too slow — this is that
+ * fallback. The path to real silhouettes is to (a) add the segmenter
+ * dependency, (b) run it in parallel with the object detector, (c) draw
+ * the mask as orange instead of/in addition to the rectangles below.
  *
- *   crossing midline upward (y: >0.5 -> <=0.5)  = bottom-to-top = IN
- *   crossing midline downward (y: <0.5 -> >=0.5) = top-to-bottom = OUT
- *
- * If IN/OUT come out reversed on the real mount, flip INVERT_DIRECTION.
- * Nothing is ever stored or transmitted from the frames — only the counts.
+ * Nothing is stored or transmitted — the composited bitmap is rendered
+ * straight to an on-screen ImageView and dropped on the next frame.
  */
 class PeopleAnalyzer(
-    private val onResult: (inCount: Int, outCount: Int, detections: List<Detection>) -> Unit,
+    private val onResult: (inCount: Int, outCount: Int) -> Unit,
+    private val displayCallback: (Bitmap) -> Unit,
 ) : ImageAnalysis.Analyzer {
-
-    data class Detection(val id: Int, val box: RectF) // box is normalised 0..1, upright
 
     private companion object {
         const val INVERT_DIRECTION = false
         const val LINE = 0.5f
+        const val ORANGE = 0xFFE85D26.toInt()        // Dander brand
     }
 
     private val detector = ObjectDetection.getClient(
         ObjectDetectorOptions.Builder()
-            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE) // gives tracking IDs
+            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
             .enableMultipleObjects()
             .build()
     )
@@ -52,13 +59,23 @@ class PeopleAnalyzer(
     // Cumulative since app start (drives the on-screen running totals).
     @Volatile private var inCount = 0
     @Volatile private var outCount = 0
-    // High-water marks of what's already been uploaded, so each 60s POST
-    // carries only the delta for that window (the backend sums windows).
+    // What's already been uploaded, so each 60s POST is per-window delta.
     private var uploadedIn = 0
     private var uploadedOut = 0
 
-    // trackingId -> last normalised centre-Y, so we can detect a crossing.
     private val lastY = HashMap<Int, Float>()
+
+    // Paints reused across frames to keep allocation flat.
+    private val greyPaint = Paint().apply {
+        colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
+        isFilterBitmap = true
+    }
+    private val orangePaint = Paint().apply { color = ORANGE; isAntiAlias = true }
+    private val linePaint = Paint().apply {
+        color = Color.WHITE
+        strokeWidth = 4f
+        isAntiAlias = true
+    }
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
@@ -70,13 +87,21 @@ class PeopleAnalyzer(
         val bw = media.width
         val bh = media.height
 
+        // ImageProxy.toBitmap() was added in CameraX 1.3 and returns an
+        // ARGB_8888 bitmap in the original (buffer) orientation.
+        val srcBitmap: Bitmap = try {
+            imageProxy.toBitmap()
+        } catch (e: Throwable) {
+            imageProxy.close(); return
+        }
+
         detector.process(input)
             .addOnSuccessListener { objects ->
-                val dets = ArrayList<Detection>(objects.size)
+                val norms = ArrayList<RectF>(objects.size)
                 for (obj in objects) {
                     val id = obj.trackingId ?: continue
                     val norm = toUprightNorm(obj.boundingBox, bw, bh, rotation)
-                    dets.add(Detection(id, norm))
+                    norms.add(norm)
 
                     val cy = (norm.top + norm.bottom) / 2f
                     val prev = lastY[id]
@@ -86,15 +111,17 @@ class PeopleAnalyzer(
                     }
                     lastY[id] = cy
                 }
-                // Forget IDs we no longer see so the map can't grow unbounded.
-                if (lastY.size > 256) {
-                    val live = dets.map { it.id }.toHashSet()
-                    lastY.keys.retainAll(live)
-                }
-                onResult(inCount, outCount, dets)
+                if (lastY.size > 256) lastY.keys.retainAll(objects.mapNotNull { it.trackingId }.toHashSet())
+
+                onResult(inCount, outCount)
+                runCatching { compositeAndPublish(srcBitmap, rotation, norms) }
+                    .onFailure { /* drop frame, never crash */ }
             }
-            .addOnFailureListener { /* drop this frame; never crash */ }
-            .addOnCompleteListener { imageProxy.close() }
+            .addOnFailureListener { /* drop this frame */ }
+            .addOnCompleteListener {
+                srcBitmap.recycle()
+                imageProxy.close()
+            }
     }
 
     private fun bump(up: Boolean) {
@@ -112,10 +139,45 @@ class PeopleAnalyzer(
         return Pair(dIn, dOut)
     }
 
+    // ------------------------------------------------------------------
+    // Display compositing
+    // ------------------------------------------------------------------
+
     /**
-     * Map a buffer-space box to an upright, normalised (0..1) RectF given the
-     * rotation ML Kit applied to make the image upright.
+     * Build the privacy frame: rotate src to upright, draw it greyscale,
+     * fill each detection's normalised rect with Dander orange, draw the
+     * white counting line. Push to the display callback.
      */
+    private fun compositeAndPublish(srcBuffer: Bitmap, rotation: Int, norms: List<RectF>) {
+        val uprightSrc = if (rotation == 0) {
+            srcBuffer
+        } else {
+            val m = Matrix().apply { postRotate(rotation.toFloat()) }
+            Bitmap.createBitmap(srcBuffer, 0, 0, srcBuffer.width, srcBuffer.height, m, true)
+        }
+
+        val uw = uprightSrc.width
+        val uh = uprightSrc.height
+
+        val display = Bitmap.createBitmap(uw, uh, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(display)
+        canvas.drawBitmap(uprightSrc, 0f, 0f, greyPaint)
+
+        for (norm in norms) {
+            canvas.drawRect(
+                norm.left * uw, norm.top * uh,
+                norm.right * uw, norm.bottom * uh,
+                orangePaint,
+            )
+        }
+
+        val midY = uh * LINE
+        canvas.drawLine(0f, midY, uw.toFloat(), midY, linePaint)
+
+        if (uprightSrc !== srcBuffer) uprightSrc.recycle()
+        displayCallback(display)
+    }
+
     private fun toUprightNorm(box: Rect, bw: Int, bh: Int, rot: Int): RectF {
         fun mapPoint(x: Float, y: Float): Pair<Float, Float> = when (rot) {
             90  -> Pair(bh - y, x)
