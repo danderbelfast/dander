@@ -32,6 +32,7 @@ class Uploader(
 ) {
     data class Summary(
         val deviceId: String,
+        val businessId: Int,
         val countIn: Int,
         val countOut: Int,
         val noiseDb: Double?,
@@ -73,6 +74,7 @@ class Uploader(
     private fun post(s: Summary): Boolean {
         val body = JSONObject().apply {
             put("device_id", s.deviceId)
+            put("business_id", if (s.businessId > 0) s.businessId else JSONObject.NULL)
             put("timestamp", Instant.now().toString())
             put("count_in", s.countIn)
             put("count_out", s.countOut)

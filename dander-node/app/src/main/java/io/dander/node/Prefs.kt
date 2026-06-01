@@ -29,6 +29,13 @@ class Prefs(context: Context) {
     var zoneName: String get() = sp.getString(KEY_ZONE_NAME, "Entrance") ?: "Entrance"; set(v) = sp.edit().putString(KEY_ZONE_NAME, v).apply()
     var zoneType: String get() = sp.getString(KEY_ZONE_TYPE, "entrance") ?: "entrance"; set(v) = sp.edit().putString(KEY_ZONE_TYPE, v).apply()
 
+    // Business pairing — set during the first-launch setup flow.
+    var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
+    var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
+    var businessName: String get() = sp.getString(KEY_BUSINESS_NAME, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_NAME, v).apply()
+
+    val isConfigured: Boolean get() = businessCode.length == 4 && businessId > 0
+
     // Stable per-install id; written once on first launch, never reset.
     fun resolveDeviceId(): String {
         sp.getString(KEY_DEVICE_ID, null)?.let { return it }
@@ -48,7 +55,10 @@ class Prefs(context: Context) {
         const val KEY_ZONE_NAME     = "zone_name"
         const val KEY_ZONE_TYPE     = "zone_type"
         const val KEY_DEVICE_ID     = "device_id"
+        const val KEY_BUSINESS_CODE = "business_code"
+        const val KEY_BUSINESS_ID   = "business_id"
+        const val KEY_BUSINESS_NAME = "business_name"
 
-        val ZONE_TYPES = listOf("entrance", "aisle", "till", "window", "back")
+        val ZONE_TYPES = listOf("entrance", "display", "till", "general")
     }
 }

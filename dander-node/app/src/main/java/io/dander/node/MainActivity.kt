@@ -67,11 +67,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Setup gate — if the phone hasn't been paired with a business yet,
+        // bounce to SetupActivity. We only reach the camera UI once Setup
+        // has stored a business_code + business_id in Prefs.
+        prefs = Prefs(this)
+        if (!prefs.isConfigured) {
+            startActivity(Intent(this, SetupActivity::class.java))
+            finish()
+            return
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        prefs = Prefs(this)
         applyBrightness()
         deviceId = prefs.resolveDeviceId()
         sensorHub = SensorHub(applicationContext, prefs)
@@ -143,6 +153,7 @@ class MainActivity : AppCompatActivity() {
         val (din, dout) = if (open) analyzer.drainCounts() else Pair(0, 0)
         return Uploader.Summary(
             deviceId = deviceId,
+            businessId = prefs.businessId,
             countIn = din,
             countOut = dout,
             noiseDb = if (open) sensorHub.noiseDb else null,
