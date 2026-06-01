@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#0F0F12">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <!-- Business hours -->
+        <TextView style="@style/SectionLabel" android:text="Business hours" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Opens" android:textColor="#BDBDBD" />
+            <Button android:id="@+id/btnOpen"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="09:00" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Closes" android:textColor="#BDBDBD" />
+            <Button android:id="@+id/btnClose"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="18:00" />
+        </LinearLayout>
+
+        <!-- Brightness -->
+        <TextView style="@style/SectionLabel" android:text="Display brightness" />
+        <TextView android:id="@+id/lblBrightness"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#FFFFFF" android:text="20%" />
+        <SeekBar android:id="@+id/seekBrightness"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:max="100" />
+
+        <!-- Frame interval -->
+        <TextView style="@style/SectionLabel" android:text="Process every Nth frame" />
+        <RadioGroup android:id="@+id/groupFrames"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton android:id="@+id/frame3"  android:text="3rd"
+                android:textColor="#FFFFFF"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            <RadioButton android:id="@+id/frame5"  android:text="5th"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="16dp"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            <RadioButton android:id="@+id/frame10" android:text="10th"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="16dp"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </RadioGroup>
+
+        <!-- WiFi interval -->
+        <TextView style="@style/SectionLabel" android:text="WiFi scan interval (minutes)" />
+        <EditText android:id="@+id/editWifi"
+            android:layout_width="120dp" android:layout_height="wrap_content"
+            android:inputType="number"
+            android:textColor="#FFFFFF" />
+
+        <!-- Zone -->
+        <TextView style="@style/SectionLabel" android:text="Zone" />
+        <EditText android:id="@+id/editZoneName"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Zone name (e.g. Front entrance)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#666666" />
+        <Spinner android:id="@+id/spinnerZoneType"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" />
+
+        <!-- Save -->
+        <Button android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Save &amp; close" />
+
+    </LinearLayout>
+</ScrollView>

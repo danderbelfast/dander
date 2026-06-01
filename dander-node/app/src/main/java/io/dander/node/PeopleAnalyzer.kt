@@ -18,25 +18,15 @@ import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 
 /**
  * PeopleAnalyzer — on-device people counting (ML Kit object detection +
- * tracking IDs + line crossing) AND a privacy-preserving display
- * compositor. Counting logic is unchanged from earlier; what's new is
- * `displayCallback` which receives a per-frame Bitmap composed of:
+ * tracking IDs + line crossing) and a privacy-preserving display
+ * compositor.
  *
- *   - a greyscale render of the camera frame, upright (background)
- *   - solid Dander-orange rectangles where people are detected
- *   - a white horizontal counting line across the midpoint
- *
- * Why rectangles, not silhouette segmentation: subject/selfie
- * segmentation is the "ideal" path for this view, but it doubles the
- * per-frame ML cost and the result is hard to validate without a real
- * device. The spec lists "fill bounding box with orange rectangle" as
- * the explicit fallback when segmentation is too slow — this is that
- * fallback. The path to real silhouettes is to (a) add the segmenter
- * dependency, (b) run it in parallel with the object detector, (c) draw
- * the mask as orange instead of/in addition to the rectangles below.
- *
- * Nothing is stored or transmitted — the composited bitmap is rendered
- * straight to an on-screen ImageView and dropped on the next frame.
+ * Power optimisation:
+ *   - ML Kit runs on every Nth incoming frame only (`frameInterval`).
+ *   - The display gets composited every frame: cached detection
+ *     rectangles from the most recent ML pass are reused on the
+ *     in-between frames so the picture stays smooth at full camera rate
+ *     while the GPU/CPU cost of inference is amortised.
  */
 class PeopleAnalyzer(
     private val onResult: (inCount: Int, outCount: Int) -> Unit,
@@ -46,8 +36,10 @@ class PeopleAnalyzer(
     private companion object {
         const val INVERT_DIRECTION = false
         const val LINE = 0.5f
-        const val ORANGE = 0xFFE85D26.toInt()        // Dander brand
+        const val ORANGE = 0xFFE85D26.toInt()
     }
+
+    @Volatile var frameInterval: Int = 5    // every Nth frame; settable from Settings.
 
     private val detector = ObjectDetection.getClient(
         ObjectDetectorOptions.Builder()
@@ -56,16 +48,16 @@ class PeopleAnalyzer(
             .build()
     )
 
-    // Cumulative since app start (drives the on-screen running totals).
     @Volatile private var inCount = 0
     @Volatile private var outCount = 0
-    // What's already been uploaded, so each 60s POST is per-window delta.
     private var uploadedIn = 0
     private var uploadedOut = 0
 
     private val lastY = HashMap<Int, Float>()
+    @Volatile private var cachedDetections: List<RectF> = emptyList()
 
-    // Paints reused across frames to keep allocation flat.
+    private var frameTick = 0L
+
     private val greyPaint = Paint().apply {
         colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
         isFilterBitmap = true
@@ -83,18 +75,25 @@ class PeopleAnalyzer(
         if (media == null) { imageProxy.close(); return }
 
         val rotation = imageProxy.imageInfo.rotationDegrees
-        val input = InputImage.fromMediaImage(media, rotation)
         val bw = media.width
         val bh = media.height
-
-        // ImageProxy.toBitmap() was added in CameraX 1.3 and returns an
-        // ARGB_8888 bitmap in the original (buffer) orientation.
         val srcBitmap: Bitmap = try {
             imageProxy.toBitmap()
         } catch (e: Throwable) {
             imageProxy.close(); return
         }
 
+        frameTick++
+        val runDetection = (frameInterval <= 1) || (frameTick % frameInterval == 0L)
+
+        if (!runDetection) {
+            runCatching { compositeAndPublish(srcBitmap, rotation, cachedDetections) }
+            srcBitmap.recycle()
+            imageProxy.close()
+            return
+        }
+
+        val input = InputImage.fromMediaImage(media, rotation)
         detector.process(input)
             .addOnSuccessListener { objects ->
                 val norms = ArrayList<RectF>(objects.size)
@@ -113,11 +112,12 @@ class PeopleAnalyzer(
                 }
                 if (lastY.size > 256) lastY.keys.retainAll(objects.mapNotNull { it.trackingId }.toHashSet())
 
+                cachedDetections = norms
                 onResult(inCount, outCount)
                 runCatching { compositeAndPublish(srcBitmap, rotation, norms) }
-                    .onFailure { /* drop frame, never crash */ }
+                    .onFailure { /* drop frame */ }
             }
-            .addOnFailureListener { /* drop this frame */ }
+            .addOnFailureListener { /* drop this frame's ML; display still draws below */ }
             .addOnCompleteListener {
                 srcBitmap.recycle()
                 imageProxy.close()
@@ -129,7 +129,6 @@ class PeopleAnalyzer(
         if (isIn) inCount++ else outCount++
     }
 
-    /** IN/OUT crossings since the previous call — used for the 60s upload window. */
     @Synchronized
     fun drainCounts(): Pair<Int, Int> {
         val dIn = inCount - uploadedIn
@@ -139,15 +138,6 @@ class PeopleAnalyzer(
         return Pair(dIn, dOut)
     }
 
-    // ------------------------------------------------------------------
-    // Display compositing
-    // ------------------------------------------------------------------
-
-    /**
-     * Build the privacy frame: rotate src to upright, draw it greyscale,
-     * fill each detection's normalised rect with Dander orange, draw the
-     * white counting line. Push to the display callback.
-     */
     private fun compositeAndPublish(srcBuffer: Bitmap, rotation: Int, norms: List<RectF>) {
         val uprightSrc = if (rotation == 0) {
             srcBuffer

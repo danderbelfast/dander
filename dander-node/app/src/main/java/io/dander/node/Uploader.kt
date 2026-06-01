@@ -14,14 +14,17 @@ import java.net.URL
 import java.time.Instant
 
 /**
- * Uploader — POSTs a summary to the phone-counter webhook once per minute.
+ * Uploader — periodic JSON POST to the phone-counter webhook.
  *
- * Failures are swallowed (logged-ish via return) and simply retried on the
- * next cycle; a dead network or missing endpoint never crashes the app.
- * Only counts + sensor readings are sent — never images.
+ * Two cadences:
+ *   - 60 seconds while the store is open (full summary).
+ *   - 10 minutes while closed (heartbeat: same payload shape, but counts
+ *     are zero / sensors are null because everything else has been
+ *     suspended). The `heartbeat: true` flag tells the backend what it is.
  *
- * Null numeric fields mean "sensor unavailable" (permission denied / no
- * hardware); they're serialised as JSON null.
+ * The loop reads `intervalMs` on every tick, so changing the mode takes
+ * effect on the next cycle. Failures are swallowed and retried; a dead
+ * network never crashes the app.
  */
 class Uploader(
     private val endpoint: String,
@@ -36,22 +39,23 @@ class Uploader(
         val wifiCount: Int?,
         val bluetoothCount: Int,
         val lightLux: Float?,
+        val zoneName: String,
+        val zoneType: String,
+        val heartbeat: Boolean = false,
     )
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var job: Job? = null
 
-    /** Result of the most recent POST attempt, for the LIVE indicator. */
-    @Volatile var lastUploadOk: Boolean = false
-        private set
-    @Volatile var lastUploadAt: Long = 0L
-        private set
+    @Volatile var intervalMs: Long = 60_000L
+    @Volatile var lastUploadOk: Boolean = false; private set
+    @Volatile var lastUploadAt: Long = 0L;       private set
 
     fun start() {
         if (job != null) return
         job = scope.launch {
             while (isActive) {
-                delay(60_000)
+                delay(intervalMs)
                 try {
                     val ok = post(buildSummary())
                     lastUploadOk = ok
@@ -59,7 +63,6 @@ class Uploader(
                 } catch (_: Exception) {
                     lastUploadOk = false
                     lastUploadAt = System.currentTimeMillis()
-                    // swallow — retry next cycle
                 }
             }
         }
@@ -78,6 +81,9 @@ class Uploader(
             put("wifi_count", s.wifiCount ?: JSONObject.NULL)
             put("bluetooth_count", s.bluetoothCount)
             put("light_lux", s.lightLux ?: JSONObject.NULL)
+            put("zone_name", s.zoneName)
+            put("zone_type", s.zoneType)
+            put("heartbeat", s.heartbeat)
         }.toString()
 
         var conn: HttpURLConnection? = null

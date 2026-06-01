@@ -4,9 +4,6 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- Privacy display surface — manually composited frames (greyscale
-         background + orange silhouettes + counting line) are pushed here
-         from PeopleAnalyzer. No raw camera feed is shown. -->
     <ImageView
         android:id="@+id/displayView"
         android:layout_width="match_parent"
@@ -70,5 +67,53 @@
         android:textSize="12sp"
         android:textStyle="bold"
         android:text="● LIVE —" />
+
+    <!-- Settings gear (top centre, low-key) -->
+    <TextView
+        android:id="@+id/btnSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_margin="14dp"
+        android:padding="6dp"
+        android:background="#66000000"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:text="⚙"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Store-closed overlay (shown outside business hours) -->
+    <FrameLayout
+        android:id="@+id/closedOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F5000000"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Store closed"
+                android:textColor="#FFFFFF"
+                android:textSize="36sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtNextOpen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="#BDBDBD"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </FrameLayout>
 
 </FrameLayout>
