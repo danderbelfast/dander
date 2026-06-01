@@ -341,8 +341,15 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         ui.removeCallbacksAndMessages(null)
-        uploader.stop()
-        sensorHub.stop()
+        // First-launch path: onCreate bounces to SetupActivity and finishes
+        // before any of these are wired up. onDestroy still fires, so guard
+        // every lateinit access — touching one before it's initialised
+        // throws UninitializedPropertyAccessException and crashes the app.
+        // cameraExecutor is a property-initialiser `val`, so it's always
+        // ready by the time we get here; no isInitialized guard available
+        // for it (compile error — isInitialized only works on lateinit).
+        if (::uploader.isInitialized)  uploader.stop()
+        if (::sensorHub.isInitialized) sensorHub.stop()
         cameraExecutor.shutdown()
     }
 }
