@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getProfile } from '../../api/business';
 import { Sidebar } from './Sidebar';
+import { QueueAlertBell } from './QueueAlertBell';
 import { ToastContainer } from '../ui/Toast';
 import { LoadingBlock } from '../ui/Spinner';
 import { AssistantWidget } from '../ui/AssistantWidget';
@@ -47,15 +48,18 @@ export function AppShell() {
       />
       <header className="topbar">
         <span className="topbar-title">{title}</span>
-        <button
-          type="button"
-          className="mobile-menu-btn"
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileMenuOpen}
-          onClick={() => setMobileMenuOpen((v) => !v)}
-        >
-          <span /><span /><span />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+          <QueueAlertBell />
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((v) => !v)}
+          >
+            <span /><span /><span />
+          </button>
+        </div>
       </header>
       <main className="main-content">
         <Outlet />

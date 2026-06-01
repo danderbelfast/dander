@@ -13,6 +13,18 @@ function tintFor(label) {
   return NOISE_TINT[label] || { fg: '#666', bg: '#F2F2F4' };
 }
 
+// Cap on how many person icons to render — beyond this we show "+N".
+const MAX_QUEUE_ICONS = 10;
+
+// Heuristic: amber when at-or-near threshold, red when over. The device
+// doesn't ship its own threshold here so we synthesise one — 5 is the
+// dashboard default for "starting to be a problem".
+function queueTint(depth, alert) {
+  if (alert)       return { fg: '#FFFFFF', bg: '#D32F2F' };  // red — over
+  if (depth >= 4)  return { fg: '#7E4500', bg: '#FFE0B2' };  // amber — getting busy
+  return { fg: '#1A9E58', bg: '#E6F4EA' };                    // green — fine
+}
+
 function timeAgo(ts) {
   if (!ts) return '—';
   const secs = Math.round((Date.now() - new Date(ts).getTime()) / 1000);
@@ -81,8 +93,14 @@ export default function Zones() {
         }}>
           {zones.map((z) => {
             const tint = tintFor(z.noise_label);
+            const isTill = z.zone_type === 'till';
+            const depth  = Number(z.queue_depth) || 0;
+            const qTint  = queueTint(depth, !!z.queue_alert);
             return (
-              <div key={z.zone_name} className="card" style={{ margin: 0 }}>
+              <div key={z.zone_name} className="card" style={{
+                margin: 0,
+                border: z.queue_alert ? '2px solid #D32F2F' : undefined,
+              }}>
                 <div className="card-body" style={{ padding: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <div>
@@ -93,16 +111,53 @@ export default function Zones() {
                         <div style={{
                           fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.5,
                           color: 'var(--c-text-muted)', fontWeight: 600, marginTop: 2,
-                        }}>{z.zone_type}</div>
+                        }}>
+                          {z.zone_type}
+                          {isTill && z.till_mode && (
+                            <span style={{ marginLeft: 6, opacity: 0.7 }}>· {z.till_mode}</span>
+                          )}
+                        </div>
                       )}
                     </div>
-                    <div style={{
-                      fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999,
-                      color: tint.fg, background: tint.bg,
-                    }}>
-                      {z.noise_label || '—'}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {z.queue_alert && (
+                        <div style={{
+                          fontSize: '0.66rem', fontWeight: 800, padding: '3px 8px', borderRadius: 999,
+                          color: '#FFFFFF', background: '#D32F2F', letterSpacing: 0.5,
+                        }}>
+                          ALERT
+                        </div>
+                      )}
+                      <div style={{
+                        fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999,
+                        color: tint.fg, background: tint.bg,
+                      }}>
+                        {z.noise_label || '—'}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Till zones lead with the queue, not the IN/OUT counters. */}
+                  {isTill && (
+                    <div style={{
+                      marginTop: 14, padding: 12, borderRadius: 8,
+                      background: qTint.bg, color: qTint.fg,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>{depth}</div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>in queue</div>
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: '1.15rem', lineHeight: 1.1, letterSpacing: 1 }}>
+                        {depth === 0 ? <span style={{ opacity: 0.5, fontSize: '0.78rem' }}>—</span>
+                          : '👤'.repeat(Math.min(depth, MAX_QUEUE_ICONS))}
+                        {depth > MAX_QUEUE_ICONS && (
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, marginLeft: 6 }}>
+                            +{depth - MAX_QUEUE_ICONS}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
                     <div>

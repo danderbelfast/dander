@@ -177,6 +177,16 @@ export const getNodes = () =>
 export const setNodeCommand = (deviceId, payload) =>
   client.post(`/api/nodes/${encodeURIComponent(deviceId)}/commands`, payload).then((r) => r.data);
 
+// ── Queue alerts ────────────────────────────────────────────
+export const getQueueAlerts = () =>
+  client.get('/api/alerts/queue').then((r) => r.data);
+
+export const getQueueAlertCount = () =>
+  client.get('/api/alerts/queue/count').then((r) => r.data);
+
+export const acknowledgeQueueAlert = (id) =>
+  client.post(`/api/alerts/queue/${encodeURIComponent(id)}/acknowledge`).then((r) => r.data);
+
 // ── FootfallCam analytics ───────────────────────────────────
 export const getFootfallSummary = (date) =>
   client.get('/api/analytics/footfall/summary', { params: date ? { date } : {} }).then((r) => r.data);

@@ -122,6 +122,8 @@ export default function Settings() {
         </div>
       )}
 
+      <QueueAlertSettings />
+
       <div className="card">
         <div className="card-header"><span className="card-title">Account</span></div>
         <div className="card-body">
@@ -274,6 +276,66 @@ function SmartSpecialsSection() {
             </button>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Queue Alert Settings — local-only stub for the PoC. Threshold is currently
+// authoritative on the phone (Settings → "Alert when queue reaches X people");
+// this card mirrors a future server-side default + delivery channels. Email
+// and push are intentionally inactive toggles for now.
+// ---------------------------------------------------------------------------
+
+function QueueAlertSettings() {
+  const [threshold, setThreshold] = React.useState(() => {
+    const v = parseInt(window.localStorage.getItem('dander_queue_threshold_default') || '', 10);
+    return Number.isFinite(v) && v > 0 ? v : 3;
+  });
+  const [emailOn, setEmailOn] = React.useState(false);
+  const [pushOn,  setPushOn]  = React.useState(false);
+
+  function persistThreshold(v) {
+    const n = Math.max(1, Math.min(99, parseInt(v, 10) || 3));
+    setThreshold(n);
+    try { window.localStorage.setItem('dander_queue_threshold_default', String(n)); } catch {}
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header"><span className="card-title">Queue Alert Settings</span></div>
+      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <p style={{ color: 'var(--c-text-muted)', fontSize: '0.86rem', marginTop: 0 }}>
+          Default threshold for till zones that don&apos;t override it on the phone. The bell in the top
+          bar fires whenever a till zone&apos;s live queue passes this number.
+        </p>
+
+        <div className="field" style={{ maxWidth: 200 }}>
+          <label className="label">Default threshold</label>
+          <input
+            className="input"
+            type="number"
+            min="1"
+            max="99"
+            value={threshold}
+            onChange={(e) => persistThreshold(e.target.value)}
+          />
+          <div className="field-hint">Alert when queue reaches this many people.</div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', opacity: 0.75 }}>
+            <input type="checkbox" checked={emailOn} onChange={() => setEmailOn((v) => !v)} />
+            Email me when a queue alert fires
+            <span style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)' }}>(coming soon)</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', opacity: 0.75 }}>
+            <input type="checkbox" checked={pushOn} onChange={() => setPushOn((v) => !v)} />
+            Push notifications on this device
+            <span style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)' }}>(coming soon)</span>
+          </label>
+        </div>
       </div>
     </div>
   );
