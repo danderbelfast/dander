@@ -344,6 +344,7 @@ const { expireCoupons }       = require('../services/couponService');
 const { scheduleNotificationReminders, scheduleSmartSpecialsReminder, scheduleWeeklyReport } = require('../services/notificationCron');
 const { scheduleWeatherCollection } = require('../services/weatherService');
 const { scheduleWifiAggregation } = require('../jobs/aggregateWifi');
+const { scheduleTrilateration, schedulePositionLogPrune } = require('../services/positionHeatmap');
 
 scheduleOfferExpiry();              // every 15 minutes — deactivates expired offers + their coupons
 expireCoupons();                    // every 30 minutes — belt-and-suspenders coupon expiry
@@ -352,6 +353,8 @@ scheduleWeatherCollection();        // every 30 minutes — fetch weather for bu
 scheduleSmartSpecialsReminder();    // daily 8am — remind businesses to take stock photos
 scheduleWeeklyReport();             // Monday 8am — notify businesses their weekly report is ready
 scheduleWifiAggregation();          // daily 2am — aggregate wifi_observations → wifi_fingerprints + prune 30-day-old rows
+scheduleTrilateration();            // every 5 minutes — bt_position_log → position_heatmap via weighted centroid
+schedulePositionLogPrune();         // hourly at :17 — prune bt_position_log rows older than 24h
 
 // ---------------------------------------------------------------------------
 // Start

@@ -19,6 +19,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import androidx.core.content.ContextCompat
+import java.security.MessageDigest
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.Collections
 import kotlin.math.log10
 import kotlin.math.sqrt
@@ -45,6 +48,10 @@ class SensorHub(
     private val prefs: Prefs,
 ) : SensorEventListener {
 
+    private companion object {
+        private val HEX = "0123456789abcdef".toCharArray()
+    }
+
     @Volatile var lightLux: Float? = null;  private set
     @Volatile var noiseDb: Double? = null;  private set
 
@@ -54,11 +61,17 @@ class SensorHub(
     @Volatile private var recording = false
     private var audioThread: Thread? = null
 
-    private val btSeen = Collections.synchronizedSet(HashSet<String>())
+    // MAC → latest RSSI seen in the current scan window. We keep the RSSI
+    // (not just the address) so position logging downstream has a signal
+    // strength per device. The map is rewritten on every scan callback for
+    // a given MAC, so we get the freshest reading at drain time.
+    private val btSeen: MutableMap<String, Int> = Collections.synchronizedMap(HashMap())
     private var leScanner: BluetoothLeScanner? = null
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            result?.device?.address?.let { btSeen.add(it) }
+            val r = result ?: return
+            val addr = r.device?.address ?: return
+            synchronized(btSeen) { btSeen[addr] = r.rssi }
         }
     }
 
@@ -241,6 +254,56 @@ class SensorHub(
         synchronized(btSeen) { return btSeen.size }
     }
 
+    // ── BT trilateration: anonymised (id, rssi) list ───────────
+    //
+    // We can't ship raw MACs off-device. Instead we hash each MAC with a
+    // per-day salt — same device gets a stable ID *within* a day (so we
+    // can correlate sightings across nodes for trilateration), but a
+    // different ID tomorrow, so nothing persists. The salt itself is just
+    // SHA256(UTC date string) — secret-from-no-one but cheap to recompute.
+
+    data class BleDevice(val anonymousId: String, val rssi: Int)
+
+    @Volatile private var saltDate: String = ""
+    @Volatile private var saltHex: String = ""
+
+    private fun currentSaltHex(): String {
+        val today = LocalDate.now(ZoneOffset.UTC).toString()
+        if (today != saltDate) {
+            saltDate = today
+            saltHex = sha256Hex(today)
+        }
+        return saltHex
+    }
+
+    private fun sha256Hex(input: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
+        val sb = StringBuilder(bytes.size * 2)
+        for (b in bytes) {
+            val v = b.toInt() and 0xff
+            sb.append(HEX[v ushr 4]); sb.append(HEX[v and 0x0f])
+        }
+        return sb.toString()
+    }
+
+    private fun anonymousId(mac: String): String =
+        sha256Hex(mac + currentSaltHex()).substring(0, 8)
+
+    /**
+     * Anonymised BLE devices seen this scan window, sorted by signal
+     * strength (strongest first) and capped at 20. The trilateration
+     * solver wants the closest devices; weak/distant signals add noise.
+     */
+    fun drainBleDevices(): List<BleDevice> {
+        if (!bluetoothScanAllowed()) return emptyList()
+        val snapshot: List<Pair<String, Int>> =
+            synchronized(btSeen) { btSeen.map { it.key to it.value } }
+        return snapshot
+            .sortedByDescending { it.second }
+            .take(20)
+            .map { (mac, rssi) -> BleDevice(anonymousId(mac), rssi) }
+    }
+
     // ── BT brand detection (OUI lookup) ─────────────────────────
     //
     // PoC caveat: iOS 14+ and Android 8+ randomise BLE advertising
@@ -322,7 +385,7 @@ class SensorHub(
     /** Per-brand snapshot of devices in the current/last scan window. */
     fun drainBrandCounts(): BrandCounts {
         if (!bluetoothScanAllowed()) return BrandCounts.ZERO
-        val seen: List<String> = synchronized(btSeen) { btSeen.toList() }
+        val seen: List<String> = synchronized(btSeen) { btSeen.keys.toList() }
         var apple = 0; var samsung = 0; var google = 0
         var huawei = 0; var other = 0; var unknown = 0
         for (addr in seen) {

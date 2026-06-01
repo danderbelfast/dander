@@ -166,6 +166,9 @@ class MainActivity : AppCompatActivity() {
         // BLE brand breakdown is per-current-scan-window; zero during closed.
         val brands = if (open) sensorHub.drainBrandCounts()
                      else SensorHub.BrandCounts.ZERO
+        // Anonymised (id, rssi) list for trilateration. Empty when closed —
+        // there's no scan in flight to derive distances from.
+        val bleDevices = if (open) sensorHub.drainBleDevices() else emptyList()
         return Uploader.Summary(
             deviceId = deviceId,
             businessId = prefs.businessId,
@@ -190,6 +193,7 @@ class MainActivity : AppCompatActivity() {
             btHuawei = brands.huawei,
             btOtherAndroid = brands.otherAndroid,
             btUnknown = brands.unknown,
+            btDevices = bleDevices,
             heartbeat = !open,
         )
     }

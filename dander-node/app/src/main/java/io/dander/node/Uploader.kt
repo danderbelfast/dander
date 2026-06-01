@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
@@ -54,6 +55,7 @@ class Uploader(
         val btHuawei: Int,
         val btOtherAndroid: Int,
         val btUnknown: Int,
+        val btDevices: List<SensorHub.BleDevice>,
         val heartbeat: Boolean = false,
     )
 
@@ -110,6 +112,12 @@ class Uploader(
                 put("huawei",        s.btHuawei)
                 put("other_android", s.btOtherAndroid)
                 put("unknown",       s.btUnknown)
+            })
+            put("bt_devices", JSONArray().apply {
+                for (d in s.btDevices) put(JSONObject().apply {
+                    put("anonymous_id", d.anonymousId)
+                    put("rssi",         d.rssi)
+                })
             })
             put("heartbeat", s.heartbeat)
         }.toString()

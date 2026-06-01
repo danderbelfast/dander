@@ -166,6 +166,32 @@ router.post('/phone-counter', async (req, res) => {
         num(brands.other_android),
       ]
     );
+
+    // BT trilateration feed: each (anonymous_id, rssi) seen this window
+    // gets one row in bt_position_log so the 5-min trilateration job can
+    // correlate sightings across nodes. We never store raw MACs — the
+    // device hashes them with a per-day salt before they arrive.
+    const businessId = num(p.business_id);
+    const zoneName = typeof p.zone_name === 'string' ? p.zone_name.slice(0, 100) : null;
+    const devices = Array.isArray(p.bt_devices) ? p.bt_devices.slice(0, 20) : [];
+    if (businessId != null && zoneName && devices.length > 0) {
+      const values = [];
+      const params = [];
+      let i = 1;
+      for (const d of devices) {
+        if (!d || typeof d.anonymous_id !== 'string' || d.anonymous_id.length === 0) continue;
+        values.push(`($${i}, $${i + 1}, $${i + 2}, $${i + 3}, $${i + 4})`);
+        params.push(businessId, zoneName, d.anonymous_id.slice(0, 16), num(d.rssi), ts);
+        i += 5;
+      }
+      if (values.length > 0) {
+        await pool.query(
+          `INSERT INTO bt_position_log (business_id, zone_name, anonymous_id, rssi, recorded_at)
+           VALUES ${values.join(', ')}`,
+          params
+        );
+      }
+    }
   } catch (err) {
     console.error('[webhooks/phone-counter] store failed:', err.message);
     // fall through — still 200
