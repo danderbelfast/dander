@@ -136,10 +136,12 @@ router.post('/phone-counter', async (req, res) => {
           business_id, zone_name, zone_type,
           avg_dwell_seconds, max_dwell_seconds,
           dwell_under_30s, dwell_30_to_2min, dwell_2_to_5min, dwell_over_5min,
-          bt_apple, bt_samsung, bt_google, bt_huawei, bt_other_android)
+          bt_apple, bt_samsung, bt_google, bt_huawei, bt_other_android,
+          queue_depth, queue_alert, orientation, till_mode)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                $13, $14, $15, $16, $17, $18,
-               $19, $20, $21, $22, $23)`,
+               $19, $20, $21, $22, $23,
+               $24, $25, $26, $27)`,
       [
         typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null,
         ts,
@@ -164,8 +166,41 @@ router.post('/phone-counter', async (req, res) => {
         num(brands.google),
         num(brands.huawei),
         num(brands.other_android),
+        num(p.queue_depth),
+        typeof p.queue_alert === 'boolean' ? p.queue_alert : null,
+        typeof p.orientation === 'string' ? p.orientation.slice(0, 10) : null,
+        typeof p.till_mode   === 'string' ? p.till_mode.slice(0, 20)   : null,
       ]
     );
+
+    // Queue alert: insert if and only if there's no unacknowledged
+    // alert for this (business_id, zone_name) pair in the last 10 min.
+    // Debouncing means a steady busy queue doesn't spam the dashboard.
+    if (p.queue_alert === true) {
+      const businessId = num(p.business_id);
+      const zoneName   = typeof p.zone_name === 'string' ? p.zone_name.slice(0, 100) : null;
+      const deviceId   = typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null;
+      const depth      = num(p.queue_depth);
+      if (businessId != null && zoneName) {
+        const { rows: existing } = await pool.query(
+          `SELECT 1 FROM queue_alerts
+            WHERE business_id = $1
+              AND zone_name   = $2
+              AND alerted_at  > NOW() - INTERVAL '10 minutes'
+              AND acknowledged_at IS NULL
+            LIMIT 1`,
+          [businessId, zoneName]
+        );
+        if (existing.length === 0) {
+          await pool.query(
+            `INSERT INTO queue_alerts (business_id, zone_name, device_id, queue_depth)
+             VALUES ($1, $2, $3, $4)`,
+            [businessId, zoneName, deviceId, depth ?? 0]
+          );
+          console.log(`[queue-alert] business=${businessId} zone="${zoneName}" depth=${depth}`);
+        }
+      }
+    }
 
     // BT trilateration feed: each (anonymous_id, rssi) seen this window
     // gets one row in bt_position_log so the 5-min trilateration job can

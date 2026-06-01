@@ -382,6 +382,11 @@ async function getLiveZones(businessId) {
        zone_name,
        (array_agg(zone_type   ORDER BY timestamp DESC) FILTER (WHERE zone_type IS NOT NULL))[1] AS zone_type,
        (array_agg(noise_label ORDER BY timestamp DESC) FILTER (WHERE noise_label IS NOT NULL))[1] AS noise_label,
+       (array_agg(till_mode   ORDER BY timestamp DESC) FILTER (WHERE till_mode   IS NOT NULL))[1] AS till_mode,
+       -- queue_depth / queue_alert are latest (not summed) — they're
+       -- live state, not deltas.
+       (array_agg(queue_depth ORDER BY timestamp DESC) FILTER (WHERE queue_depth IS NOT NULL))[1] AS queue_depth,
+       (array_agg(queue_alert ORDER BY timestamp DESC) FILTER (WHERE queue_alert IS NOT NULL))[1] AS queue_alert,
        COALESCE(SUM(count_in), 0)::int  AS count_in,
        COALESCE(SUM(count_out), 0)::int AS count_out,
        AVG(noise_db)::float       AS noise_db,
