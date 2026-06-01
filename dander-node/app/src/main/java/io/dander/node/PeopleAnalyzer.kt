@@ -6,8 +6,11 @@ import android.graphics.RectF
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * PeopleAnalyzer — on-device people counting (ML Kit object detection +
@@ -29,6 +32,7 @@ import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 class PeopleAnalyzer(
     private val onResult: (inCount: Int, outCount: Int) -> Unit,
     private val onDetections: (List<RectF>) -> Unit,
+    private val onFaces: (List<RectF>) -> Unit = {},
 ) : ImageAnalysis.Analyzer {
 
     private companion object {
@@ -38,6 +42,12 @@ class PeopleAnalyzer(
         // A tracking ID that hasn't been seen for this long is considered to
         // have left the frame; its dwell is finalised at that point.
         const val STALE_MS = 2_000L
+
+        // Face-detection cadence (display-only privacy masking). Independent
+        // of `frameInterval`, which throttles the heavier object detector.
+        // Faces re-detect every Nth analyse() so masks stay in place even
+        // when the user has set a sparse person-detection interval.
+        const val FACE_FRAME_INTERVAL = 3L
     }
 
     @Volatile var frameInterval: Int = 5    // every Nth frame; settable from Settings.
@@ -49,6 +59,16 @@ class PeopleAnalyzer(
             .build()
     )
 
+    // FAST_MODE only — no landmarks, classifications, or contours. We
+    // only need bounding boxes to drop a privacy mask over each face;
+    // anything richer would be wasted CPU and would scope-creep this
+    // into something that could feel like surveillance.
+    private val faceDetector = FaceDetection.getClient(
+        FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .build()
+    )
+
     @Volatile private var inCount = 0
     @Volatile private var outCount = 0
     private var uploadedIn = 0
@@ -56,6 +76,9 @@ class PeopleAnalyzer(
 
     private val lastY = HashMap<Int, Float>()
     @Volatile private var cachedDetections: List<RectF> = emptyList()
+    // Cached face boxes for in-between frames. Display-only — never read
+    // by counting logic, never stored, never uploaded.
+    @Volatile private var cachedFaces: List<RectF> = emptyList()
 
     // Dwell tracking: epoch-ms timestamps per tracking ID. Lifetime here is
     // first detected -> first sustained gap of STALE_MS.
@@ -83,59 +106,86 @@ class PeopleAnalyzer(
         val bh = media.height
 
         frameTick++
-        val runDetection = (frameInterval <= 1) || (frameTick % frameInterval == 0L)
+        val runPerson = (frameInterval <= 1) || (frameTick % frameInterval == 0L)
+        val runFace   = (frameTick % FACE_FRAME_INTERVAL == 0L)
 
-        if (!runDetection) {
-            // Replay cached detections so the overlay tracks at full frame
-            // rate even though ML only runs every Nth frame.
+        // Hot path: no detectors fire this frame — replay both caches.
+        if (!runPerson && !runFace) {
             onDetections(cachedDetections)
+            onFaces(cachedFaces)
             imageProxy.close()
             return
         }
 
+        // We have to keep `imageProxy` open until every detector consuming
+        // its backing media image has finished — closing earlier would
+        // invalidate the InputImage they're holding. Track pending
+        // completions and close once they've all signalled done.
+        val pending = AtomicInteger((if (runPerson) 1 else 0) + (if (runFace) 1 else 0))
+        val onAnyComplete = { if (pending.decrementAndGet() == 0) imageProxy.close() }
+
         val input = InputImage.fromMediaImage(media, rotation)
-        detector.process(input)
-            .addOnSuccessListener { objects ->
-                val now = System.currentTimeMillis()
-                val norms = ArrayList<RectF>(objects.size)
-                for (obj in objects) {
-                    val id = obj.trackingId ?: continue
-                    val norm = toUprightNorm(obj.boundingBox, bw, bh, rotation)
-                    norms.add(norm)
 
-                    val cy = (norm.top + norm.bottom) / 2f
-                    val prev = lastY[id]
-                    if (prev != null) {
-                        if (prev > LINE && cy <= LINE)      bump(up = true)
-                        else if (prev < LINE && cy >= LINE) bump(up = false)
+        if (runPerson) {
+            detector.process(input)
+                .addOnSuccessListener { objects ->
+                    val now = System.currentTimeMillis()
+                    val norms = ArrayList<RectF>(objects.size)
+                    for (obj in objects) {
+                        val id = obj.trackingId ?: continue
+                        val norm = toUprightNorm(obj.boundingBox, bw, bh, rotation)
+                        norms.add(norm)
+
+                        val cy = (norm.top + norm.bottom) / 2f
+                        val prev = lastY[id]
+                        if (prev != null) {
+                            if (prev > LINE && cy <= LINE)      bump(up = true)
+                            else if (prev < LINE && cy >= LINE) bump(up = false)
+                        }
+                        lastY[id] = cy
+
+                        if (id !in firstSeen) firstSeen[id] = now
+                        lastSeen[id] = now
                     }
-                    lastY[id] = cy
 
-                    if (id !in firstSeen) firstSeen[id] = now
-                    lastSeen[id] = now
-                }
+                    // Finalise any tracking ID we haven't seen for STALE_MS — that
+                    // person left the frame; record their dwell.
+                    val toFinalise = ArrayList<Int>()
+                    for ((id, ts) in lastSeen) {
+                        if (now - ts > STALE_MS) toFinalise.add(id)
+                    }
+                    for (id in toFinalise) {
+                        val started = firstSeen[id]
+                        val ended   = lastSeen[id]
+                        if (started != null && ended != null) recordDwell(ended - started)
+                        firstSeen.remove(id); lastSeen.remove(id); lastY.remove(id)
+                    }
 
-                // Finalise any tracking ID we haven't seen for STALE_MS — that
-                // person left the frame; record their dwell.
-                val toFinalise = ArrayList<Int>()
-                for ((id, ts) in lastSeen) {
-                    if (now - ts > STALE_MS) toFinalise.add(id)
+                    cachedDetections = norms
+                    onResult(inCount, outCount)
+                    onDetections(norms)
                 }
-                for (id in toFinalise) {
-                    val started = firstSeen[id]
-                    val ended   = lastSeen[id]
-                    if (started != null && ended != null) recordDwell(ended - started)
-                    firstSeen.remove(id); lastSeen.remove(id); lastY.remove(id)
-                }
+                .addOnFailureListener { /* drop this frame's ML; overlay reuses cache */ }
+                .addOnCompleteListener { onAnyComplete() }
+        } else {
+            onDetections(cachedDetections)
+        }
 
-                cachedDetections = norms
-                onResult(inCount, outCount)
-                onDetections(norms)
-            }
-            .addOnFailureListener { /* drop this frame's ML; overlay reuses cache */ }
-            .addOnCompleteListener {
-                imageProxy.close()
-            }
+        if (runFace) {
+            faceDetector.process(input)
+                .addOnSuccessListener { faces ->
+                    val faceNorms = ArrayList<RectF>(faces.size)
+                    for (face in faces) {
+                        faceNorms.add(toUprightNorm(face.boundingBox, bw, bh, rotation))
+                    }
+                    cachedFaces = faceNorms
+                    onFaces(faceNorms)
+                }
+                .addOnFailureListener { /* mask reuses cache this frame */ }
+                .addOnCompleteListener { onAnyComplete() }
+        } else {
+            onFaces(cachedFaces)
+        }
     }
 
     private fun bump(up: Boolean) {
@@ -205,6 +255,7 @@ class PeopleAnalyzer(
         lastSeen.clear()
         lastY.clear()
         cachedDetections = emptyList()
+        cachedFaces = emptyList()
     }
 
     private fun toUprightNorm(box: Rect, bw: Int, bh: Int, rot: Int): RectF {

@@ -31,6 +31,7 @@ class OverlayView @JvmOverloads constructor(
     }
 
     @Volatile private var detections: List<RectF> = emptyList()
+    @Volatile private var faces:      List<RectF> = emptyList()
 
     private val boxPaint = Paint().apply {
         color = ORANGE
@@ -43,9 +44,26 @@ class OverlayView @JvmOverloads constructor(
         strokeWidth = 4f
         isAntiAlias = true
     }
+    // Face privacy mask: solid black fill + a small orange dot in the
+    // centre so the mask reads as an intentional Dander brand mark
+    // rather than a rendering glitch.
+    private val faceMaskPaint = Paint().apply {
+        color = Color.BLACK
+        style = Paint.Style.FILL
+    }
+    private val faceMarkPaint = Paint().apply {
+        color = ORANGE
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
 
     fun setDetections(norms: List<RectF>) {
         detections = norms
+        postInvalidateOnAnimation()
+    }
+
+    fun setFaces(norms: List<RectF>) {
+        faces = norms
         postInvalidateOnAnimation()
     }
 
@@ -54,10 +72,29 @@ class OverlayView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0 || h <= 0) return
 
+        // Person bounding boxes — orange outline.
         for (n in detections) {
             canvas.drawRect(n.left * w, n.top * h, n.right * w, n.bottom * h, boxPaint)
         }
+
+        // Counting line — white horizontal.
         val midY = h * LINE
         canvas.drawLine(0f, midY, w, midY, linePaint)
+
+        // Face masks drawn LAST so they sit on top of person boxes /
+        // counting line if they overlap. Each is a black filled rect
+        // (covers the face entirely) plus a small orange disc dead-centre.
+        for (f in faces) {
+            val left   = f.left   * w
+            val top    = f.top    * h
+            val right  = f.right  * w
+            val bottom = f.bottom * h
+            canvas.drawRect(left, top, right, bottom, faceMaskPaint)
+
+            val cx = (left + right)  / 2f
+            val cy = (top  + bottom) / 2f
+            val radius = minOf(right - left, bottom - top) * 0.18f
+            canvas.drawCircle(cx, cy, radius, faceMarkPaint)
+        }
     }
 }

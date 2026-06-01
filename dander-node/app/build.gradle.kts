@@ -50,4 +50,8 @@ dependencies {
 
     // ML Kit on-device object detection & tracking (gives stable tracking IDs).
     implementation("com.google.mlkit:object-detection:17.0.2")
+
+    // ML Kit on-device face detection — display-only privacy masking.
+    // Face boxes are never stored, uploaded, or used for counting.
+    implementation("com.google.mlkit:face-detection:16.1.7")
 }

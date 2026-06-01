@@ -60,6 +60,11 @@ class MainActivity : AppCompatActivity() {
         onDetections = { norms ->
             binding.overlayView.setDetections(norms)
         },
+        // Face boxes drive the privacy masks layered on top of the preview.
+        // Display-only — never stored or uploaded.
+        onFaces = { faces ->
+            binding.overlayView.setFaces(faces)
+        },
     )
 
     private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
