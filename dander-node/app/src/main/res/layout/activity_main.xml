@@ -4,12 +4,19 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <ImageView
-        android:id="@+id/displayView"
+    <!-- Plain camera preview + bounding-box overlay.
+         Privacy compositing is disabled for hardware testing — see
+         PeopleAnalyzer.kt. Revert this block to a single ImageView named
+         "displayView" when re-enabling the greyscale composite path. -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:contentDescription="@null" />
+        android:layout_height="match_parent" />
+
+    <io.dander.node.OverlayView
+        android:id="@+id/overlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <!-- IN count (left) -->
     <TextView

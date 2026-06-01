@@ -1,13 +1,6 @@
 package io.dander.node
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.Matrix
-import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import androidx.camera.core.ImageAnalysis
@@ -18,25 +11,29 @@ import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 
 /**
  * PeopleAnalyzer — on-device people counting (ML Kit object detection +
- * tracking IDs + line crossing) and a privacy-preserving display
- * compositor.
+ * tracking IDs + line crossing).
+ *
+ * NOTE: privacy compositing (greyscale frame + orange rectangle fill)
+ * is currently disabled for hardware accuracy testing. The analyzer
+ * emits the raw detection rectangles via `onDetections`; the UI uses
+ * a plain camera PreviewView with an OverlayView on top. Re-enable
+ * the composite path by reintroducing the displayCallback and the
+ * compositeAndPublish() function (see git history for this commit).
  *
  * Power optimisation:
  *   - ML Kit runs on every Nth incoming frame only (`frameInterval`).
- *   - The display gets composited every frame: cached detection
- *     rectangles from the most recent ML pass are reused on the
- *     in-between frames so the picture stays smooth at full camera rate
- *     while the GPU/CPU cost of inference is amortised.
+ *   - On the in-between frames we replay the cached detection
+ *     rectangles so the overlay tracks smoothly while the GPU/CPU
+ *     cost of inference is amortised.
  */
 class PeopleAnalyzer(
     private val onResult: (inCount: Int, outCount: Int) -> Unit,
-    private val displayCallback: (Bitmap) -> Unit,
+    private val onDetections: (List<RectF>) -> Unit,
 ) : ImageAnalysis.Analyzer {
 
     private companion object {
         const val INVERT_DIRECTION = false
         const val LINE = 0.5f
-        const val ORANGE = 0xFFE85D26.toInt()
 
         // A tracking ID that hasn't been seen for this long is considered to
         // have left the frame; its dwell is finalised at that point.
@@ -76,17 +73,6 @@ class PeopleAnalyzer(
 
     private var frameTick = 0L
 
-    private val greyPaint = Paint().apply {
-        colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
-        isFilterBitmap = true
-    }
-    private val orangePaint = Paint().apply { color = ORANGE; isAntiAlias = true }
-    private val linePaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = 4f
-        isAntiAlias = true
-    }
-
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
         val media = imageProxy.image
@@ -95,18 +81,14 @@ class PeopleAnalyzer(
         val rotation = imageProxy.imageInfo.rotationDegrees
         val bw = media.width
         val bh = media.height
-        val srcBitmap: Bitmap = try {
-            imageProxy.toBitmap()
-        } catch (e: Throwable) {
-            imageProxy.close(); return
-        }
 
         frameTick++
         val runDetection = (frameInterval <= 1) || (frameTick % frameInterval == 0L)
 
         if (!runDetection) {
-            runCatching { compositeAndPublish(srcBitmap, rotation, cachedDetections) }
-            srcBitmap.recycle()
+            // Replay cached detections so the overlay tracks at full frame
+            // rate even though ML only runs every Nth frame.
+            onDetections(cachedDetections)
             imageProxy.close()
             return
         }
@@ -148,12 +130,10 @@ class PeopleAnalyzer(
 
                 cachedDetections = norms
                 onResult(inCount, outCount)
-                runCatching { compositeAndPublish(srcBitmap, rotation, norms) }
-                    .onFailure { /* drop frame */ }
+                onDetections(norms)
             }
-            .addOnFailureListener { /* drop this frame's ML; display still draws below */ }
+            .addOnFailureListener { /* drop this frame's ML; overlay reuses cache */ }
             .addOnCompleteListener {
-                srcBitmap.recycle()
                 imageProxy.close()
             }
     }
@@ -225,36 +205,6 @@ class PeopleAnalyzer(
         lastSeen.clear()
         lastY.clear()
         cachedDetections = emptyList()
-    }
-
-    private fun compositeAndPublish(srcBuffer: Bitmap, rotation: Int, norms: List<RectF>) {
-        val uprightSrc = if (rotation == 0) {
-            srcBuffer
-        } else {
-            val m = Matrix().apply { postRotate(rotation.toFloat()) }
-            Bitmap.createBitmap(srcBuffer, 0, 0, srcBuffer.width, srcBuffer.height, m, true)
-        }
-
-        val uw = uprightSrc.width
-        val uh = uprightSrc.height
-
-        val display = Bitmap.createBitmap(uw, uh, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(display)
-        canvas.drawBitmap(uprightSrc, 0f, 0f, greyPaint)
-
-        for (norm in norms) {
-            canvas.drawRect(
-                norm.left * uw, norm.top * uh,
-                norm.right * uw, norm.bottom * uh,
-                orangePaint,
-            )
-        }
-
-        val midY = uh * LINE
-        canvas.drawLine(0f, midY, uw.toFloat(), midY, linePaint)
-
-        if (uprightSrc !== srcBuffer) uprightSrc.recycle()
-        displayCallback(display)
     }
 
     private fun toUprightNorm(box: Rect, bw: Int, bh: Int, rot: Int): RectF {

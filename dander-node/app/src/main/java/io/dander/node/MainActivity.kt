@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import io.dander.node.databinding.ActivityMainBinding
@@ -54,8 +55,10 @@ class MainActivity : AppCompatActivity() {
                 binding.txtOut.text = "OUT $outCount"
             }
         },
-        displayCallback = { bitmap ->
-            runOnUiThread { binding.displayView.setImageBitmap(bitmap) }
+        // Privacy compositing is off for hardware testing — see PeopleAnalyzer.
+        // Detections feed the OverlayView drawn on top of the PreviewView.
+        onDetections = { norms ->
+            binding.overlayView.setDetections(norms)
         },
     )
 
@@ -262,8 +265,15 @@ class MainActivity : AppCompatActivity() {
                     .build()
                     .also { it.setAnalyzer(cameraExecutor, analyzer) }
 
+                // Plain camera preview for hardware testing. When privacy
+                // compositing is re-enabled, drop this Preview use case and
+                // bind only the analysis use case as before.
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(binding.previewView.surfaceProvider)
+                }
+
                 provider.unbindAll()
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, analysis)
+                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
                 cameraBound = true
             } catch (e: Exception) {
                 binding.txtIn.text = "camera error"
