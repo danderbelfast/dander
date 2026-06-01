@@ -9,6 +9,7 @@ import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 /**
@@ -104,6 +105,25 @@ class SettingsActivity : AppCompatActivity() {
             prefs.wifiIntervalMin = editWifi.text.toString().toIntOrNull()?.coerceIn(1, 120) ?: 5
             prefs.zoneName = editZone.text.toString().ifBlank { "Entrance" }
             finish()
+        }
+
+        // Re-pair: clear the business pairing from prefs and exit. MainActivity's
+        // onResume checks Prefs.isConfigured and will bounce to SetupActivity when
+        // it sees we've been unpaired.
+        val btnRepair = findViewById<Button>(R.id.btnRepair)
+        btnRepair.setOnClickListener {
+            val current = prefs.businessName.ifBlank { "this business" }
+            AlertDialog.Builder(this)
+                .setTitle("Re-pair business")
+                .setMessage("This will unpair this device from $current. Continue?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Unpair") { _, _ ->
+                    prefs.businessCode = ""
+                    prefs.businessId   = 0
+                    prefs.businessName = ""
+                    finish()
+                }
+                .show()
         }
     }
 

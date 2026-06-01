@@ -99,6 +99,14 @@ class MainActivity : AppCompatActivity() {
     /** Re-pick up Settings changes whenever we return to the foreground. */
     override fun onResume() {
         super.onResume()
+        // Re-check the setup gate — if Settings's "Re-pair business" wiped
+        // the pairing, bounce to SetupActivity rather than running with a
+        // stale business_id on the upload payload.
+        if (!prefs.isConfigured) {
+            startActivity(Intent(this, SetupActivity::class.java))
+            finish()
+            return
+        }
         applyBrightness()
         analyzer.frameInterval = prefs.frameInterval
     }

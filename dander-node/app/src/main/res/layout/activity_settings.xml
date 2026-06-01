@@ -99,5 +99,16 @@
             android:layout_marginTop="32dp"
             android:text="Save &amp; close" />
 
+        <!-- Re-pair: clears the business code/id from prefs and bounces
+             back through Setup. Visually demoted so it's clearly a
+             different intent than the primary Save action. -->
+        <Button android:id="@+id/btnRepair"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Re-pair business"
+            android:textColor="#FF5252"
+            android:background="?android:attr/selectableItemBackground" />
+
     </LinearLayout>
 </ScrollView>
