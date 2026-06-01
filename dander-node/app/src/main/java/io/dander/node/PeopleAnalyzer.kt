@@ -35,8 +35,9 @@ class PeopleAnalyzer(
     private val onFaces: (List<RectF>) -> Unit = {},
 ) : ImageAnalysis.Analyzer {
 
+    enum class CountingMode { HORIZONTAL_LINE, VERTICAL_LINE, APPROACH }
+
     private companion object {
-        const val INVERT_DIRECTION = false
         const val LINE = 0.5f
 
         // A tracking ID that hasn't been seen for this long is considered to
@@ -48,9 +49,20 @@ class PeopleAnalyzer(
         // Faces re-detect every Nth analyse() so masks stay in place even
         // when the user has set a sparse person-detection interval.
         const val FACE_FRAME_INTERVAL = 3L
+
+        // Approach mode: keep this many area samples per tracking ID and
+        // only commit IN/OUT once we have at least the floor below.
+        const val APPROACH_HISTORY = 5
+        const val APPROACH_MIN_SAMPLES = 3
     }
 
     @Volatile var frameInterval: Int = 5    // every Nth frame; settable from Settings.
+
+    // Live tunables — MainActivity rewrites these from Prefs in onResume and
+    // whenever the operator toggles orientation / invert via the on-screen
+    // buttons. Don't read prefs directly here: keeps the analyzer pure.
+    @Volatile var countingMode: CountingMode = CountingMode.HORIZONTAL_LINE
+    @Volatile var invertDirection: Boolean = false
 
     private val detector = ObjectDetection.getClient(
         ObjectDetectorOptions.Builder()
@@ -74,7 +86,13 @@ class PeopleAnalyzer(
     private var uploadedIn = 0
     private var uploadedOut = 0
 
+    // Per-ID state for the three counting strategies:
+    //   lastY     — centre-Y of last seen frame (HORIZONTAL_LINE)
+    //   lastX     — centre-X of last seen frame (VERTICAL_LINE)
+    //   areaHist  — recent bbox areas (APPROACH); drained on finalisation
     private val lastY = HashMap<Int, Float>()
+    private val lastX = HashMap<Int, Float>()
+    private val areaHist = HashMap<Int, ArrayDeque<Float>>()
     @Volatile private var cachedDetections: List<RectF> = emptyList()
     // Cached face boxes for in-between frames. Display-only — never read
     // by counting logic, never stored, never uploaded.
@@ -131,25 +149,54 @@ class PeopleAnalyzer(
                 .addOnSuccessListener { objects ->
                     val now = System.currentTimeMillis()
                     val norms = ArrayList<RectF>(objects.size)
+                    val mode = countingMode
                     for (obj in objects) {
                         val id = obj.trackingId ?: continue
                         val norm = toUprightNorm(obj.boundingBox, bw, bh, rotation)
                         norms.add(norm)
 
                         val cy = (norm.top + norm.bottom) / 2f
-                        val prev = lastY[id]
-                        if (prev != null) {
-                            if (prev > LINE && cy <= LINE)      bump(up = true)
-                            else if (prev < LINE && cy >= LINE) bump(up = false)
+                        val cx = (norm.left + norm.right) / 2f
+                        val area = (norm.right - norm.left) * (norm.bottom - norm.top)
+
+                        when (mode) {
+                            CountingMode.HORIZONTAL_LINE -> {
+                                // Top of frame = "out of the store"; crossing the
+                                // midline downwards = entering. up==true means IN.
+                                val prev = lastY[id]
+                                if (prev != null) {
+                                    if (prev > LINE && cy <= LINE)      bump(up = true)
+                                    else if (prev < LINE && cy >= LINE) bump(up = false)
+                                }
+                                lastY[id] = cy
+                            }
+                            CountingMode.VERTICAL_LINE -> {
+                                // Walk-past row of tills. Left-to-right == IN.
+                                // up==true is reused to mean IN so bump()/invert work uniformly.
+                                val prev = lastX[id]
+                                if (prev != null) {
+                                    if (prev < LINE && cx >= LINE)      bump(up = true)
+                                    else if (prev > LINE && cx <= LINE) bump(up = false)
+                                }
+                                lastX[id] = cx
+                            }
+                            CountingMode.APPROACH -> {
+                                // Approach detection: just record the area sample
+                                // here. The IN/OUT decision happens at STALE_MS
+                                // finalisation, using the trend across history.
+                                val q = areaHist.getOrPut(id) { ArrayDeque(APPROACH_HISTORY) }
+                                q.addLast(area)
+                                while (q.size > APPROACH_HISTORY) q.removeFirst()
+                            }
                         }
-                        lastY[id] = cy
 
                         if (id !in firstSeen) firstSeen[id] = now
                         lastSeen[id] = now
                     }
 
                     // Finalise any tracking ID we haven't seen for STALE_MS — that
-                    // person left the frame; record their dwell.
+                    // person left the frame; record their dwell. In APPROACH mode
+                    // this is also where we commit IN/OUT based on area trend.
                     val toFinalise = ArrayList<Int>()
                     for ((id, ts) in lastSeen) {
                         if (now - ts > STALE_MS) toFinalise.add(id)
@@ -158,7 +205,22 @@ class PeopleAnalyzer(
                         val started = firstSeen[id]
                         val ended   = lastSeen[id]
                         if (started != null && ended != null) recordDwell(ended - started)
-                        firstSeen.remove(id); lastSeen.remove(id); lastY.remove(id)
+
+                        if (mode == CountingMode.APPROACH) {
+                            val q = areaHist[id]
+                            if (q != null && q.size >= APPROACH_MIN_SAMPLES) {
+                                val list = q.toList()
+                                // "first 2" = oldest samples; "last 3" = newest.
+                                val first2 = list.take(2).average()
+                                val last3  = list.takeLast(3).average()
+                                val trend  = last3 - first2
+                                if (trend > 0) bump(up = true)
+                                else if (trend < 0) bump(up = false)
+                            }
+                        }
+
+                        firstSeen.remove(id); lastSeen.remove(id)
+                        lastY.remove(id); lastX.remove(id); areaHist.remove(id)
                     }
 
                     cachedDetections = norms
@@ -189,9 +251,12 @@ class PeopleAnalyzer(
     }
 
     private fun bump(up: Boolean) {
-        val isIn = if (INVERT_DIRECTION) !up else up
+        val isIn = if (invertDirection) !up else up
         if (isIn) inCount++ else outCount++
     }
+
+    /** Live queue depth — cumulative IN minus cumulative OUT, clamped at zero. */
+    fun currentQueueDepth(): Int = maxOf(0, inCount - outCount)
 
     @Synchronized
     fun drainCounts(): Pair<Int, Int> {
@@ -254,6 +319,8 @@ class PeopleAnalyzer(
         firstSeen.clear()
         lastSeen.clear()
         lastY.clear()
+        lastX.clear()
+        areaHist.clear()
         cachedDetections = emptyList()
         cachedFaces = emptyList()
     }

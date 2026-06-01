@@ -30,8 +30,11 @@ class OverlayView @JvmOverloads constructor(
         const val ORANGE = 0xFFE85D26.toInt()
     }
 
+    enum class LineDirection { HORIZONTAL, VERTICAL, NONE }
+
     @Volatile private var detections: List<RectF> = emptyList()
     @Volatile private var faces:      List<RectF> = emptyList()
+    @Volatile private var lineDirection: LineDirection = LineDirection.HORIZONTAL
 
     private val boxPaint = Paint().apply {
         color = ORANGE
@@ -67,6 +70,12 @@ class OverlayView @JvmOverloads constructor(
         postInvalidateOnAnimation()
     }
 
+    fun setLineDirection(dir: LineDirection) {
+        if (dir == lineDirection) return
+        lineDirection = dir
+        postInvalidateOnAnimation()
+    }
+
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
@@ -77,9 +86,19 @@ class OverlayView @JvmOverloads constructor(
             canvas.drawRect(n.left * w, n.top * h, n.right * w, n.bottom * h, boxPaint)
         }
 
-        // Counting line — white horizontal.
-        val midY = h * LINE
-        canvas.drawLine(0f, midY, w, midY, linePaint)
+        // Counting line — horizontal (overhead / landscape), vertical
+        // (walk-past / portrait) or none (approach mode — no line needed).
+        when (lineDirection) {
+            LineDirection.HORIZONTAL -> {
+                val midY = h * LINE
+                canvas.drawLine(0f, midY, w, midY, linePaint)
+            }
+            LineDirection.VERTICAL -> {
+                val midX = w * LINE
+                canvas.drawLine(midX, 0f, midX, h, linePaint)
+            }
+            LineDirection.NONE -> { /* approach mode — no line */ }
+        }
 
         // Face masks drawn LAST so they sit on top of person boxes /
         // counting line if they overlap. Each is a black filled rect

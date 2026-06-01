@@ -69,6 +69,10 @@ class Uploader(
         val btOtherAndroid: Int,
         val btUnknown: Int,
         val btDevices: List<SensorHub.BleDevice>,
+        val orientation: String,
+        val queueDepth: Int,
+        val queueAlert: Boolean,
+        val tillMode: String?,
         val heartbeat: Boolean = false,
     )
 
@@ -132,6 +136,10 @@ class Uploader(
                     put("rssi",         d.rssi)
                 })
             })
+            put("orientation", s.orientation)
+            put("queue_depth", s.queueDepth)
+            put("queue_alert", s.queueAlert)
+            put("till_mode",   s.tillMode ?: JSONObject.NULL)
             put("heartbeat", s.heartbeat)
         }.toString()
 

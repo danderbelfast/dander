@@ -2,9 +2,11 @@ package io.dander.node
 
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.Spinner
@@ -93,9 +95,43 @@ class SettingsActivity : AppCompatActivity() {
         spinType.adapter = adapter
         val idx = Prefs.ZONE_TYPES.indexOf(prefs.zoneType).coerceAtLeast(0)
         spinType.setSelection(idx)
+
+        // Till-only sub-section: counting mode + queue threshold. Hidden
+        // unless the operator picks "till" for the zone type.
+        val tillSection         = findViewById<LinearLayout>(R.id.tillSection)
+        val groupTill           = findViewById<RadioGroup>(R.id.groupTillMode)
+        val editQueueThreshold  = findViewById<EditText>(R.id.editQueueThreshold)
+
+        fun applyTillVisibility() {
+            tillSection.visibility = if (prefs.zoneType == "till") View.VISIBLE else View.GONE
+        }
+        applyTillVisibility()
+
+        when (prefs.tillMode) {
+            "walkpast" -> groupTill.check(R.id.tillWalkpast)
+            "approach" -> groupTill.check(R.id.tillApproach)
+            else        -> groupTill.check(R.id.tillOverhead)
+        }
+        groupTill.setOnCheckedChangeListener { _, id ->
+            prefs.tillMode = when (id) {
+                R.id.tillWalkpast -> "walkpast"
+                R.id.tillApproach -> "approach"
+                else               -> "overhead"
+            }
+        }
+
+        editQueueThreshold.setText(prefs.queueThreshold.toString())
+        editQueueThreshold.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                prefs.queueThreshold = editQueueThreshold.text.toString().toIntOrNull()?.coerceIn(1, 99) ?: 3
+                editQueueThreshold.setText(prefs.queueThreshold.toString())
+            }
+        }
+
         spinType.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
                 prefs.zoneType = Prefs.ZONE_TYPES[pos]
+                applyTillVisibility()
             }
             override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
@@ -104,6 +140,7 @@ class SettingsActivity : AppCompatActivity() {
             // Force-commit any in-progress edits then exit.
             prefs.wifiIntervalMin = editWifi.text.toString().toIntOrNull()?.coerceIn(1, 120) ?: 5
             prefs.zoneName = editZone.text.toString().ifBlank { "Entrance" }
+            prefs.queueThreshold = editQueueThreshold.text.toString().toIntOrNull()?.coerceIn(1, 99) ?: 3
             finish()
         }
 

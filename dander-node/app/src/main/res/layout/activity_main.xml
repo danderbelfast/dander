@@ -90,6 +90,84 @@
         android:clickable="true"
         android:focusable="true" />
 
+    <!-- Quick toggles (bottom-start) — rotate counting line, invert IN/OUT -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="44dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnRotate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:background="#CC000000"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="↻"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Rotate counting line" />
+
+        <TextView
+            android:id="@+id/btnInvert"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:padding="8dp"
+            android:background="#CC000000"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="⇄"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Invert IN / OUT" />
+    </LinearLayout>
+
+    <!-- Queue HUD — only shown when zone_type == "till". Positioned
+         beneath the IN/OUT counts; MainActivity flips its visibility. -->
+    <LinearLayout
+        android:id="@+id/queueHud"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="58dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:background="#CC000000"
+        android:padding="10dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/txtQueueDepth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="#00E676"
+            android:textSize="42sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtQueueLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="in queue"
+            android:textColor="#BDBDBD"
+            android:textSize="12sp" />
+
+        <ProgressBar
+            android:id="@+id/queueBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="160dp"
+            android:layout_height="6dp"
+            android:layout_marginTop="6dp"
+            android:max="100"
+            android:progress="0" />
+    </LinearLayout>
+
     <!-- Store-closed overlay (shown outside business hours) -->
     <FrameLayout
         android:id="@+id/closedOverlay"

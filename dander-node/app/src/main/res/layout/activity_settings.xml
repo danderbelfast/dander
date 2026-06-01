@@ -92,6 +92,38 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="6dp" />
 
+        <!-- Till-only section. SettingsActivity flips its visibility when
+             the zone type spinner changes. -->
+        <LinearLayout
+            android:id="@+id/tillSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView style="@style/SectionLabel" android:text="Till counting mode" />
+            <RadioGroup android:id="@+id/groupTillMode"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <RadioButton android:id="@+id/tillOverhead" android:text="Overhead — phone above, horizontal line"
+                    android:textColor="#FFFFFF"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <RadioButton android:id="@+id/tillWalkpast" android:text="Walk past — row of tills, vertical line"
+                    android:textColor="#FFFFFF"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <RadioButton android:id="@+id/tillApproach" android:text="Approach — customer walks toward camera"
+                    android:textColor="#FFFFFF"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </RadioGroup>
+
+            <TextView style="@style/SectionLabel"
+                android:text="Alert when queue reaches X people" />
+            <EditText android:id="@+id/editQueueThreshold"
+                android:layout_width="120dp" android:layout_height="wrap_content"
+                android:inputType="number"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
         <!-- Save -->
         <Button android:id="@+id/btnSave"
             android:layout_width="match_parent"

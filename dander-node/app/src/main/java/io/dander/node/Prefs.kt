@@ -29,6 +29,17 @@ class Prefs(context: Context) {
     var zoneName: String get() = sp.getString(KEY_ZONE_NAME, "Entrance") ?: "Entrance"; set(v) = sp.edit().putString(KEY_ZONE_NAME, v).apply()
     var zoneType: String get() = sp.getString(KEY_ZONE_TYPE, "entrance") ?: "entrance"; set(v) = sp.edit().putString(KEY_ZONE_TYPE, v).apply()
 
+    // Counting strategy.
+    //   orientation:      "landscape" (horizontal line) or "portrait" (vertical line)
+    //   invertDirection:  flips which crossing direction counts as IN
+    //   tillMode:         active only when zoneType == "till" —
+    //                     "approach" | "walkpast" | "overhead"
+    //   queueThreshold:   queueDepth > queueThreshold triggers an alert
+    var orientation:     String  get() = sp.getString(KEY_ORIENTATION, "landscape") ?: "landscape"; set(v) = sp.edit().putString(KEY_ORIENTATION, v).apply()
+    var invertDirection: Boolean get() = sp.getBoolean(KEY_INVERT_DIR, false);                       set(v) = sp.edit().putBoolean(KEY_INVERT_DIR, v).apply()
+    var tillMode:        String  get() = sp.getString(KEY_TILL_MODE, "overhead") ?: "overhead";    set(v) = sp.edit().putString(KEY_TILL_MODE, v).apply()
+    var queueThreshold:  Int     get() = sp.getInt(KEY_QUEUE_THRESHOLD, 3);                          set(v) = sp.edit().putInt(KEY_QUEUE_THRESHOLD, v).apply()
+
     // Business pairing — set during the first-launch setup flow.
     var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
     var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
@@ -58,7 +69,12 @@ class Prefs(context: Context) {
         const val KEY_BUSINESS_CODE = "business_code"
         const val KEY_BUSINESS_ID   = "business_id"
         const val KEY_BUSINESS_NAME = "business_name"
+        const val KEY_ORIENTATION   = "orientation"
+        const val KEY_INVERT_DIR    = "invert_direction"
+        const val KEY_TILL_MODE     = "till_mode"
+        const val KEY_QUEUE_THRESHOLD = "queue_threshold"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
+        val TILL_MODES = listOf("overhead", "walkpast", "approach")
     }
 }

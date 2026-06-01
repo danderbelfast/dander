@@ -8,8 +8,12 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Size
+import android.graphics.Color
 import android.view.View
 import android.view.WindowManager
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -53,6 +57,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 binding.txtIn.text = "IN $inCount"
                 binding.txtOut.text = "OUT $outCount"
+                refreshQueueHud(inCount, outCount)
             }
         },
         // Privacy compositing is off for hardware testing — see PeopleAnalyzer.
@@ -106,6 +111,29 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
+        // Rotate counting line. Persist new orientation, recompute the
+        // counting mode, and rebind the camera so the analysis use case
+        // restarts cleanly (tracker IDs reset; counts persist).
+        binding.btnRotate.setOnClickListener {
+            prefs.orientation = if (prefs.orientation == "portrait") "landscape" else "portrait"
+            applyCountingMode()
+            if (cameraBound) {
+                unbindCamera()
+                if (granted(Manifest.permission.CAMERA)) startCamera()
+            }
+        }
+
+        // Invert IN / OUT. No restart — analyzer reads invertDirection on
+        // every bump(), so the next crossing flips immediately.
+        binding.btnInvert.setOnClickListener {
+            prefs.invertDirection = !prefs.invertDirection
+            analyzer.invertDirection = prefs.invertDirection
+        }
+
+        // Seed analyzer tunables from prefs before the camera spins up.
+        analyzer.invertDirection = prefs.invertDirection
+        applyCountingMode()
+
         permissionLauncher.launch(requiredPermissions())
     }
 
@@ -122,6 +150,57 @@ class MainActivity : AppCompatActivity() {
         }
         applyBrightness()
         analyzer.frameInterval = prefs.frameInterval
+        analyzer.invertDirection = prefs.invertDirection
+        applyCountingMode()
+    }
+
+    /**
+     * Compute the active counting strategy from prefs and propagate it to
+     * the analyzer + overlay + queue HUD visibility. Reads `zoneType`,
+     * `orientation` and `tillMode`.
+     *
+     * Till zones drive their own mode via `tillMode` (overhead / walkpast
+     * / approach). Every other zone defers to `orientation` (landscape =
+     * horizontal line, portrait = vertical line).
+     */
+    private fun applyCountingMode() {
+        val mode = if (prefs.zoneType == "till") {
+            when (prefs.tillMode) {
+                "approach" -> PeopleAnalyzer.CountingMode.APPROACH
+                "walkpast" -> PeopleAnalyzer.CountingMode.VERTICAL_LINE
+                else       -> PeopleAnalyzer.CountingMode.HORIZONTAL_LINE   // "overhead"
+            }
+        } else {
+            if (prefs.orientation == "portrait") PeopleAnalyzer.CountingMode.VERTICAL_LINE
+            else                                 PeopleAnalyzer.CountingMode.HORIZONTAL_LINE
+        }
+        analyzer.countingMode = mode
+        binding.overlayView.setLineDirection(when (mode) {
+            PeopleAnalyzer.CountingMode.HORIZONTAL_LINE -> OverlayView.LineDirection.HORIZONTAL
+            PeopleAnalyzer.CountingMode.VERTICAL_LINE   -> OverlayView.LineDirection.VERTICAL
+            PeopleAnalyzer.CountingMode.APPROACH        -> OverlayView.LineDirection.NONE
+        })
+        // Queue HUD only relevant for till zones.
+        binding.queueHud.visibility = if (prefs.zoneType == "till") View.VISIBLE else View.GONE
+        // Re-apply the current depth so the colour/bar reflect the new threshold
+        // even if the count itself didn't move.
+        refreshQueueHud(0, 0)
+    }
+
+    private fun refreshQueueHud(@Suppress("UNUSED_PARAMETER") inCount: Int, @Suppress("UNUSED_PARAMETER") outCount: Int) {
+        if (prefs.zoneType != "till") return
+        val depth = analyzer.currentQueueDepth()
+        val threshold = prefs.queueThreshold.coerceAtLeast(1)
+        binding.txtQueueDepth.text = depth.toString()
+        val colour = when {
+            depth >  threshold -> Color.parseColor("#FF5252")  // red — over
+            depth == threshold -> Color.parseColor("#FFB300")  // amber — at
+            else               -> Color.parseColor("#00E676")  // green — under
+        }
+        binding.txtQueueDepth.setTextColor(colour)
+        // Progress bar fills 0..100%; 100% at threshold.
+        val pct = ((depth.toFloat() / threshold) * 100f).toInt().coerceIn(0, 100)
+        binding.queueBar.progress = pct
     }
 
     private fun onPermissionsSettled() {
@@ -248,6 +327,13 @@ class MainActivity : AppCompatActivity() {
             btOtherAndroid = brands.otherAndroid,
             btUnknown = brands.unknown,
             btDevices = bleDevices,
+            orientation = prefs.orientation,
+            // Queue metrics only meaningful for till zones — heartbeat / non-till
+            // uploads report 0 so the dashboard doesn't get phantom alerts.
+            queueDepth = if (open && prefs.zoneType == "till") analyzer.currentQueueDepth() else 0,
+            queueAlert = open && prefs.zoneType == "till" &&
+                analyzer.currentQueueDepth() > prefs.queueThreshold,
+            tillMode = if (prefs.zoneType == "till") prefs.tillMode else null,
             heartbeat = !open,
         )
     }
