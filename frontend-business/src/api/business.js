@@ -166,6 +166,10 @@ export const registerFootfallDevice = (data) =>
 export const getFootfallLive = () =>
   client.get('/api/devices/footfallcam/live').then((r) => r.data);
 
+// ── Dander Node — live zones ────────────────────────────────
+export const getLiveZones = () =>
+  client.get('/api/analytics/zones/live').then((r) => r.data);
+
 // ── FootfallCam analytics ───────────────────────────────────
 export const getFootfallSummary = (date) =>
   client.get('/api/analytics/footfall/summary', { params: date ? { date } : {} }).then((r) => r.data);

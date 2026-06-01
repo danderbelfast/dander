@@ -130,8 +130,9 @@ router.post('/phone-counter', async (req, res) => {
     await pool.query(
       `INSERT INTO phone_counter_readings
          (device_id, timestamp, count_in, count_out, noise_db, noise_label,
-          wifi_count, bluetooth_count, light_lux)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          wifi_count, bluetooth_count, light_lux,
+          business_id, zone_name, zone_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null,
         ts,
@@ -142,6 +143,9 @@ router.post('/phone-counter', async (req, res) => {
         num(p.wifi_count),
         num(p.bluetooth_count),
         num(p.light_lux),
+        num(p.business_id),
+        typeof p.zone_name === 'string' ? p.zone_name.slice(0, 100) : null,
+        typeof p.zone_type === 'string' ? p.zone_type.slice(0, 30)  : null,
       ]
     );
   } catch (err) {

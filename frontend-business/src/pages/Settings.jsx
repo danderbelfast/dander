@@ -18,11 +18,14 @@ export default function Settings() {
   const [saving, setSaving]       = useState(false);
   const [staffCost, setStaffCost] = useState('');
   const [notifs, setNotifs]       = useState({ ...DEFAULT_PREFS });
+  const [businessCode, setBusinessCode] = useState('');
+  const [codeCopied, setCodeCopied]     = useState(false);
 
   useEffect(() => {
     Promise.all([getProfile(), getNotifPrefs()])
       .then(([profData, notifData]) => {
         setStaffCost(profData.business?.avg_hourly_staff_cost_gbp || '');
+        setBusinessCode(profData.business?.business_code || '');
         const backend = notifData.prefs || {};
         if (Object.keys(backend).length > 0) {
           setNotifs({ ...DEFAULT_PREFS, ...backend });
@@ -81,6 +84,43 @@ export default function Settings() {
           Account and business configuration.
         </p>
       </div>
+
+      {businessCode && (
+        <div className="card">
+          <div className="card-header"><span className="card-title">Business code</span></div>
+          <div className="card-body">
+            <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 0 }}>
+              Give this 4-digit code to staff installing a Dander Node phone. They&apos;ll enter it on
+              first launch to link the phone to your business.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{
+                fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700,
+                letterSpacing: 6, color: 'var(--c-text)',
+                padding: '6px 14px',
+                background: 'var(--c-bg-subtle, #f7f7f8)', borderRadius: 8,
+              }}>
+                {businessCode}
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(businessCode);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 1500);
+                  } catch {
+                    toast({ message: 'Could not copy to clipboard.', type: 'error' });
+                  }
+                }}
+              >
+                {codeCopied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="card-header"><span className="card-title">Account</span></div>

@@ -362,7 +362,43 @@ async function getHourlyFootfall(businessId, date) {
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Live zones (Dander Node phone counter)
+// ---------------------------------------------------------------------------
+// A zone is "active" if it reported within the last 2 minutes. Within that
+// window we sum count_in / count_out (each reading is a delta), and pick
+// the latest noise_label / wifi / bluetooth / lux for the at-a-glance card.
+
+async function getLiveZones(businessId) {
+  const { rows } = await pool.query(
+    `WITH win AS (
+       SELECT *
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND timestamp > NOW() - INTERVAL '2 minutes'
+          AND zone_name IS NOT NULL
+     )
+     SELECT
+       zone_name,
+       (array_agg(zone_type   ORDER BY timestamp DESC) FILTER (WHERE zone_type IS NOT NULL))[1] AS zone_type,
+       (array_agg(noise_label ORDER BY timestamp DESC) FILTER (WHERE noise_label IS NOT NULL))[1] AS noise_label,
+       COALESCE(SUM(count_in), 0)::int  AS count_in,
+       COALESCE(SUM(count_out), 0)::int AS count_out,
+       AVG(noise_db)::float       AS noise_db,
+       MAX(wifi_count)::int       AS wifi_count,
+       COALESCE(SUM(bluetooth_count), 0)::int AS bluetooth_count,
+       AVG(light_lux)::float      AS light_lux,
+       MAX(timestamp)             AS last_seen
+     FROM win
+     GROUP BY zone_name
+     ORDER BY zone_name`,
+    [businessId]
+  );
+  return rows;
+}
+
 module.exports = {
   getDashboard, getCurrentStatus, generatePlaceholderData,
   getFootfallSummary, getHourlyFootfall,
+  getLiveZones,
 };

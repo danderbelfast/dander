@@ -43,6 +43,20 @@ router.get(
   }
 );
 
+// ---------------------------------------------------------------------------
+// Dander Node phone counter — GET /api/analytics/zones/live
+// ---------------------------------------------------------------------------
+
+router.get('/zones/live', async (req, res) => {
+  try {
+    const zones = await analytics.getLiveZones(req.business.id);
+    return ok(res, { zones });
+  } catch (err) {
+    console.error('[analytics/zones/live]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to load live zones.');
+  }
+});
+
 router.get(
   '/footfall/hourly',
   [query('date').optional().isISO8601().withMessage('date must be YYYY-MM-DD.')],
