@@ -48,6 +48,12 @@ class Uploader(
         val dwell30To2Min: Int,
         val dwell2To5Min: Int,
         val dwellOver5Min: Int,
+        val btApple: Int,
+        val btSamsung: Int,
+        val btGoogle: Int,
+        val btHuawei: Int,
+        val btOtherAndroid: Int,
+        val btUnknown: Int,
         val heartbeat: Boolean = false,
     )
 
@@ -97,6 +103,14 @@ class Uploader(
             put("dwell_30_to_2min", s.dwell30To2Min)
             put("dwell_2_to_5min",  s.dwell2To5Min)
             put("dwell_over_5min",  s.dwellOver5Min)
+            put("bt_brands", JSONObject().apply {
+                put("apple",         s.btApple)
+                put("samsung",       s.btSamsung)
+                put("google",        s.btGoogle)
+                put("huawei",        s.btHuawei)
+                put("other_android", s.btOtherAndroid)
+                put("unknown",       s.btUnknown)
+            })
             put("heartbeat", s.heartbeat)
         }.toString()
 

@@ -240,4 +240,101 @@ class SensorHub(
         if (!bluetoothScanAllowed()) return 0
         synchronized(btSeen) { return btSeen.size }
     }
+
+    // ── BT brand detection (OUI lookup) ─────────────────────────
+    //
+    // PoC caveat: iOS 14+ and Android 8+ randomise BLE advertising
+    // addresses every ~15 min, so most phone scans will fall into the
+    // "unknown" bucket. We short-circuit any locally-administered address
+    // (bit 1 of the first octet set) to "unknown" so the per-brand counts
+    // only reflect genuinely-resolvable hardware MACs. The OUI tables
+    // below cover common prefixes from each vendor's IEEE allocations —
+    // far from exhaustive but enough for a PoC to surface "this device
+    // type is present at all".
+
+    data class BrandCounts(
+        val apple: Int,
+        val samsung: Int,
+        val google: Int,
+        val huawei: Int,
+        val otherAndroid: Int,
+        val unknown: Int,
+    ) {
+        companion object { val ZERO = BrandCounts(0, 0, 0, 0, 0, 0) }
+    }
+
+    private enum class Brand { Apple, Samsung, Google, Huawei, OtherAndroid, Unknown }
+
+    private val APPLE_OUI = setOf(
+        "001B63", "00236C", "0023DF", "002500", "040CCE", "0C74C2",
+        "109ADD", "1499E2", "1C9148", "28CDC1", "2CF0EE", "3C15C2",
+        "406C8F", "4860BC", "4C7C5F", "54E43A", "58E28F", "60F81D",
+        "680927", "70480F", "78CA39", "7C6D62", "843835", "8863DF",
+        "8C8590", "9801A7", "9C04EB", "9CF387", "A45E60", "ACDE48",
+        "B03495", "B853AC", "C09F42", "C81EE7", "D023DB", "D4909C",
+        "D83062", "DC2B2A", "E0F847", "F01898", "F0DBE2", "FC253F",
+    )
+    private val SAMSUNG_OUI = setOf(
+        "0007AB", "0012FB", "002119", "00265F", "286ABA", "380A94",
+        "38AA3C", "5C0A5B", "78F882", "84B541", "8C7712", "8C71F8",
+        "B45D50", "B85E7B", "BC72B1", "C8198F", "D0667B", "D8B12A",
+        "E812A5", "EC1F72", "F408F1", "F853A1", "FCC734",
+    )
+    private val GOOGLE_OUI = setOf(
+        "001A11", "3CB72A", "3C5AB4", "641666", "6CAD3F", "703ACB",
+        "94EBCD", "A40CC3", "C8AA21", "DA66C0", "F4F5E8",
+    )
+    private val HUAWEI_OUI = setOf(
+        "001882", "00259E", "047970", "0CD6BD", "1C1D67", "283152",
+        "344BB6", "4C5499", "5469DB", "688FEE", "8038BC", "A08CFD",
+        "A49947", "B83A7E", "C8D1D1", "D466A8", "E8BBA8", "F4A99C",
+    )
+    // Common Android-OEM OUIs that aren't Samsung / Google / Huawei.
+    // (Xiaomi, OnePlus, OPPO, LG, Sony, Motorola, etc.)
+    private val OTHER_ANDROID_OUI = setOf(
+        "00159E", "001A80", "001E75", "0023FE", "0024E4", "0026E2",
+        "1C77F6", "20DBAB", "286C07", "2C20B7", "3C5A37", "4060A4",
+        "4868CA", "5085A2", "584873", "688567", "70BB1A", "743A65",
+        "789F70", "807ABF", "94DBC9", "9C99A0", "A0466A", "A47733",
+        "AC36C4", "B0E235", "C0EEFB", "D0EBA8", "D4570B", "F88179",
+        "F8A45F",
+    )
+
+    private fun classify(address: String): Brand {
+        // Strip colons and uppercase: "aa:bb:cc:..." -> "AABBCC..."
+        val clean = address.replace(":", "").uppercase()
+        if (clean.length < 6) return Brand.Unknown
+        // Locally-administered bit (bit 1 of first octet) = random/private.
+        val firstByte = clean.substring(0, 2).toIntOrNull(16) ?: return Brand.Unknown
+        if ((firstByte and 0x02) != 0) return Brand.Unknown
+
+        val oui = clean.substring(0, 6)
+        return when (oui) {
+            in APPLE_OUI         -> Brand.Apple
+            in SAMSUNG_OUI       -> Brand.Samsung
+            in GOOGLE_OUI        -> Brand.Google
+            in HUAWEI_OUI        -> Brand.Huawei
+            in OTHER_ANDROID_OUI -> Brand.OtherAndroid
+            else                  -> Brand.Unknown
+        }
+    }
+
+    /** Per-brand snapshot of devices in the current/last scan window. */
+    fun drainBrandCounts(): BrandCounts {
+        if (!bluetoothScanAllowed()) return BrandCounts.ZERO
+        val seen: List<String> = synchronized(btSeen) { btSeen.toList() }
+        var apple = 0; var samsung = 0; var google = 0
+        var huawei = 0; var other = 0; var unknown = 0
+        for (addr in seen) {
+            when (classify(addr)) {
+                Brand.Apple         -> apple++
+                Brand.Samsung       -> samsung++
+                Brand.Google        -> google++
+                Brand.Huawei        -> huawei++
+                Brand.OtherAndroid  -> other++
+                Brand.Unknown       -> unknown++
+            }
+        }
+        return BrandCounts(apple, samsung, google, huawei, other, unknown)
+    }
 }

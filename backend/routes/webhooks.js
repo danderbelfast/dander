@@ -127,15 +127,19 @@ router.post('/phone-counter', async (req, res) => {
     let ts = p.timestamp ? new Date(p.timestamp) : new Date();
     if (Number.isNaN(ts.getTime())) ts = new Date();
 
+    const brands = (p.bt_brands && typeof p.bt_brands === 'object') ? p.bt_brands : {};
+
     await pool.query(
       `INSERT INTO phone_counter_readings
          (device_id, timestamp, count_in, count_out, noise_db, noise_label,
           wifi_count, bluetooth_count, light_lux,
           business_id, zone_name, zone_type,
           avg_dwell_seconds, max_dwell_seconds,
-          dwell_under_30s, dwell_30_to_2min, dwell_2_to_5min, dwell_over_5min)
+          dwell_under_30s, dwell_30_to_2min, dwell_2_to_5min, dwell_over_5min,
+          bt_apple, bt_samsung, bt_google, bt_huawei, bt_other_android)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-               $13, $14, $15, $16, $17, $18)`,
+               $13, $14, $15, $16, $17, $18,
+               $19, $20, $21, $22, $23)`,
       [
         typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null,
         ts,
@@ -155,6 +159,11 @@ router.post('/phone-counter', async (req, res) => {
         num(p.dwell_30_to_2min),
         num(p.dwell_2_to_5min),
         num(p.dwell_over_5min),
+        num(brands.apple),
+        num(brands.samsung),
+        num(brands.google),
+        num(brands.huawei),
+        num(brands.other_android),
       ]
     );
   } catch (err) {

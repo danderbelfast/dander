@@ -163,6 +163,9 @@ class MainActivity : AppCompatActivity() {
         // closed hours `clearTracking()` already wiped the in-flight IDs.
         val dwell = if (open) analyzer.drainDwell()
                     else PeopleAnalyzer.DwellWindow(0.0, 0.0, 0, 0, 0, 0)
+        // BLE brand breakdown is per-current-scan-window; zero during closed.
+        val brands = if (open) sensorHub.drainBrandCounts()
+                     else SensorHub.BrandCounts.ZERO
         return Uploader.Summary(
             deviceId = deviceId,
             businessId = prefs.businessId,
@@ -181,6 +184,12 @@ class MainActivity : AppCompatActivity() {
             dwell30To2Min = dwell.from30To120,
             dwell2To5Min = dwell.from120To300,
             dwellOver5Min = dwell.over300,
+            btApple = brands.apple,
+            btSamsung = brands.samsung,
+            btGoogle = brands.google,
+            btHuawei = brands.huawei,
+            btOtherAndroid = brands.otherAndroid,
+            btUnknown = brands.unknown,
             heartbeat = !open,
         )
     }
