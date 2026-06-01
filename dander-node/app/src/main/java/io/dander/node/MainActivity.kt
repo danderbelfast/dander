@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private val ui = Handler(Looper.getMainLooper())
 
     @Volatile private var isOpen: Boolean = true
+    @Volatile private var pausedRemotely: Boolean = false
     private var cameraBound = false
     private var pendingCameraStart = false
 
@@ -87,7 +88,11 @@ class MainActivity : AppCompatActivity() {
         sensorHub = SensorHub(applicationContext, prefs)
         analyzer.frameInterval = prefs.frameInterval
 
-        uploader = Uploader(ENDPOINT) { buildSummary() }
+        uploader = Uploader(
+            endpoint = ENDPOINT,
+            buildSummary = { buildSummary() },
+            onCommands  = { cmd -> applyRemoteCommands(cmd) },
+        )
 
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -117,7 +122,8 @@ class MainActivity : AppCompatActivity() {
         scheduleHudRefresh()
         scheduleHoursCheck()
         // Initial transition decides whether camera/sensors run right now.
-        applyOpenClosedState(BusinessHours.isOpen(prefs), force = true)
+        isOpen = BusinessHours.isOpen(prefs)
+        applyRunningState()
     }
 
     // ─────────────────────────────────────────────────────────
@@ -128,33 +134,73 @@ class MainActivity : AppCompatActivity() {
         ui.post(object : Runnable {
             override fun run() {
                 val nowOpen = BusinessHours.isOpen(prefs)
-                if (nowOpen != isOpen) applyOpenClosedState(nowOpen)
+                if (nowOpen != isOpen) {
+                    isOpen = nowOpen
+                    applyRunningState()
+                }
                 ui.postDelayed(this, HOURS_CHECK_MS)
             }
         })
     }
 
-    private fun applyOpenClosedState(open: Boolean, force: Boolean = false) {
-        if (!force && open == isOpen) return
-        isOpen = open
+    /**
+     * Single source of truth for "are we running right now". Inputs are
+     * `isOpen` (business hours) and `pausedRemotely` (dashboard toggle).
+     * Closed-hours overlay wins precedence over the pause overlay so the
+     * operator sees the more fundamental state first.
+     */
+    private fun applyRunningState() {
+        val open    = isOpen
+        val paused  = pausedRemotely
+        val running = open && !paused
 
-        if (open) {
-            binding.closedOverlay.visibility = View.GONE
+        binding.closedOverlay.visibility = if (!open)          View.VISIBLE else View.GONE
+        binding.pausedOverlay.visibility = if (open && paused) View.VISIBLE else View.GONE
+        if (!open) binding.txtNextOpen.text = BusinessHours.formatNextOpen(prefs)
+
+        if (running) {
             applyBrightness()
             if (!cameraBound && granted(Manifest.permission.CAMERA)) startCamera()
             sensorHub.resume()
             uploader.intervalMs = OPEN_INTERVAL_MS
         } else {
-            binding.closedOverlay.visibility = View.VISIBLE
-            binding.txtNextOpen.text = BusinessHours.formatNextOpen(prefs)
-            // Dim hard so the panel barely glows — actual screen-off requires
-            // device-admin; this is the PoC-safe approximation.
-            window.attributes = window.attributes.apply { screenBrightness = 0.02f }
+            // Closed hours: dim hard to save power. Remote-pause keeps
+            // normal brightness so the staff member can see the overlay.
+            if (!open) {
+                window.attributes = window.attributes.apply { screenBrightness = 0.02f }
+            } else {
+                applyBrightness()
+            }
             unbindCamera()
             sensorHub.suspend()
-            uploader.intervalMs = HEARTBEAT_INTERVAL_MS
+            // Stay at the 60s upload cadence while remote-paused so the
+            // resume command is picked up fast. Closed hours can drop to
+            // the slow heartbeat.
+            uploader.intervalMs = if (paused) OPEN_INTERVAL_MS else HEARTBEAT_INTERVAL_MS
         }
     }
+
+    // ─────────────────────────────────────────────────────────
+    // Remote command applier (called from Uploader's response handler)
+    // ─────────────────────────────────────────────────────────
+
+    private fun applyRemoteCommands(cmd: Uploader.Commands) {
+        // Uploader runs the callback on its IO coroutine — all UI/state
+        // mutations bounce to the main looper.
+        ui.post {
+            when (cmd.countingEnabled) {
+                true  -> if (pausedRemotely)  { pausedRemotely = false; applyRunningState() }
+                false -> if (!pausedRemotely) { pausedRemotely = true;  applyRunningState() }
+                null  -> {}
+            }
+            cmd.zoneName?.let { if (it != prefs.zoneName) prefs.zoneName = it }
+            cmd.zoneType?.let { if (it != prefs.zoneType) prefs.zoneType = it }
+        }
+    }
+
+    /** Public hooks — spec-mandated entry points; internally delegate to applyRunningState. */
+    fun pauseCounting()  { ui.post { if (!pausedRemotely) { pausedRemotely = true;  applyRunningState() } } }
+    fun resumeCounting() { ui.post { if (pausedRemotely)  { pausedRemotely = false; applyRunningState() } } }
 
     private fun buildSummary(): Uploader.Summary {
         val open = isOpen

@@ -30,7 +30,20 @@ import java.time.Instant
 class Uploader(
     private val endpoint: String,
     private val buildSummary: () -> Summary,
+    private val onCommands: (Commands) -> Unit = {},
 ) {
+    /**
+     * Remote commands the backend can piggy-back on the 200 response.
+     * Each field is nullable — "absent in payload" means "no change",
+     * not "set to null". The applier (MainActivity) is responsible for
+     * the actual state machine.
+     */
+    data class Commands(
+        val countingEnabled: Boolean?,
+        val zoneName: String?,
+        val zoneType: String?,
+    )
+
     data class Summary(
         val deviceId: String,
         val businessId: Int,
@@ -133,11 +146,34 @@ class Uploader(
             }
             OutputStreamWriter(conn.outputStream).use { it.write(body); it.flush() }
             val code = conn.responseCode
-            code in 200..299
+            if (code in 200..299) {
+                // Read the body so the remote-command piggy-back gets applied.
+                val responseBody = try {
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                } catch (_: Exception) { "" }
+                parseCommands(responseBody)?.let { onCommands(it) }
+                true
+            } else false
         } catch (e: Exception) {
             false
         } finally {
             conn?.disconnect()
         }
+    }
+
+    private fun parseCommands(body: String): Commands? {
+        if (body.isBlank()) return null
+        return try {
+            val root = JSONObject(body)
+            val cmd = root.optJSONObject("commands") ?: return null
+            Commands(
+                countingEnabled = if (cmd.has("counting_enabled") && !cmd.isNull("counting_enabled"))
+                    cmd.getBoolean("counting_enabled") else null,
+                zoneName = if (cmd.has("zone_name") && !cmd.isNull("zone_name"))
+                    cmd.getString("zone_name") else null,
+                zoneType = if (cmd.has("zone_type") && !cmd.isNull("zone_type"))
+                    cmd.getString("zone_type") else null,
+            )
+        } catch (_: Exception) { null }
     }
 }

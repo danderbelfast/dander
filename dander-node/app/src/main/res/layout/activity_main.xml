@@ -116,4 +116,37 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- Remote-pause overlay (shown when the dashboard has toggled counting off) -->
+    <FrameLayout
+        android:id="@+id/pausedOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#E6101820"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Paused remotely"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Counting disabled by the business dashboard."
+                android:textColor="#9FB3C8"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+
 </FrameLayout>
