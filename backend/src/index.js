@@ -141,6 +141,7 @@ app.use('/api/challenges',  require('../routes/challenges'));
 app.use('/api/debug',       require('../routes/debug'));
 app.use('/api/webhooks',    require('../routes/webhooks'));
 app.use('/api/devices',     require('../routes/devices'));
+app.use('/api/nodes',       require('../routes/nodes'));
 app.use('/api/public',      require('../routes/public'));
 
 // ---------------------------------------------------------------------------

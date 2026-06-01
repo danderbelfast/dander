@@ -192,6 +192,30 @@ router.post('/phone-counter', async (req, res) => {
         );
       }
     }
+
+    // Pending remote command for this device? Piggy-back it on the 200
+    // response so the phone gets it on the next round trip (no separate
+    // poll endpoint — the device already uploads every 60s).
+    if (typeof p.device_id === 'string' && p.device_id.length > 0) {
+      const { rows: cmdRows } = await pool.query(
+        `SELECT counting_enabled, zone_name, zone_type
+           FROM node_commands
+          WHERE device_id = $1`,
+        [p.device_id.slice(0, 100)]
+      );
+      if (cmdRows.length > 0) {
+        const c = cmdRows[0];
+        return res.status(200).json({
+          success: true,
+          received: true,
+          commands: {
+            counting_enabled: c.counting_enabled,
+            zone_name: c.zone_name,
+            zone_type: c.zone_type,
+          },
+        });
+      }
+    }
   } catch (err) {
     console.error('[webhooks/phone-counter] store failed:', err.message);
     // fall through — still 200
