@@ -172,15 +172,24 @@ class BleBroadcaster(
             return
         }
 
+        // ADVERTISE_TX_POWER_HIGH is explicit for Android 9 / API 28 BLE
+        // stacks where the default ("MEDIUM") on some OEM ROMs ends up
+        // below the scanner's RSSI threshold. LOW_LATENCY mode keeps the
+        // adv interval tight so a fast walk-by still gets picked up.
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
-            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .setConnectable(false)
             .build()
 
+        // The 128-bit UUID is already carried inside the service data AD
+        // structure — adding it separately via addServiceUuid() duplicates
+        // 18 bytes of overhead and pushes the legacy 31-byte adv packet
+        // over budget, which the radio reports as DATA_TOO_LARGE (code 1).
+        // Scanners filtering by service UUID still match because the
+        // service data AD declares the UUID in its header.
         val data = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
-            .addServiceUuid(PARCEL_UUID)
             .addServiceData(PARCEL_UUID, payload)
             .build()
 
