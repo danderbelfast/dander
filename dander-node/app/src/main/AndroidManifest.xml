@@ -33,6 +33,13 @@
         android:name="android.permission.BLUETOOTH_ADVERTISE"
         tools:targetApi="s" />
 
+    <!-- Some OEM Bluetooth stacks require BLUETOOTH_CONNECT even when
+         we only advertise / scan and never connect; declaring it lets
+         the runtime request in MainActivity actually succeed. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_CONNECT"
+        tools:targetApi="s" />
+
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
 
     <application

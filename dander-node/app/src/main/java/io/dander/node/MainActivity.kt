@@ -644,7 +644,15 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.ACCESS_FINE_LOCATION,
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // API 31+ (Android 12+) needs every BLE op separately granted:
+            //   SCAN      — SensorHub scans for nearby phones / peripherals
+            //   ADVERTISE — BleBroadcaster broadcasts the Dander service UUID
+            //   CONNECT   — required by some OEM stacks even for advertise-only
+            // Without ADVERTISE we'd silently fail to broadcast and no user
+            // app could detect the kiosk.
             perms.add(Manifest.permission.BLUETOOTH_SCAN)
+            perms.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+            perms.add(Manifest.permission.BLUETOOTH_CONNECT)
         }
         return perms.toTypedArray()
     }
