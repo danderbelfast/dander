@@ -13,6 +13,7 @@
 const { Router } = require('express');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
+const { pickSearchTerm, fetchGifUrl } = require('../services/loyaltyGreeting');
 
 const router = Router();
 
@@ -111,6 +112,82 @@ router.get('/business/:id/stranger-display', async (req, res) => {
     console.error('[public/stranger-display]', err);
     return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load stranger display.' });
   }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/public/stranger-milestone
+//
+// Called by a Dander Node when its visitor count crosses a 100-multiple
+// during open hours. We ask Claude for a celebratory Giphy search term,
+// fetch a PG GIF, and return both alongside a hand-tuned message keyed
+// off the milestone number.
+//
+// Public because the Node has no JWT yet during this PoC. The milestone
+// only fires from the kiosk's own state machine, so the failure mode of
+// a curl spam is just wasted Claude+Giphy calls — rate-limit to be safe.
+// ---------------------------------------------------------------------------
+
+const milestoneLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max:      30,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message: { success: false, code: 'RATE_LIMITED', message: 'Slow down.' },
+});
+
+const MILESTONE_MESSAGES = {
+  100:  "You're our 100th visitor today!",
+  200:  "200 visitors today — you made it!",
+  300:  "300 visitors — what a day!",
+  500:  "HALFWAY TO 1000! 🚀",
+  1000: "1000 VISITORS!! LEGENDARY!! 🏆",
+};
+
+function messageFor(milestone) {
+  return MILESTONE_MESSAGES[milestone] || `You're visitor #${milestone} today!`;
+}
+
+router.post('/stranger-milestone', milestoneLimiter, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const milestone = parseInt(body.milestone, 10);
+  const businessId = parseInt(body.business_id, 10);
+  if (!Number.isFinite(milestone) || milestone <= 0) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'milestone must be a positive integer.' });
+  }
+
+  let category = 'shop';
+  if (Number.isFinite(businessId)) {
+    try {
+      const { rows } = await pool.query('SELECT category FROM businesses WHERE id = $1', [businessId]);
+      if (rows.length > 0 && rows[0].category) category = rows[0].category;
+    } catch (err) {
+      // Don't block on category lookup — fall through with the default.
+      console.warn('[public/stranger-milestone] category lookup failed:', err.message);
+    }
+  }
+
+  // Claude → Giphy. Both degrade to null on failure; the Node already
+  // renders text-only in that case so the celebration still happens.
+  const searchTerm =
+    (await pickSearchTerm({
+      first_name: 'a customer',
+      visit_number: milestone,
+      greeting_type: 'milestone_visitor',
+      business_category: category,
+      part_of_day: 'today',
+      tone: 'celebratory',
+      last_visit_text: '',
+    })) || 'celebration confetti';
+
+  const gifUrl = await fetchGifUrl(searchTerm, null);
+
+  return res.status(200).json({
+    success: true,
+    gif_url: gifUrl,
+    message: messageFor(milestone),
+    search_term: searchTerm,
+    milestone,
+  });
 });
 
 module.exports = router;
