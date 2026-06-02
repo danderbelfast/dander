@@ -73,13 +73,14 @@ router.post('/detected', requireAuth, async (req, res) => {
     );
     const settings = settingsRows[0];
 
-    // ── 3. Today-already-visited check (UTC date) ─────────────
+    // ── 3. Recent-visit check ─────────────────────────────────
+    // TODO: change back to UTC day check before production
     const { rows: todayRows } = await pool.query(
       `SELECT COUNT(*)::int AS n
          FROM customer_visits
         WHERE business_id = $1
           AND user_id = $2
-          AND (visited_at AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date`,
+          AND visited_at > NOW() - INTERVAL '1 minute'`,
       [businessId, user.id]
     );
     const alreadyVisitedToday = todayRows[0].n > 0;
