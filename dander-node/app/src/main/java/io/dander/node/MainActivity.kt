@@ -11,6 +11,7 @@ import android.view.OrientationEventListener
 import android.util.Size
 import android.graphics.Color
 import android.media.RingtoneManager
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -570,6 +571,20 @@ class MainActivity : AppCompatActivity() {
             // function reads prefs.soundEnabled at fire time — no view
             // state to refresh here).
             cmd.soundEnabled?.let { if (it != prefs.soundEnabled) prefs.soundEnabled = it }
+            // Opening hours pushed from the dashboard. Persist + re-evaluate
+            // the open/closed state immediately so the kiosk transitions
+            // without waiting for the next minute tick.
+            cmd.openingHoursJson?.let { json ->
+                if (json != prefs.openingHoursJson) {
+                    prefs.openingHoursJson = json
+                    Log.i("DanderMain", "Opening hours updated remotely")
+                    val nowOpen = BusinessHours.isOpen(prefs)
+                    if (nowOpen != isOpen) {
+                        isOpen = nowOpen
+                        applyRunningState()
+                    }
+                }
+            }
         }
     }
 

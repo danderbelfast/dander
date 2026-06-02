@@ -19,33 +19,17 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <!-- Business hours -->
-        <TextView style="@style/SectionLabel" android:text="Business hours" />
-
-        <LinearLayout
+        <!-- Business hours — set remotely via the dashboard. -->
+        <TextView style="@style/SectionLabel" android:text="Opening hours" />
+        <TextView
+            android:id="@+id/txtHoursSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
-                android:text="Opens" android:textColor="#BDBDBD" />
-            <Button android:id="@+id/btnOpen"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="09:00" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="6dp">
-            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
-                android:text="Closes" android:textColor="#BDBDBD" />
-            <Button android:id="@+id/btnClose"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="18:00" />
-        </LinearLayout>
+            android:textColor="#BDBDBD"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="2dp"
+            android:text="Hours set remotely from dashboard" />
 
         <!-- Display -->
         <TextView style="@style/SectionLabel" android:text="Display" />

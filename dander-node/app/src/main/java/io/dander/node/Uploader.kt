@@ -44,6 +44,8 @@ class Uploader(
         val zoneName: String?,
         val zoneType: String?,
         val soundEnabled: Boolean?,
+        /** Raw JSON string of the per-day schedule, or null if not pushed this cycle. */
+        val openingHoursJson: String?,
     )
 
     data class Summary(
@@ -197,6 +199,8 @@ class Uploader(
                     cmd.getString("zone_type") else null,
                 soundEnabled = if (cmd.has("sound_enabled") && !cmd.isNull("sound_enabled"))
                     cmd.getBoolean("sound_enabled") else null,
+                openingHoursJson = if (cmd.has("opening_hours") && !cmd.isNull("opening_hours"))
+                    cmd.getJSONObject("opening_hours").toString() else null,
             )
         } catch (_: Exception) { null }
     }

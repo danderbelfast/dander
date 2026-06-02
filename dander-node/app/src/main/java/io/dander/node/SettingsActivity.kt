@@ -1,6 +1,5 @@
 package io.dander.node
 
-import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -29,8 +28,7 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
         prefs = Prefs(this)
 
-        val btnOpen  = findViewById<Button>(R.id.btnOpen)
-        val btnClose = findViewById<Button>(R.id.btnClose)
+        val txtHoursSummary = findViewById<TextView>(R.id.txtHoursSummary)
         val seek     = findViewById<SeekBar>(R.id.seekBrightness)
         val lblBri   = findViewById<TextView>(R.id.lblBrightness)
         val group    = findViewById<RadioGroup>(R.id.groupFrames)
@@ -39,21 +37,10 @@ class SettingsActivity : AppCompatActivity() {
         val spinType = findViewById<Spinner>(R.id.spinnerZoneType)
         val btnSave  = findViewById<Button>(R.id.btnSave)
 
-        btnOpen.text  = fmt(prefs.openHour,  prefs.openMin)
-        btnClose.text = fmt(prefs.closeHour, prefs.closeMin)
-
-        btnOpen.setOnClickListener {
-            pickTime(prefs.openHour, prefs.openMin) { h, m ->
-                prefs.openHour = h; prefs.openMin = m
-                btnOpen.text = fmt(h, m)
-            }
-        }
-        btnClose.setOnClickListener {
-            pickTime(prefs.closeHour, prefs.closeMin) { h, m ->
-                prefs.closeHour = h; prefs.closeMin = m
-                btnClose.text = fmt(h, m)
-            }
-        }
+        // Read-only summary — hours are managed remotely from the dashboard
+        // via the existing node_commands channel. A future on-device editor
+        // can replace this when offline setup is needed.
+        txtHoursSummary.text = BusinessHours.summary(prefs)
 
         // Sound toggle. Persists immediately — showLoyaltyGreeting reads
         // prefs.soundEnabled on every greeting so no MainActivity restart
@@ -172,9 +159,4 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun pickTime(hour: Int, min: Int, onSet: (Int, Int) -> Unit) {
-        TimePickerDialog(this, { _, h, m -> onSet(h, m) }, hour, min, true).show()
-    }
-
-    private fun fmt(h: Int, m: Int) = "%02d:%02d".format(h, m)
 }

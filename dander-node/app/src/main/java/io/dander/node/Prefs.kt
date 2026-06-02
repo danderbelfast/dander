@@ -12,11 +12,13 @@ class Prefs(context: Context) {
     private val sp: SharedPreferences =
         context.applicationContext.getSharedPreferences("dander_node", Context.MODE_PRIVATE)
 
-    // Business hours (24h, local time).
-    var openHour:  Int get() = sp.getInt(KEY_OPEN_HOUR,  9);  set(v) = sp.edit().putInt(KEY_OPEN_HOUR,  v).apply()
-    var openMin:   Int get() = sp.getInt(KEY_OPEN_MIN,   0);  set(v) = sp.edit().putInt(KEY_OPEN_MIN,   v).apply()
-    var closeHour: Int get() = sp.getInt(KEY_CLOSE_HOUR, 18); set(v) = sp.edit().putInt(KEY_CLOSE_HOUR, v).apply()
-    var closeMin:  Int get() = sp.getInt(KEY_CLOSE_MIN,  0);  set(v) = sp.edit().putInt(KEY_CLOSE_MIN,  v).apply()
+    // Per-day weekly opening hours as JSON. See BusinessHours.kt for the
+    // schema. The single open/close hour fields used by previous versions
+    // are gone — replaced by this richer schedule that the dashboard pushes
+    // remotely via the existing node_commands channel.
+    var openingHoursJson: String
+        get() = sp.getString(KEY_OPENING_HOURS, BusinessHours.defaultJson()) ?: BusinessHours.defaultJson()
+        set(v) = sp.edit().putString(KEY_OPENING_HOURS, v).apply()
 
     // Display.
     var brightnessPct: Int get() = sp.getInt(KEY_BRIGHTNESS, 20); set(v) = sp.edit().putInt(KEY_BRIGHTNESS, v).apply()
@@ -61,10 +63,7 @@ class Prefs(context: Context) {
     }
 
     companion object {
-        const val KEY_OPEN_HOUR     = "open_hour"
-        const val KEY_OPEN_MIN      = "open_min"
-        const val KEY_CLOSE_HOUR    = "close_hour"
-        const val KEY_CLOSE_MIN     = "close_min"
+        const val KEY_OPENING_HOURS = "opening_hours_json"
         const val KEY_BRIGHTNESS    = "brightness_pct"
         const val KEY_FRAME_INTERVAL = "frame_interval"
         const val KEY_WIFI_INTERVAL = "wifi_interval_min"
