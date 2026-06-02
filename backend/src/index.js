@@ -267,6 +267,10 @@ async function storeFootfallEvent(d) {
 }
 
 const footfallWss = new WebSocketServer({ noServer: true });
+// Dander Node display-command push channel. Coexists with Socket.IO and
+// FootfallCam under the same upgrade handler below.
+const nodeWss = require('../ws/nodes');
+nodeWss.setup();
 
 httpServer.on('upgrade', (request, socket, head) => {
   let pathname;
@@ -279,6 +283,8 @@ httpServer.on('upgrade', (request, socket, head) => {
     footfallWss.handleUpgrade(request, socket, head, (ws) => {
       footfallWss.emit('connection', ws, request);
     });
+  } else if (pathname === '/ws/node') {
+    nodeWss.handleUpgrade(request, socket, head);
   }
   // Other paths (e.g. Socket.IO's /socket.io/) are intentionally untouched.
 });

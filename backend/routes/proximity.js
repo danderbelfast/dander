@@ -22,6 +22,7 @@ const { Router } = require('express');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { buildGreetingCommand } = require('../services/loyaltyGreeting');
+const nodeWs = require('../ws/nodes');
 
 const router = Router();
 
@@ -163,11 +164,26 @@ router.post('/detected', requireAuth, async (req, res) => {
       ]
     );
 
-    await pool.query(
-      `INSERT INTO node_display_commands (device_id, command)
-       VALUES ($1, $2::jsonb)`,
-      [nodeDeviceId, JSON.stringify(command)]
-    );
+    // Try the realtime push channel first. If the Node has an open
+    // WebSocket we deliver instantly (<1s) and persist the command row
+    // with delivered_at already set — keeps the dashboard audit trail
+    // intact. If the WS is down we fall back to the existing piggy-back
+    // path: the row stays undelivered and the next 60s upload picks it
+    // up. NEVER break the fallback.
+    const pushed = nodeWs.pushDisplayCommand(nodeDeviceId, command);
+    if (pushed) {
+      await pool.query(
+        `INSERT INTO node_display_commands (device_id, command, delivered_at)
+         VALUES ($1, $2::jsonb, NOW())`,
+        [nodeDeviceId, JSON.stringify(command)]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO node_display_commands (device_id, command)
+         VALUES ($1, $2::jsonb)`,
+        [nodeDeviceId, JSON.stringify(command)]
+      );
+    }
 
     return res.status(200).json({
       success: true,
@@ -178,6 +194,7 @@ router.post('/detected', requireAuth, async (req, res) => {
       visit_number: visitNumber,
       business_name: business.name,
       rssi,
+      delivery: pushed ? 'websocket' : 'piggyback',
     });
   } catch (err) {
     console.error('[proximity/detected]', err);
