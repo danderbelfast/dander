@@ -1414,4 +1414,75 @@ router.post(
   }
 );
 
+// ---------------------------------------------------------------------------
+// POST /api/business/opening-hours
+//
+// Update the business's weekly schedule AND push it to every Dander Node
+// paired to this business (via the existing node_commands channel). The
+// schedule arrives on each Node on its next 60s upload through the
+// commands piggy-back in /api/webhooks/phone-counter.
+//
+// Body shape:
+//   { opening_hours: {
+//       "monday":    {"open":"09:00","close":"17:30","closed":false},
+//       ...
+//       "sunday":    {"open":"09:00","close":"17:30","closed":true}
+//     } }
+// All 7 day keys required.
+// ---------------------------------------------------------------------------
+
+const DAY_KEYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+
+function validateOpeningHours(input) {
+  if (!input || typeof input !== 'object') return null;
+  const out = {};
+  for (const day of DAY_KEYS) {
+    const v = input[day];
+    if (!v || typeof v !== 'object') return null;
+    const open  = typeof v.open  === 'string' && /^\d{2}:\d{2}$/.test(v.open)  ? v.open  : null;
+    const close = typeof v.close === 'string' && /^\d{2}:\d{2}$/.test(v.close) ? v.close : null;
+    if (!open || !close) return null;
+    out[day] = { open, close, closed: v.closed === true };
+  }
+  return out;
+}
+
+router.post('/opening-hours', async (req, res) => {
+  const validated = validateOpeningHours(req.body && req.body.opening_hours);
+  if (!validated) {
+    return fail(res, 400, 'VALIDATION_ERROR', 'opening_hours must include all 7 days with HH:MM open/close.');
+  }
+  try {
+    await pool.query(
+      'UPDATE businesses SET opening_hours = $1::jsonb, updated_at = NOW() WHERE id = $2',
+      [JSON.stringify(validated), req.business.id]
+    );
+
+    // Push to every Node that has ever posted a reading for this business.
+    // Use the same UPSERT pattern as the regular remote-command endpoint so
+    // a partial command (just opening_hours) leaves the other fields intact.
+    const { rows: devs } = await pool.query(
+      `SELECT DISTINCT device_id FROM phone_counter_readings
+        WHERE business_id = $1 AND device_id IS NOT NULL`,
+      [req.business.id]
+    );
+    for (const { device_id } of devs) {
+      await pool.query(
+        `INSERT INTO node_commands (device_id, business_id, counting_enabled, opening_hours, updated_at)
+         VALUES ($1, $2, TRUE, $3::jsonb, NOW())
+         ON CONFLICT (device_id) DO UPDATE
+           SET business_id   = EXCLUDED.business_id,
+               opening_hours = EXCLUDED.opening_hours,
+               updated_at    = NOW()`,
+        [device_id, req.business.id, JSON.stringify(validated)]
+      );
+    }
+
+    return ok(res, { opening_hours: validated, nodes_updated: devs.length });
+  } catch (err) {
+    console.error('[business/opening-hours]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to save opening hours.');
+  }
+});
+
 module.exports = router;
