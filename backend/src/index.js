@@ -144,6 +144,7 @@ app.use('/api/devices',     require('../routes/devices'));
 app.use('/api/nodes',       require('../routes/nodes'));
 app.use('/api/alerts',      require('../routes/alerts'));
 app.use('/api/proximity',   require('../routes/proximity'));
+app.use('/api/loyalty',     require('../routes/loyalty'));
 app.use('/api/public',      require('../routes/public'));
 
 // ---------------------------------------------------------------------------

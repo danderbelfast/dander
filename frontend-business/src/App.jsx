@@ -23,6 +23,8 @@ import MySensors        from './pages/MySensors';
 import StaffRota        from './pages/StaffRota';
 import ApiKeys          from './pages/ApiKeys';
 import Settings         from './pages/Settings';
+import LoyaltySettings  from './pages/LoyaltySettings';
+import Customers        from './pages/Customers';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -55,6 +57,8 @@ export default function App() {
           <Route path="/offers/:id/stats" element={<CampaignStats />} />
           <Route path="/smart-specials"   element={<SmartSpecials />} />
           <Route path="/sensors"          element={<MySensors />} />
+          <Route path="/loyalty"          element={<LoyaltySettings />} />
+          <Route path="/customers"        element={<Customers />} />
           <Route path="/reports"          element={<Reports />} />
           <Route path="/analytics"       element={<Analytics />} />
           <Route path="/footfall"         element={<Footfall />} />

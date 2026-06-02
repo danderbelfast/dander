@@ -187,6 +187,28 @@ export const getQueueAlertCount = () =>
 export const acknowledgeQueueAlert = (id) =>
   client.post(`/api/alerts/queue/${encodeURIComponent(id)}/acknowledge`).then((r) => r.data);
 
+// ── Loyalty ─────────────────────────────────────────────────
+export const getLoyaltySettings = () =>
+  client.get('/api/loyalty/settings').then((r) => r.data);
+
+export const saveLoyaltySettings = (payload) =>
+  client.put('/api/loyalty/settings', payload).then((r) => r.data);
+
+export const getLoyaltyMessages = () =>
+  client.get('/api/loyalty/messages').then((r) => r.data);
+
+export const addLoyaltyMessage = (payload) =>
+  client.post('/api/loyalty/messages', payload).then((r) => r.data);
+
+export const deleteLoyaltyMessage = (id) =>
+  client.delete(`/api/loyalty/messages/${encodeURIComponent(id)}`).then((r) => r.data);
+
+export const getLoyaltyCustomers = () =>
+  client.get('/api/loyalty/customers').then((r) => r.data);
+
+export const previewLoyaltyGreeting = (payload) =>
+  client.post('/api/loyalty/preview-greeting', payload).then((r) => r.data);
+
 // ── FootfallCam analytics ───────────────────────────────────
 export const getFootfallSummary = (date) =>
   client.get('/api/analytics/footfall/summary', { params: date ? { date } : {} }).then((r) => r.data);
