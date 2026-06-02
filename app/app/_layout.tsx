@@ -11,13 +11,15 @@ import { AuthProvider } from '../src/context/AuthContext';
 import { useDeviceFingerprint } from '../src/hooks/useDeviceFingerprint';
 import { useWifiScanner } from '../src/hooks/useWifiScanner';
 import useStepCounter from '../src/hooks/useStepCounter';
+import { useBeaconScanner } from '../src/hooks/useBeaconScanner';
 
 function SideEffects() {
-  // All three hooks gate themselves on isAuth and platform/permissions, so
+  // All four hooks gate themselves on isAuth and platform/permissions, so
   // they're safe to mount unconditionally at the root.
   useDeviceFingerprint();
   useWifiScanner();
   useStepCounter();
+  useBeaconScanner();
   return null;
 }
 
