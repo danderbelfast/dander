@@ -5,18 +5,22 @@
     android:background="#000000">
 
     <!-- Plain camera preview + bounding-box overlay.
-         Privacy compositing is disabled for hardware testing — see
-         PeopleAnalyzer.kt. Revert this block to a single ImageView named
-         "displayView" when re-enabling the greyscale composite path. -->
+         Customer-facing kiosk: preview is hidden by default — the
+         StrangerDisplayView fills the screen during idle. The camera
+         analysis use case still runs (counting continues), only the
+         visible preview surface is removed. The operator can toggle
+         this back later if a diagnostic view is needed. -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
     <io.dander.node.OverlayView
         android:id="@+id/overlayView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
     <!-- IN count (left) -->
     <TextView
@@ -195,13 +199,14 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- Stranger-display strip — shown along the bottom while idle. -->
+    <!-- Stranger-display — full-screen idle state. This IS the customer-
+         facing view; the camera preview is permanently hidden behind it.
+         MainActivity flips this GONE only while the loyalty-greeting
+         overlay (DisplayMode) or a state overlay (closed / paused) is up. -->
     <io.dander.node.StrangerDisplayView
         android:id="@+id/strangerDisplay"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:visibility="gone" />
+        android:layout_height="match_parent" />
 
     <!-- Loyalty greeting overlay — full-screen GIF + customer name. -->
     <io.dander.node.DisplayModeView

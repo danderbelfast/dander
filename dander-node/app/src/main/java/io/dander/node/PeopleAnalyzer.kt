@@ -63,6 +63,12 @@ class PeopleAnalyzer(
     // buttons. Don't read prefs directly here: keeps the analyzer pure.
     @Volatile var countingMode: CountingMode = CountingMode.HORIZONTAL_LINE
     @Volatile var invertDirection: Boolean = false
+    // Front-camera installs see the world mirrored on the X axis. When true
+    // we flip every detection rectangle horizontally before any downstream
+    // consumer (line crossing, area trend, overlay) touches it — so the
+    // "left-to-right = IN" intuition the operator set with the rear lens
+    // continues to mean the same physical direction after switching lenses.
+    @Volatile var mirrorX: Boolean = false
 
     private val detector = ObjectDetection.getClient(
         ObjectDetectorOptions.Builder()
@@ -150,9 +156,11 @@ class PeopleAnalyzer(
                     val now = System.currentTimeMillis()
                     val norms = ArrayList<RectF>(objects.size)
                     val mode = countingMode
+                    val mirror = mirrorX
                     for (obj in objects) {
                         val id = obj.trackingId ?: continue
-                        val norm = toUprightNorm(obj.boundingBox, bw, bh, rotation)
+                        val raw = toUprightNorm(obj.boundingBox, bw, bh, rotation)
+                        val norm = if (mirror) mirrorHoriz(raw) else raw
                         norms.add(norm)
 
                         val cy = (norm.top + norm.bottom) / 2f
@@ -236,9 +244,11 @@ class PeopleAnalyzer(
         if (runFace) {
             faceDetector.process(input)
                 .addOnSuccessListener { faces ->
+                    val mirror = mirrorX
                     val faceNorms = ArrayList<RectF>(faces.size)
                     for (face in faces) {
-                        faceNorms.add(toUprightNorm(face.boundingBox, bw, bh, rotation))
+                        val raw = toUprightNorm(face.boundingBox, bw, bh, rotation)
+                        faceNorms.add(if (mirror) mirrorHoriz(raw) else raw)
                     }
                     cachedFaces = faceNorms
                     onFaces(faceNorms)
@@ -324,6 +334,10 @@ class PeopleAnalyzer(
         cachedDetections = emptyList()
         cachedFaces = emptyList()
     }
+
+    /** Horizontally mirror a normalised rect: [l,t,r,b] → [1-r, t, 1-l, b]. */
+    private fun mirrorHoriz(r: RectF): RectF =
+        RectF(1f - r.right, r.top, 1f - r.left, r.bottom)
 
     private fun toUprightNorm(box: Rect, bw: Int, bh: Int, rot: Int): RectF {
         fun mapPoint(x: Float, y: Float): Pair<Float, Float> = when (rot) {

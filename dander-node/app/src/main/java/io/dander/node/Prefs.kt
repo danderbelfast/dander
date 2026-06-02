@@ -40,6 +40,12 @@ class Prefs(context: Context) {
     var tillMode:        String  get() = sp.getString(KEY_TILL_MODE, "overhead") ?: "overhead";    set(v) = sp.edit().putString(KEY_TILL_MODE, v).apply()
     var queueThreshold:  Int     get() = sp.getInt(KEY_QUEUE_THRESHOLD, 3);                          set(v) = sp.edit().putInt(KEY_QUEUE_THRESHOLD, v).apply()
 
+    // Camera lens: "back" (rear camera, typical ceiling-mount install) or
+    // "front" (wall-mount with the screen facing outward toward customers).
+    // The latter mirrors the X axis, which the analyzer compensates for so
+    // the IN/OUT semantics stay consistent with what the operator expects.
+    var cameraFacing:    String  get() = sp.getString(KEY_CAMERA_FACING, "back") ?: "back";        set(v) = sp.edit().putString(KEY_CAMERA_FACING, v).apply()
+
     // Business pairing — set during the first-launch setup flow.
     var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
     var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
@@ -73,6 +79,7 @@ class Prefs(context: Context) {
         const val KEY_INVERT_DIR    = "invert_direction"
         const val KEY_TILL_MODE     = "till_mode"
         const val KEY_QUEUE_THRESHOLD = "queue_threshold"
+        const val KEY_CAMERA_FACING = "camera_facing"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
         val TILL_MODES = listOf("overhead", "walkpast", "approach")

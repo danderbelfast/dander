@@ -54,6 +54,9 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var pausedRemotely: Boolean = false
     private var cameraBound = false
     private var pendingCameraStart = false
+    // Tracks which CameraSelector is currently bound so we can detect
+    // a Settings-side camera_facing change in onResume.
+    @Volatile private var boundLens: String = "back"
     private var orientationListener: OrientationEventListener? = null
 
     private val analyzer = PeopleAnalyzer(
@@ -178,6 +181,8 @@ class MainActivity : AppCompatActivity() {
         applyCountingMode()
         orientationListener?.enable()
         if (::wsClient.isInitialized) wsClient.start()
+        // Operator changed the camera in Settings → rebind with the new lens.
+        if (cameraBound && boundLens != prefs.cameraFacing) restartCameraForLensSwap()
     }
 
     override fun onPause() {
@@ -207,6 +212,10 @@ class MainActivity : AppCompatActivity() {
             else                                 PeopleAnalyzer.CountingMode.HORIZONTAL_LINE
         }
         analyzer.countingMode = mode
+        // Front-camera installs mirror the X axis; the analyzer applies
+        // it inside its detection loop so the IN direction stays
+        // consistent with the operator's invert setting.
+        analyzer.mirrorX = (prefs.cameraFacing == "front")
         binding.overlayView.setLineDirection(when (mode) {
             PeopleAnalyzer.CountingMode.HORIZONTAL_LINE -> OverlayView.LineDirection.HORIZONTAL
             PeopleAnalyzer.CountingMode.VERTICAL_LINE   -> OverlayView.LineDirection.VERTICAL
@@ -268,6 +277,8 @@ class MainActivity : AppCompatActivity() {
         uploader.start()
         bleBroadcaster.start()
         binding.strangerDisplay.start(prefs.businessId)
+        // Customer-facing kiosk: stranger display is the default visible
+        // state. previewView stays GONE forever — counting runs behind it.
         binding.strangerDisplay.visibility = View.VISIBLE
         scheduleHudRefresh()
         scheduleHoursCheck()
@@ -277,10 +288,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Show the loyalty greeting overlay. Called from the Uploader's
-     * IO callback — already bounced to the UI thread by the caller.
-     * Hides the stranger-display strip while up, restores on dismiss
-     * via a one-shot scheduled show().
+     * Show the loyalty greeting overlay. Called from the Uploader/
+     * WsClient callbacks — already bounced to the UI thread by the
+     * caller. Hides the full-screen stranger display while up,
+     * restores it on dismiss.
      */
     private fun showLoyaltyGreeting(cmd: org.json.JSONObject) {
         binding.strangerDisplay.visibility = View.GONE
@@ -358,6 +369,17 @@ class MainActivity : AppCompatActivity() {
             }
             cmd.zoneName?.let { if (it != prefs.zoneName) prefs.zoneName = it }
             cmd.zoneType?.let { if (it != prefs.zoneType) prefs.zoneType = it }
+            // Remote camera-lens switch from the dashboard. Persist, refresh
+            // the analyzer's mirror flag, then rebind the camera with the
+            // new selector. Counts persist; tracker IDs reset (expected on
+            // any unbind).
+            cmd.cameraFacing?.let { facing ->
+                if ((facing == "front" || facing == "back") && facing != prefs.cameraFacing) {
+                    prefs.cameraFacing = facing
+                    applyCountingMode()
+                    restartCameraForLensSwap()
+                }
+            }
         }
     }
 
@@ -410,6 +432,7 @@ class MainActivity : AppCompatActivity() {
             queueAlert = open && prefs.zoneType == "till" &&
                 analyzer.currentQueueDepth() > prefs.queueThreshold,
             tillMode = if (prefs.zoneType == "till") prefs.tillMode else null,
+            cameraFacing = prefs.cameraFacing,
             heartbeat = !open,
         )
     }
@@ -432,22 +455,40 @@ class MainActivity : AppCompatActivity() {
                     .build()
                     .also { it.setAnalyzer(cameraExecutor, analyzer) }
 
-                // Plain camera preview for hardware testing. When privacy
-                // compositing is re-enabled, drop this Preview use case and
-                // bind only the analysis use case as before.
+                // Bind a Preview use case to the (hidden) previewView so
+                // CameraX still has a render target. The view itself is
+                // GONE — counting runs invisibly behind the stranger
+                // display. Spec: never call unbindCamera() for visibility.
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
+                val selector = if (prefs.cameraFacing == "front")
+                    CameraSelector.DEFAULT_FRONT_CAMERA
+                else
+                    CameraSelector.DEFAULT_BACK_CAMERA
+
                 provider.unbindAll()
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                provider.bindToLifecycle(this, selector, preview, analysis)
                 cameraBound = true
+                boundLens = prefs.cameraFacing
             } catch (e: Exception) {
                 binding.txtIn.text = "camera error"
             } finally {
                 pendingCameraStart = false
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    /**
+     * Switch front/back lens at runtime. CameraX requires a full
+     * unbind/rebind to swap selectors — analyzer counts persist
+     * because the analyzer instance survives.
+     */
+    private fun restartCameraForLensSwap() {
+        if (!cameraBound) return
+        unbindCamera()
+        if (granted(Manifest.permission.CAMERA)) startCamera()
     }
 
     private fun unbindCamera() {
