@@ -13,20 +13,20 @@ import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.content.ContextCompat
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.UUID
 
 /**
  * BleBroadcaster — advertise this Dander Node so nearby Dander user
  * apps can recognise the kiosk and trigger a loyalty greeting.
  *
- * The advertisement carries enough state in the *service data* field to
- * identify the right business + device without the user app having to
- * round-trip to the backend just to figure out who's nearby:
+ * The legacy BLE advertising packet is 31 bytes total. Once the flags
+ * AD and the 128-bit service UUID/data overhead are accounted for, only
+ * ~8 bytes of service-data payload fit reliably. We therefore broadcast
+ * only the 8-char device_id prefix; the user app resolves business_id
+ * from its locally-cached /api/nodes/known map keyed by that prefix.
  *
  *   service UUID  : DANDER_SERVICE_UUID
- *   service data  : [ business_id (4B LE int32) | device_id prefix (8B ASCII) ]
+ *   service data  : device_id prefix (8B ASCII)
  *
  * BLE peripheral mode requires API 21+ and a chipset that supports
  * advertising — every modern Android handset does. `start()` is safe to
@@ -69,7 +69,10 @@ class BleBroadcaster(
 
         val DANDER_SERVICE_UUID: UUID = UUID.fromString("6e646564-616e-6465-7200-000000000001")
         private val PARCEL_UUID = ParcelUuid(DANDER_SERVICE_UUID)
-        private const val PAYLOAD_LEN = 12
+        // 8 bytes — the maximum that fits alongside a 128-bit service-data
+        // UUID inside the 31-byte legacy adv budget. Changing this requires
+        // a matching update in app/src/services/beaconScanner.ts.
+        private const val PAYLOAD_LEN = 8
 
         // Per BluetoothLeAdvertiser docs — codes returned to onStartFailure.
         private fun errorCodeLabel(code: Int): String = when (code) {
@@ -160,7 +163,9 @@ class BleBroadcaster(
             report(Status.NotPaired)
             return
         }
-        val payload = buildPayload(businessId, deviceId)
+        // business_id is intentionally NOT in the payload — see class
+        // doc-comment. The user app derives it from /api/nodes/known.
+        val payload = buildPayload(deviceId)
         if (payload == null) {
             Log.w(TAG, "  buildPayload returned null (deviceId=$deviceId) — treating as unsupported")
             report(Status.Unsupported)
@@ -206,16 +211,13 @@ class BleBroadcaster(
         try { onStatus(s) } catch (_: Exception) { /* never let UI explode kill the radio loop */ }
     }
 
-    private fun buildPayload(businessId: Int, deviceId: String): ByteArray? {
+    private fun buildPayload(deviceId: String): ByteArray? {
+        // 8 ASCII bytes — the device_id prefix only. business_id used to
+        // be packed as a 4-byte LE int32 here but pushed the legacy adv
+        // packet over the 31-byte limit (DATA_TOO_LARGE on first start).
         val cleaned = deviceId.removePrefix("node-").replace("-", "")
         if (cleaned.length < 8) return null
-        val prefix = cleaned.substring(0, 8).toByteArray(Charsets.US_ASCII)
-
-        return ByteBuffer.allocate(PAYLOAD_LEN)
-            .order(ByteOrder.LITTLE_ENDIAN)
-            .putInt(businessId)
-            .put(prefix)
-            .array()
+        return cleaned.substring(0, 8).toByteArray(Charsets.US_ASCII)
     }
 
     private fun hasAdvertisePermission(): Boolean {

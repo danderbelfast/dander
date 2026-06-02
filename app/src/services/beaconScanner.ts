@@ -86,28 +86,26 @@ async function loadKnownNodes(force: boolean) {
 }
 
 /**
- * Decode the BLE service data payload. The Node-side encoding is:
- *   bytes 0..3: business_id (int32 LE)
- *   bytes 4..11: device_id prefix (8 ASCII chars)
+ * Decode the BLE service data payload — 8 ASCII bytes of device_id
+ * prefix. The Node used to also pack business_id into the same field
+ * but that pushed the legacy adv packet over its 31-byte budget and
+ * triggered ADVERTISE_FAILED_DATA_TOO_LARGE; we now look up
+ * business_id from the locally-cached /api/nodes/known map keyed by
+ * the same prefix.
  *
- * `data` is base64 in ble-plx's manufacturerData / serviceData fields,
- * so we decode → DataView for the int and then ASCII for the prefix.
+ * `data` is base64 in ble-plx's serviceData field.
  */
-function decodePayload(base64: string): { businessId: number; prefix: string } | null {
+function decodePrefix(base64: string): string | null {
   try {
-    // Cross-platform base64 → byte array.
     const binary = typeof atob === 'function'
       ? atob(base64)
       : Buffer.from(base64, 'base64').toString('binary');
-    if (binary.length < 12) return null;
+    if (binary.length < 8) return null;
 
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-    const view = new DataView(bytes.buffer);
-    const businessId = view.getInt32(0, true);
-    const prefix = String.fromCharCode(...Array.from(bytes.slice(4, 12)));
-    return { businessId, prefix };
+    return String.fromCharCode(...Array.from(bytes.slice(0, 8)));
   } catch {
     return null;
   }
@@ -203,23 +201,25 @@ export async function startBeaconScanner(
 
         const sd = device.serviceData?.[DANDER_SERVICE_UUID];
         if (!sd) return;
-        const decoded = decodePayload(sd);
-        if (!decoded) return;
+        const prefix = decodePrefix(sd);
+        if (!prefix) return;
 
         // Match the prefix back to a known node — discards strays from any
         // unrelated device that happens to advertise the same UUID.
-        const known = state.knownByPrefix.get(decoded.prefix);
+        // business_id comes from the cached row (the BLE payload no longer
+        // carries it; doing so blew the 31-byte adv budget).
+        const known = state.knownByPrefix.get(prefix);
         if (!known) return;
 
         // Per-node cooldown.
-        const last = state.recent.get(decoded.prefix) || 0;
+        const last = state.recent.get(prefix) || 0;
         if (Date.now() - last < PER_NODE_COOLDOWN_MS) return;
-        state.recent.set(decoded.prefix, Date.now());
+        state.recent.set(prefix, Date.now());
 
         try {
           const res = await notifyDetected({
             node_device_id: known.device_id,
-            business_id: decoded.businessId,
+            business_id: known.business_id,
             rssi,
           });
           state.onDetected?.({
