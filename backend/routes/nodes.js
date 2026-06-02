@@ -26,6 +26,33 @@ const { requireBusiness } = require('../middleware/auth');
 const router = Router();
 
 // ---------------------------------------------------------------------------
+// GET /api/nodes/known           (no auth — used by the user-app BLE scanner)
+//
+// Returns just the device_id list of every currently-paired Dander Node
+// across all businesses, plus its business_id so the user app can
+// pair a sighting with the right loyalty target. No business names, no
+// timestamps, no sensitive data — the scanner only needs to know
+// "is this advertised device_id a Dander Node we should care about?"
+// ---------------------------------------------------------------------------
+
+router.get('/known', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT ON (device_id) device_id, business_id
+         FROM phone_counter_readings
+        WHERE device_id IS NOT NULL
+          AND business_id IS NOT NULL
+          AND timestamp > NOW() - INTERVAL '7 days'
+        ORDER BY device_id, timestamp DESC`
+    );
+    return res.status(200).json({ success: true, nodes: rows });
+  } catch (err) {
+    console.error('[nodes/known]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load known nodes.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/nodes
 // ---------------------------------------------------------------------------
 

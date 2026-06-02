@@ -228,29 +228,54 @@ router.post('/phone-counter', async (req, res) => {
       }
     }
 
-    // Pending remote command for this device? Piggy-back it on the 200
-    // response so the phone gets it on the next round trip (no separate
-    // poll endpoint — the device already uploads every 60s).
+    // Two independent piggy-back payloads on the 200 response:
+    //   commands → persistent remote-control state (node_commands)
+    //   display  → one-shot loyalty greeting (node_display_commands)
+    // Both are attached when present so the Node can pull state +
+    // render a GIF in the same network round trip.
+    const responsePayload = { success: true, received: true };
+
     if (typeof p.device_id === 'string' && p.device_id.length > 0) {
+      const deviceId = p.device_id.slice(0, 100);
+
       const { rows: cmdRows } = await pool.query(
         `SELECT counting_enabled, zone_name, zone_type
            FROM node_commands
           WHERE device_id = $1`,
-        [p.device_id.slice(0, 100)]
+        [deviceId]
       );
       if (cmdRows.length > 0) {
         const c = cmdRows[0];
-        return res.status(200).json({
-          success: true,
-          received: true,
-          commands: {
-            counting_enabled: c.counting_enabled,
-            zone_name: c.zone_name,
-            zone_type: c.zone_type,
-          },
-        });
+        responsePayload.commands = {
+          counting_enabled: c.counting_enabled,
+          zone_name: c.zone_name,
+          zone_type: c.zone_type,
+        };
+      }
+
+      // Drain the oldest undelivered display command for this device.
+      // We mark it delivered immediately — if the Node never actually
+      // renders it (process killed, screen off) we lose that greeting
+      // but never re-deliver and confuse a later visitor.
+      const { rows: dispRows } = await pool.query(
+        `SELECT id, command
+           FROM node_display_commands
+          WHERE device_id = $1 AND delivered_at IS NULL
+          ORDER BY created_at ASC
+          LIMIT 1`,
+        [deviceId]
+      );
+      if (dispRows.length > 0) {
+        const d = dispRows[0];
+        responsePayload.display = d.command;
+        await pool.query(
+          `UPDATE node_display_commands SET delivered_at = NOW() WHERE id = $1`,
+          [d.id]
+        );
       }
     }
+
+    return res.status(200).json(responsePayload);
   } catch (err) {
     console.error('[webhooks/phone-counter] store failed:', err.message);
     // fall through — still 200

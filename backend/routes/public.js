@@ -50,4 +50,66 @@ router.get('/business/code/:code', codeLookupLimiter, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/public/business/:id/stranger-display
+//
+// What the Dander Node should render when there's no matched user. The
+// Node polls this every ~5 min while idle. No auth — the response is
+// already public-facing content (business name + today's offer + app
+// download CTA).
+// ---------------------------------------------------------------------------
+
+router.get('/business/:id/stranger-display', async (req, res) => {
+  const businessId = parseInt(req.params.id, 10);
+  if (!Number.isFinite(businessId)) {
+    return res.status(400).json({ success: false, code: 'INVALID_ID', message: 'business id must be numeric.' });
+  }
+  try {
+    const { rows: bizRows } = await pool.query(
+      'SELECT id, name FROM businesses WHERE id = $1 LIMIT 1',
+      [businessId]
+    );
+    if (bizRows.length === 0) {
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'Business not found.' });
+    }
+    const business = bizRows[0];
+
+    // Most recent active offer if any. Limit columns to what a kiosk
+    // display needs — title + short description + headline price.
+    const { rows: offerRows } = await pool.query(
+      `SELECT id, title, description, offer_type, original_price, offer_price, discount_percent
+         FROM offers
+        WHERE business_id = $1 AND is_active = TRUE
+        ORDER BY created_at DESC
+        LIMIT 1`,
+      [businessId]
+    );
+    const offer = offerRows[0] || null;
+
+    // Today's visitor count summed across all Node phone_counter_readings
+    // for this business — UTC day boundary. Kiosk display, exact precision
+    // doesn't matter.
+    const { rows: countRows } = await pool.query(
+      `SELECT COALESCE(SUM(count_in), 0)::int AS visitors
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND (timestamp AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date`,
+      [businessId]
+    );
+    const visitorCountToday = countRows[0]?.visitors ?? 0;
+
+    return res.status(200).json({
+      success: true,
+      business_name: business.name,
+      todays_offer: offer,
+      app_download_url: 'https://dander.io',
+      visitor_count_today: visitorCountToday,
+      custom_message: 'Scan to get loyalty points',
+    });
+  } catch (err) {
+    console.error('[public/stranger-display]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load stranger display.' });
+  }
+});
+
 module.exports = router;
