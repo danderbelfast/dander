@@ -46,6 +46,11 @@ class Prefs(context: Context) {
     // the IN/OUT semantics stay consistent with what the operator expects.
     var cameraFacing:    String  get() = sp.getString(KEY_CAMERA_FACING, "back") ?: "back";        set(v) = sp.edit().putString(KEY_CAMERA_FACING, v).apply()
 
+    // Play a short chime when a loyalty greeting overlay appears. Uses the
+    // device's default notification sound, so a phone in silent mode stays
+    // silent.
+    var soundEnabled:    Boolean get() = sp.getBoolean(KEY_SOUND_ENABLED, true);                     set(v) = sp.edit().putBoolean(KEY_SOUND_ENABLED, v).apply()
+
     // Business pairing — set during the first-launch setup flow.
     var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
     var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
@@ -80,6 +85,7 @@ class Prefs(context: Context) {
         const val KEY_TILL_MODE     = "till_mode"
         const val KEY_QUEUE_THRESHOLD = "queue_threshold"
         const val KEY_CAMERA_FACING = "camera_facing"
+        const val KEY_SOUND_ENABLED = "sound_enabled"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
         val TILL_MODES = listOf("overhead", "walkpast", "approach")

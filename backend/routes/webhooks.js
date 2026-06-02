@@ -240,7 +240,7 @@ router.post('/phone-counter', async (req, res) => {
       const deviceId = p.device_id.slice(0, 100);
 
       const { rows: cmdRows } = await pool.query(
-        `SELECT counting_enabled, zone_name, zone_type, camera_facing
+        `SELECT counting_enabled, zone_name, zone_type, camera_facing, sound_enabled
            FROM node_commands
           WHERE device_id = $1`,
         [deviceId]
@@ -252,6 +252,7 @@ router.post('/phone-counter', async (req, res) => {
           zone_name: c.zone_name,
           zone_type: c.zone_type,
           camera_facing: c.camera_facing,
+          sound_enabled: c.sound_enabled,
         };
       }
 

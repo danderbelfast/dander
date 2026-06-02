@@ -47,6 +47,16 @@
                 android:text="18:00" />
         </LinearLayout>
 
+        <!-- Display -->
+        <TextView style="@style/SectionLabel" android:text="Display" />
+        <Switch
+            android:id="@+id/switchSound"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Play greeting sound"
+            android:textColor="#FFFFFF"
+            android:checked="true" />
+
         <!-- Brightness -->
         <TextView style="@style/SectionLabel" android:text="Display brightness" />
         <TextView android:id="@+id/lblBrightness"

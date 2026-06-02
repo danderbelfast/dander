@@ -44,6 +44,7 @@ class Uploader(
         val zoneName: String?,
         val zoneType: String?,
         val cameraFacing: String?,
+        val soundEnabled: Boolean?,
     )
 
     data class Summary(
@@ -76,6 +77,7 @@ class Uploader(
         val queueAlert: Boolean,
         val tillMode: String?,
         val cameraFacing: String,
+        val soundEnabled: Boolean,
         val heartbeat: Boolean = false,
     )
 
@@ -144,6 +146,7 @@ class Uploader(
             put("queue_alert", s.queueAlert)
             put("till_mode",   s.tillMode ?: JSONObject.NULL)
             put("camera_facing", s.cameraFacing)
+            put("sound_enabled", s.soundEnabled)
             put("heartbeat", s.heartbeat)
         }.toString()
 
@@ -197,6 +200,8 @@ class Uploader(
                     cmd.getString("zone_type") else null,
                 cameraFacing = if (cmd.has("camera_facing") && !cmd.isNull("camera_facing"))
                     cmd.getString("camera_facing") else null,
+                soundEnabled = if (cmd.has("sound_enabled") && !cmd.isNull("sound_enabled"))
+                    cmd.getBoolean("sound_enabled") else null,
             )
         } catch (_: Exception) { null }
     }

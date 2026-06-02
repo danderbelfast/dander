@@ -10,6 +10,8 @@ import android.os.Looper
 import android.view.OrientationEventListener
 import android.util.Size
 import android.graphics.Color
+import android.media.RingtoneManager
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
@@ -36,6 +38,8 @@ class MainActivity : AppCompatActivity() {
         const val OPEN_INTERVAL_MS      = 60_000L
         const val HEARTBEAT_INTERVAL_MS = 10 * 60_000L
         const val HOURS_CHECK_MS        = 60_000L
+        const val OPERATOR_LONG_PRESS_MS = 2_000L
+        const val OPERATOR_AUTO_DISMISS_MS = 10_000L
         val TARGET_RES: Size = Size(1280, 720) // 720p analysis
     }
 
@@ -57,14 +61,32 @@ class MainActivity : AppCompatActivity() {
     // Tracks which CameraSelector is currently bound so we can detect
     // a Settings-side camera_facing change in onResume.
     @Volatile private var boundLens: String = "back"
+
+    // Latest IN/OUT for the operator panel readout. The detection
+    // callback already updates the on-screen chips; we mirror the
+    // values here so the operator panel can show them on demand
+    // without poking into the analyzer's private state.
+    @Volatile private var latestIn: Int = 0
+    @Volatile private var latestOut: Int = 0
+
+    // Long-press detection + auto-dismiss for the operator panel.
+    private var operatorLongPress: Runnable? = null
+    private var operatorAutoDismiss: Runnable? = null
     private var orientationListener: OrientationEventListener? = null
 
     private val analyzer = PeopleAnalyzer(
         onResult = { inCount, outCount ->
+            latestIn = inCount
+            latestOut = outCount
             runOnUiThread {
                 binding.txtIn.text = "IN $inCount"
                 binding.txtOut.text = "OUT $outCount"
                 refreshQueueHud(inCount, outCount)
+                // Keep the operator panel in sync if it happens to be open.
+                if (binding.operatorPanel.visibility == View.VISIBLE) {
+                    binding.opIn.text  = "IN $inCount"
+                    binding.opOut.text = "OUT $outCount"
+                }
             }
         },
         // Privacy compositing is off for hardware testing — see PeopleAnalyzer.
@@ -125,6 +147,36 @@ class MainActivity : AppCompatActivity() {
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+
+        // ─── Operator escape hatch ────────────────────────────
+        // 2-second long-press on the stranger display reveals a small
+        // semi-transparent panel with IN/OUT + Settings + Close. The
+        // operator never sees the gear icon at the top of the screen
+        // (it sits under the full-screen stranger display), so this
+        // touch gesture is the only path back to settings from a
+        // running kiosk.
+        @Suppress("ClickableViewAccessibility")
+        binding.strangerDisplay.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    val r = Runnable { showOperatorPanel() }
+                    operatorLongPress = r
+                    ui.postDelayed(r, OPERATOR_LONG_PRESS_MS)
+                }
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL,
+                MotionEvent.ACTION_OUTSIDE -> {
+                    operatorLongPress?.let { ui.removeCallbacks(it) }
+                    operatorLongPress = null
+                }
+            }
+            true
+        }
+        binding.opSettings.setOnClickListener {
+            hideOperatorPanel()
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+        binding.opClose.setOnClickListener { hideOperatorPanel() }
 
         // Invert IN / OUT. No camera rebind — analyzer reads
         // invertDirection on every bump(), so the next crossing flips
@@ -295,9 +347,44 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showLoyaltyGreeting(cmd: org.json.JSONObject) {
         binding.strangerDisplay.visibility = View.GONE
+        // A greeting takes priority over the operator panel.
+        if (binding.operatorPanel.visibility == View.VISIBLE) hideOperatorPanel()
         binding.displayMode.show(cmd)
+        playGreetingChime()
         val dur = cmd.optLong("display_duration", 8_000L).coerceIn(2_000L, 30_000L)
         ui.postDelayed({ binding.strangerDisplay.visibility = View.VISIBLE }, dur)
+    }
+
+    /**
+     * Fire the device's default notification sound. Respects silent /
+     * vibrate mode automatically because RingtoneManager honours the
+     * notification stream's volume. Async — no GIF-display blocking.
+     */
+    private fun playGreetingChime() {
+        if (!prefs.soundEnabled) return
+        try {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val ringtone = RingtoneManager.getRingtone(applicationContext, uri)
+            ringtone?.play()
+        } catch (_: Exception) {
+            // Audio failure must never block the visual greeting.
+        }
+    }
+
+    private fun showOperatorPanel() {
+        binding.opIn.text  = "IN $latestIn"
+        binding.opOut.text = "OUT $latestOut"
+        binding.operatorPanel.visibility = View.VISIBLE
+        binding.operatorPanel.bringToFront()
+        operatorAutoDismiss?.let { ui.removeCallbacks(it) }
+        operatorAutoDismiss = Runnable { hideOperatorPanel() }
+        ui.postDelayed(operatorAutoDismiss!!, OPERATOR_AUTO_DISMISS_MS)
+    }
+
+    private fun hideOperatorPanel() {
+        binding.operatorPanel.visibility = View.GONE
+        operatorAutoDismiss?.let { ui.removeCallbacks(it) }
+        operatorAutoDismiss = null
     }
 
     // ─────────────────────────────────────────────────────────
@@ -380,6 +467,10 @@ class MainActivity : AppCompatActivity() {
                     restartCameraForLensSwap()
                 }
             }
+            // Sound toggle takes effect on the next greeting (the chime
+            // function reads prefs.soundEnabled at fire time — no view
+            // state to refresh here).
+            cmd.soundEnabled?.let { if (it != prefs.soundEnabled) prefs.soundEnabled = it }
         }
     }
 
@@ -433,6 +524,7 @@ class MainActivity : AppCompatActivity() {
                 analyzer.currentQueueDepth() > prefs.queueThreshold,
             tillMode = if (prefs.zoneType == "till") prefs.tillMode else null,
             cameraFacing = prefs.cameraFacing,
+            soundEnabled = prefs.soundEnabled,
             heartbeat = !open,
         )
     }

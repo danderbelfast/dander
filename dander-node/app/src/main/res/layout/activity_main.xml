@@ -208,6 +208,64 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Operator escape hatch — appears on a 2-second long-press of the
+         stranger display. Sits above the kiosk content but BELOW the
+         loyalty greeting overlay so a customer-facing GIF still wins
+         the screen if one arrives. -->
+    <FrameLayout
+        android:id="@+id/operatorPanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@android:color/transparent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp"
+            android:background="#CC0F1118">
+
+            <TextView
+                android:id="@+id/opIn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:textColor="#00E676"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="IN 0" />
+
+            <TextView
+                android:id="@+id/opOut"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:textColor="#FF7043"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="OUT 0" />
+
+            <Button
+                android:id="@+id/opSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Settings ⚙️" />
+
+            <Button
+                android:id="@+id/opClose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="✕" />
+        </LinearLayout>
+    </FrameLayout>
+
     <!-- Loyalty greeting overlay — full-screen GIF + customer name. -->
     <io.dander.node.DisplayModeView
         android:id="@+id/displayMode"

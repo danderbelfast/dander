@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.Spinner
+import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -53,6 +54,13 @@ class SettingsActivity : AppCompatActivity() {
                 btnClose.text = fmt(h, m)
             }
         }
+
+        // Sound toggle. Persists immediately — showLoyaltyGreeting reads
+        // prefs.soundEnabled on every greeting so no MainActivity restart
+        // is needed for the change to take effect.
+        val switchSound = findViewById<Switch>(R.id.switchSound)
+        switchSound.isChecked = prefs.soundEnabled
+        switchSound.setOnCheckedChangeListener { _, isOn -> prefs.soundEnabled = isOn }
 
         seek.progress = prefs.brightnessPct
         lblBri.text = "${prefs.brightnessPct}%"
