@@ -209,6 +209,10 @@ export const getLoyaltyCustomers = () =>
 export const previewLoyaltyGreeting = (payload) =>
   client.post('/api/loyalty/preview-greeting', payload).then((r) => r.data);
 
+// ── Opening hours ───────────────────────────────────────────
+export const saveOpeningHours = (opening_hours) =>
+  client.post('/api/business/opening-hours', { opening_hours }).then((r) => r.data);
+
 // ── FootfallCam analytics ───────────────────────────────────
 export const getFootfallSummary = (date) =>
   client.get('/api/analytics/footfall/summary', { params: date ? { date } : {} }).then((r) => r.data);

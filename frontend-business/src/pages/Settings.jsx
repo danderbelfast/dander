@@ -3,6 +3,7 @@ import {
   getProfile, updateProfile,
   getNotifPrefs, saveNotifPrefs as saveNotifPrefsApi,
   getSmartSpecialsSettings, saveSmartSpecialsSettings,
+  saveOpeningHours,
 } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -123,6 +124,8 @@ export default function Settings() {
       )}
 
       <QueueAlertSettings />
+
+      <OpeningHoursEditor />
 
       <div className="card">
         <div className="card-header"><span className="card-title">Account</span></div>
@@ -336,6 +339,160 @@ function QueueAlertSettings() {
             <span style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)' }}>(coming soon)</span>
           </label>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Opening Hours — per-day weekly schedule editor. Saves to
+// businesses.opening_hours AND pushes to every paired Dander Node via the
+// existing remote-command channel.
+// ---------------------------------------------------------------------------
+
+const DAY_LIST = [
+  { key: 'monday',    label: 'Monday'    },
+  { key: 'tuesday',   label: 'Tuesday'   },
+  { key: 'wednesday', label: 'Wednesday' },
+  { key: 'thursday',  label: 'Thursday'  },
+  { key: 'friday',    label: 'Friday'    },
+  { key: 'saturday',  label: 'Saturday'  },
+  { key: 'sunday',    label: 'Sunday'    },
+];
+
+const DEFAULT_HOURS = {
+  monday:    { open: '09:00', close: '17:30', closed: false },
+  tuesday:   { open: '09:00', close: '17:30', closed: false },
+  wednesday: { open: '09:00', close: '17:30', closed: false },
+  thursday:  { open: '09:00', close: '17:30', closed: false },
+  friday:    { open: '09:00', close: '17:30', closed: false },
+  saturday:  { open: '10:00', close: '16:00', closed: false },
+  sunday:    { open: '09:00', close: '17:30', closed: true  },
+};
+
+function OpeningHoursEditor() {
+  const { toast } = useToast();
+  const [hours, setHours] = useState(DEFAULT_HOURS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getProfile()
+      .then(({ business }) => {
+        if (business?.opening_hours) {
+          // Merge incoming with defaults so a missing day doesn't blank the editor.
+          const merged = { ...DEFAULT_HOURS };
+          for (const d of DAY_LIST) {
+            if (business.opening_hours[d.key]) {
+              merged[d.key] = { ...DEFAULT_HOURS[d.key], ...business.opening_hours[d.key] };
+            }
+          }
+          setHours(merged);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  function updateDay(key, patch) {
+    setHours((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  }
+
+  function copyMondayToWeekdays() {
+    const mon = hours.monday;
+    setHours((prev) => ({
+      ...prev,
+      tuesday:   { ...mon },
+      wednesday: { ...mon },
+      thursday:  { ...mon },
+      friday:    { ...mon },
+    }));
+    toast({ message: 'Applied Monday hours to Tue-Fri.', type: 'success' });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await saveOpeningHours(hours);
+      const n = res.nodes_updated ?? 0;
+      toast({
+        message: n === 0
+          ? 'Opening hours saved.'
+          : `Hours saved and pushed to ${n} Dander Node${n === 1 ? '' : 's'}.`,
+        type: 'success',
+      });
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Failed to save hours.', type: 'error' });
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header"><span className="card-title">Opening Hours</span></div>
+      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ color: 'var(--c-text-muted)', fontSize: '0.86rem', marginTop: 0 }}>
+          The schedule below applies to every Dander Node paired to your business — saved here, pushed out on the next 60-second upload.
+        </p>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}><Spinner /></div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {DAY_LIST.map((d) => {
+                const day = hours[d.key];
+                const dim = day.closed ? 0.4 : 1;
+                return (
+                  <div
+                    key={d.key}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '110px 100px 100px 100px',
+                      gap: 10,
+                      alignItems: 'center',
+                      padding: '6px 0',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{d.label}</div>
+                    <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.82rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!day.closed}
+                        onChange={(e) => updateDay(d.key, { closed: e.target.checked })}
+                      />
+                      Closed
+                    </label>
+                    <input
+                      className="input"
+                      type="time"
+                      value={day.open}
+                      disabled={day.closed}
+                      style={{ opacity: dim }}
+                      onChange={(e) => updateDay(d.key, { open: e.target.value })}
+                    />
+                    <input
+                      className="input"
+                      type="time"
+                      value={day.close}
+                      disabled={day.closed}
+                      style={{ opacity: dim }}
+                      onChange={(e) => updateDay(d.key, { close: e.target.value })}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+              <button className="btn btn-secondary" type="button" onClick={copyMondayToWeekdays}>
+                Apply Monday hours to Tue–Fri
+              </button>
+              <button className="btn btn-primary" type="button" onClick={handleSave} disabled={saving}>
+                {saving ? <Spinner white /> : 'Save Opening Hours'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
