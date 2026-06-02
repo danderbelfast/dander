@@ -151,6 +151,16 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
+        // Stranger display fires this when the entrance count crosses a
+        // 100-multiple while the kiosk is open. We respond with a GIF
+        // celebration via the same DisplayMode overlay used for loyalty
+        // greetings — if a real loyalty greeting arrives during the
+        // celebration its show() call will replace ours and reset the
+        // dismiss timer (z-order is the same view, latest content wins).
+        binding.strangerDisplay.onMilestone = { milestone ->
+            if (isOpen) ui.post { triggerMilestoneCelebration(milestone) }
+        }
+
         // ─── Operator escape hatch ────────────────────────────
         // 2-second long-press on the stranger display reveals a small
         // semi-transparent panel with IN/OUT + Settings + Close. The
@@ -350,6 +360,60 @@ class MainActivity : AppCompatActivity() {
      * caller. Hides the full-screen stranger display while up,
      * restores it on dismiss.
      */
+    /**
+     * Fire a visitor-milestone celebration. Posts to the public
+     * stranger-milestone endpoint to get a Claude+Giphy-selected GIF +
+     * message, then displays via the same overlay used for personal
+     * greetings. Network is on a background thread; text-only fallback
+     * runs if anything fails so the celebration always happens.
+     */
+    private fun triggerMilestoneCelebration(milestone: Int) {
+        // Default fallback text — used immediately if the network is slow,
+        // overridden in place once the response lands. No GIF, just text.
+        val fallbackMsg = "You're visitor #$milestone today!"
+        Thread {
+            var gifUrl: String? = null
+            var message = fallbackMsg
+            var conn: java.net.HttpURLConnection? = null
+            try {
+                val url = java.net.URL("https://api.dander.io/api/public/stranger-milestone")
+                conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    connectTimeout = 4000
+                    readTimeout = 6000
+                    setRequestProperty("Content-Type", "application/json")
+                }
+                val body = org.json.JSONObject().apply {
+                    put("milestone", milestone)
+                    put("business_id", prefs.businessId)
+                }.toString()
+                conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)); it.flush() }
+                if (conn.responseCode in 200..299) {
+                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = org.json.JSONObject(text)
+                    gifUrl  = json.optString("gif_url", "").ifBlank { null }
+                    message = json.optString("message", "").ifBlank { fallbackMsg }
+                }
+            } catch (_: Exception) {
+                // Keep fallback text + null GIF — celebration still runs.
+            } finally { conn?.disconnect() }
+
+            runOnUiThread {
+                val cmd = org.json.JSONObject().apply {
+                    put("type", "milestone")
+                    put("customer_name", "VISITOR #$milestone TODAY! 🎉")
+                    put("message", message)
+                    put("gif_url", gifUrl ?: org.json.JSONObject.NULL)
+                    put("points_awarded", 0)
+                    put("visit_number", 0)
+                    put("display_duration", 10_000L)
+                }
+                showLoyaltyGreeting(cmd)
+            }
+        }.start()
+    }
+
     private fun showLoyaltyGreeting(cmd: org.json.JSONObject) {
         binding.strangerDisplay.visibility = View.GONE
         // A greeting takes priority over the operator panel.

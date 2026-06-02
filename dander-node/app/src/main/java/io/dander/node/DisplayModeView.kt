@@ -114,10 +114,14 @@ class DisplayModeView @JvmOverloads constructor(
 
         nameView.text = name
         messageView.text = message
-        metaView.text = if (visit > 0)
-            "+%d points · visit #%d".format(pts, visit)
-        else
-            "+%d points".format(pts)
+        // metaView reads as "+0 points" for a milestone celebration which
+        // looks like a bug — suppress when there's no real loyalty data.
+        metaView.text = when {
+            visit > 0 -> "+%d points · visit #%d".format(pts, visit)
+            pts  > 0 -> "+%d points".format(pts)
+            else      -> ""
+        }
+        metaView.visibility = if (metaView.text.isNullOrEmpty()) View.GONE else View.VISIBLE
 
         // Clear any previous animation, fall back to a flat colour if no GIF.
         gifView.setImageDrawable(null)

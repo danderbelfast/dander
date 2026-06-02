@@ -63,6 +63,13 @@ class StrangerDisplayView @JvmOverloads constructor(
     private var businessId: Int = 0
     private var refreshRunnable: Runnable? = null
 
+    // Visitor-count milestone tracking. We fire a 100-multiple crossing
+    // callback so MainActivity can launch the celebration overlay.
+    // In-memory only — restart resets to 0, which (per spec) is fine.
+    private var lastMilestoneCount = 0
+    /** Set by MainActivity. Receives the 100-multiple just crossed. */
+    var onMilestone: (Int) -> Unit = {}
+
     init {
         setBackgroundColor(Color.parseColor("#FF1A1A1A"))
 
@@ -221,6 +228,14 @@ class StrangerDisplayView @JvmOverloads constructor(
             ui.post {
                 txtHeadline.text = buildHeadline(name, visitors)
                 applyOfferOrFallback(offer)
+                // Milestone crossing detection — integer division so a
+                // jump from 98 → 104 still trips the 100 boundary.
+                val newHundreds = visitors / 100
+                val oldHundreds = lastMilestoneCount / 100
+                if (visitors > 0 && newHundreds > oldHundreds) {
+                    try { onMilestone(newHundreds * 100) } catch (_: Exception) { /* never block refresh */ }
+                }
+                lastMilestoneCount = visitors
             }
         }
     }
