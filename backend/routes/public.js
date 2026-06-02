@@ -86,13 +86,14 @@ router.get('/business/:id/stranger-display', async (req, res) => {
     );
     const offer = offerRows[0] || null;
 
-    // Today's visitor count summed across all Node phone_counter_readings
-    // for this business — UTC day boundary. Kiosk display, exact precision
-    // doesn't matter.
+    // Today's visitor count — entrance nodes only. Till / display /
+    // general zones aren't customer entries and would inflate the
+    // headline number on the kiosk. UTC day boundary as elsewhere.
     const { rows: countRows } = await pool.query(
       `SELECT COALESCE(SUM(count_in), 0)::int AS visitors
          FROM phone_counter_readings
         WHERE business_id = $1
+          AND zone_type = 'entrance'
           AND (timestamp AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date`,
       [businessId]
     );

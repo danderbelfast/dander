@@ -137,11 +137,11 @@ router.post('/phone-counter', async (req, res) => {
           avg_dwell_seconds, max_dwell_seconds,
           dwell_under_30s, dwell_30_to_2min, dwell_2_to_5min, dwell_over_5min,
           bt_apple, bt_samsung, bt_google, bt_huawei, bt_other_android,
-          queue_depth, queue_alert, orientation, till_mode)
+          queue_depth, queue_alert, orientation, till_mode, camera_facing)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                $13, $14, $15, $16, $17, $18,
                $19, $20, $21, $22, $23,
-               $24, $25, $26, $27)`,
+               $24, $25, $26, $27, $28)`,
       [
         typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null,
         ts,
@@ -170,6 +170,7 @@ router.post('/phone-counter', async (req, res) => {
         typeof p.queue_alert === 'boolean' ? p.queue_alert : null,
         typeof p.orientation === 'string' ? p.orientation.slice(0, 10) : null,
         typeof p.till_mode   === 'string' ? p.till_mode.slice(0, 20)   : null,
+        typeof p.camera_facing === 'string' ? p.camera_facing.slice(0, 8) : null,
       ]
     );
 
@@ -239,7 +240,7 @@ router.post('/phone-counter', async (req, res) => {
       const deviceId = p.device_id.slice(0, 100);
 
       const { rows: cmdRows } = await pool.query(
-        `SELECT counting_enabled, zone_name, zone_type
+        `SELECT counting_enabled, zone_name, zone_type, camera_facing
            FROM node_commands
           WHERE device_id = $1`,
         [deviceId]
@@ -250,6 +251,7 @@ router.post('/phone-counter', async (req, res) => {
           counting_enabled: c.counting_enabled,
           zone_name: c.zone_name,
           zone_type: c.zone_type,
+          camera_facing: c.camera_facing,
         };
       }
 

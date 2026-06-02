@@ -88,7 +88,7 @@ router.get('/', requireBusiness, async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/nodes/:device_id/commands
-// body: { counting_enabled?, zone_name?, zone_type? }
+// body: { counting_enabled?, zone_name?, zone_type?, camera_facing? }
 // ---------------------------------------------------------------------------
 
 router.post('/:device_id/commands', requireBusiness, async (req, res) => {
@@ -101,8 +101,10 @@ router.post('/:device_id/commands', requireBusiness, async (req, res) => {
   const countingEnabled = typeof body.counting_enabled === 'boolean' ? body.counting_enabled : null;
   const zoneName = typeof body.zone_name === 'string' ? body.zone_name.slice(0, 100) : null;
   const zoneType = typeof body.zone_type === 'string' ? body.zone_type.slice(0, 30)  : null;
+  const cameraFacingRaw = typeof body.camera_facing === 'string' ? body.camera_facing : null;
+  const cameraFacing = (cameraFacingRaw === 'front' || cameraFacingRaw === 'back') ? cameraFacingRaw : null;
 
-  if (countingEnabled === null && zoneName === null && zoneType === null) {
+  if (countingEnabled === null && zoneName === null && zoneType === null && cameraFacing === null) {
     return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'No command fields provided.' });
   }
 
@@ -123,16 +125,17 @@ router.post('/:device_id/commands', requireBusiness, async (req, res) => {
     // partial commands (e.g. just toggling counting) are common.
     const { rows } = await pool.query(
       `INSERT INTO node_commands
-         (device_id, business_id, counting_enabled, zone_name, zone_type, updated_at)
-       VALUES ($1, $2, COALESCE($3, TRUE), $4, $5, NOW())
+         (device_id, business_id, counting_enabled, zone_name, zone_type, camera_facing, updated_at)
+       VALUES ($1, $2, COALESCE($3, TRUE), $4, $5, $6, NOW())
        ON CONFLICT (device_id) DO UPDATE
          SET business_id      = EXCLUDED.business_id,
              counting_enabled = COALESCE($3, node_commands.counting_enabled),
              zone_name        = COALESCE($4, node_commands.zone_name),
              zone_type        = COALESCE($5, node_commands.zone_type),
+             camera_facing    = COALESCE($6, node_commands.camera_facing),
              updated_at       = NOW()
        RETURNING *`,
-      [deviceId, req.business.id, countingEnabled, zoneName, zoneType]
+      [deviceId, req.business.id, countingEnabled, zoneName, zoneType, cameraFacing]
     );
 
     return res.status(200).json({ success: true, command: rows[0] });
