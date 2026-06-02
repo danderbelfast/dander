@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelUuid
+import android.util.Log
 import androidx.core.content.ContextCompat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -27,60 +28,144 @@ import java.util.UUID
  *   service UUID  : DANDER_SERVICE_UUID
  *   service data  : [ business_id (4B LE int32) | device_id prefix (8B ASCII) ]
  *
- * The device_id prefix is the first 8 hex chars after the "node-" prefix
- * the Node generates at first boot. The user app picks the strongest
- * advertisement matching the Dander UUID, reads the business_id straight
- * from the bytes, and POSTs /api/proximity/detected. No MAC tracking
- * (the phone's BLE MAC randomises anyway), no fragile name parsing.
- *
  * BLE peripheral mode requires API 21+ and a chipset that supports
  * advertising — every modern Android handset does. `start()` is safe to
  * call before permissions or hardware are ready; it just no-ops and can
  * be retried.
+ *
+ * Diagnostic surface: every branch in `start()` emits a logcat line
+ * under the "DanderBLE" tag AND propagates a Status into the
+ * `onStatus` callback so the on-screen indicator stays accurate
+ * without logcat being attached.
  */
 class BleBroadcaster(
     private val context: Context,
     private val prefs: Prefs,
+    private val onStatus: (Status) -> Unit = {},
 ) {
+    /**
+     * Diagnostic state surfaced to the UI. Mirrors the AdvertiseCallback
+     * paths plus the pre-callback fail-fasts (no permission, no hardware,
+     * no pairing). MainActivity flattens this into a chip on the
+     * operator panel.
+     */
+    sealed class Status {
+        /** start() hasn't been called or stop() reset us. */
+        object Idle           : Status()
+        /** No BLE-advertise permission granted at runtime. */
+        object NoPermission   : Status()
+        /** No paired business yet — start() returned without trying. */
+        object NotPaired      : Status()
+        /** Device has no BLE adapter or the adapter exposes no advertiser. */
+        object Unsupported    : Status()
+        /** AdvertiseCallback.onStartSuccess fired. */
+        object Broadcasting   : Status()
+        /** AdvertiseCallback.onStartFailure — code mapped per spec. */
+        data class Failed(val code: Int, val label: String) : Status()
+    }
+
     companion object {
-        // Fixed Dander service UUID — every Node uses this so the user
-        // app can filter by it during scanning. Random UUID4 generated
-        // once and burnt in.
+        private const val TAG = "DanderBLE"
+
         val DANDER_SERVICE_UUID: UUID = UUID.fromString("6e646564-616e-6465-7200-000000000001")
         private val PARCEL_UUID = ParcelUuid(DANDER_SERVICE_UUID)
-        // Service data payload length: 4 bytes business_id + 8 bytes
-        // device_id prefix. Stays under the 31-byte legacy adv budget.
         private const val PAYLOAD_LEN = 12
+
+        // Per BluetoothLeAdvertiser docs — codes returned to onStartFailure.
+        private fun errorCodeLabel(code: Int): String = when (code) {
+            1 -> "DATA_TOO_LARGE"
+            2 -> "TOO_MANY_ADVERTISERS"
+            3 -> "ALREADY_STARTED"
+            4 -> "INTERNAL_ERROR"
+            5 -> "FEATURE_UNSUPPORTED"
+            else -> "UNKNOWN($code)"
+        }
     }
 
     private var advertiser: BluetoothLeAdvertiser? = null
     @Volatile private var advertising = false
+    @Volatile var status: Status = Status.Idle
+        private set
 
     private val callback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             advertising = true
+            Log.i(TAG, "onStartSuccess — broadcasting (mode=${settingsInEffect?.mode}, " +
+                "txPower=${settingsInEffect?.txPowerLevel})")
+            report(Status.Broadcasting)
         }
 
         override fun onStartFailure(errorCode: Int) {
-            // ALREADY_STARTED (3) is fine — somebody else started it.
-            // The rest we just log and back off; the next start() retries.
-            advertising = (errorCode == ADVERTISE_FAILED_ALREADY_STARTED)
+            val label = errorCodeLabel(errorCode)
+            // ALREADY_STARTED is harmless — the radio is already advertising
+            // our payload from a prior call. Surface it as Broadcasting so
+            // the UI doesn't flip red on a benign double-start.
+            if (errorCode == ADVERTISE_FAILED_ALREADY_STARTED) {
+                advertising = true
+                Log.w(TAG, "onStartFailure code=$errorCode ($label) — already broadcasting, treating as success")
+                report(Status.Broadcasting)
+            } else {
+                advertising = false
+                Log.e(TAG, "onStartFailure code=$errorCode ($label)")
+                report(Status.Failed(errorCode, label))
+            }
         }
     }
 
     fun start() {
-        if (advertising) return
-        if (!hasAdvertisePermission()) return
+        Log.i(TAG, "start() called (sdk=${Build.VERSION.SDK_INT}, businessId=${prefs.businessId})")
+        if (advertising) {
+            Log.d(TAG, "  already advertising — skipping")
+            return
+        }
 
-        val mgr = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
-        val adapter: BluetoothAdapter = mgr.adapter ?: return
-        if (!adapter.isEnabled) return
-        advertiser = adapter.bluetoothLeAdvertiser ?: return
+        if (!hasAdvertisePermission()) {
+            Log.w(TAG, "  hasAdvertisePermission=false — bailing")
+            report(Status.NoPermission)
+            return
+        }
+        Log.d(TAG, "  hasAdvertisePermission=true")
+
+        val mgr = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        if (mgr == null) {
+            Log.w(TAG, "  BluetoothManager service is null — unsupported")
+            report(Status.Unsupported)
+            return
+        }
+        val adapter: BluetoothAdapter? = mgr.adapter
+        if (adapter == null) {
+            Log.w(TAG, "  BluetoothManager.adapter is null — unsupported")
+            report(Status.Unsupported)
+            return
+        }
+        if (!adapter.isEnabled) {
+            Log.w(TAG, "  adapter present but not enabled — treating as unsupported until user toggles BT on")
+            report(Status.Unsupported)
+            return
+        }
+        val le = adapter.bluetoothLeAdvertiser
+        if (le == null) {
+            // This is the silent failure point — adapter exists, BLE is on,
+            // but the chipset/firmware doesn't support peripheral mode.
+            Log.w(TAG, "  adapter.bluetoothLeAdvertiser is null — chipset lacks BLE peripheral support")
+            report(Status.Unsupported)
+            return
+        }
+        advertiser = le
 
         val businessId = prefs.businessId
         val deviceId   = prefs.resolveDeviceId()
-        if (businessId <= 0) return                 // not paired yet — nothing to advertise
-        val payload = buildPayload(businessId, deviceId) ?: return
+        if (businessId <= 0) {
+            Log.i(TAG, "  not paired (businessId=$businessId) — nothing to advertise")
+            report(Status.NotPaired)
+            return
+        }
+        val payload = buildPayload(businessId, deviceId)
+        if (payload == null) {
+            Log.w(TAG, "  buildPayload returned null (deviceId=$deviceId) — treating as unsupported")
+            report(Status.Unsupported)
+            return
+        }
 
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
@@ -89,27 +174,39 @@ class BleBroadcaster(
             .build()
 
         val data = AdvertiseData.Builder()
-            .setIncludeDeviceName(false)            // save room in the 31-byte budget
+            .setIncludeDeviceName(false)
             .addServiceUuid(PARCEL_UUID)
             .addServiceData(PARCEL_UUID, payload)
             .build()
 
+        Log.i(TAG, "  startAdvertising → settings(mode=${settings.mode}, txPower=${settings.txPowerLevel}, " +
+            "connectable=${settings.isConnectable}); data(uuid=$DANDER_SERVICE_UUID, " +
+            "serviceDataBytes=${payload.size}, includeName=${data.includeDeviceName})")
+
         try {
             advertiser?.startAdvertising(settings, data, callback)
-        } catch (_: SecurityException) {
-            // Permission was revoked between check and call. Safe to ignore.
+        } catch (e: SecurityException) {
+            Log.e(TAG, "  startAdvertising threw SecurityException: ${e.message}")
+            report(Status.NoPermission)
         }
     }
 
     fun stop() {
         val a = advertiser ?: return
-        try { a.stopAdvertising(callback) } catch (_: Exception) {}
+        Log.i(TAG, "stop() called")
+        try { a.stopAdvertising(callback) } catch (e: Exception) {
+            Log.w(TAG, "  stopAdvertising threw: ${e.message}")
+        }
         advertising = false
+        report(Status.Idle)
+    }
+
+    private fun report(s: Status) {
+        status = s
+        try { onStatus(s) } catch (_: Exception) { /* never let UI explode kill the radio loop */ }
     }
 
     private fun buildPayload(businessId: Int, deviceId: String): ByteArray? {
-        // device_id is "node-<uuid>"; we take 8 hex chars from after the
-        // dash so the prefix is stable per device.
         val cleaned = deviceId.removePrefix("node-").replace("-", "")
         if (cleaned.length < 8) return null
         val prefix = cleaned.substring(0, 8).toByteArray(Charsets.US_ASCII)
@@ -133,8 +230,6 @@ class BleBroadcaster(
             // automatically. The runtime gate is ACCESS_FINE_LOCATION —
             // Android 9 in particular rejects any BLE operation without
             // it, even though advertising doesn't logically need location.
-            // Match what BLE scanning requires so the broadcaster and the
-            // scanner share a single permission gate.
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
         }

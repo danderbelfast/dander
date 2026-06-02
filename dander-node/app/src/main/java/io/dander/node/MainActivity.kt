@@ -68,6 +68,7 @@ class MainActivity : AppCompatActivity() {
     // without poking into the analyzer's private state.
     @Volatile private var latestIn: Int = 0
     @Volatile private var latestOut: Int = 0
+    @Volatile private var bleStatus: BleBroadcaster.Status = BleBroadcaster.Status.Idle
 
     // Long-press detection + auto-dismiss for the operator panel.
     private var operatorLongPress: Runnable? = null
@@ -136,7 +137,12 @@ class MainActivity : AppCompatActivity() {
             onCommands  = { cmd -> applyRemoteCommands(cmd) },
             onDisplay   = { json -> runOnUiThread { showLoyaltyGreeting(json) } },
         )
-        bleBroadcaster = BleBroadcaster(applicationContext, prefs)
+        bleBroadcaster = BleBroadcaster(applicationContext, prefs) { status ->
+            // Status callback fires on whichever thread the BLE adapter
+            // posts back on — bounce to the UI for the chip update.
+            bleStatus = status
+            runOnUiThread { renderBleStatusChip() }
+        }
         // Real-time display channel. Falls back to the Uploader's 60s
         // piggy-back if the WS is down — both paths feed the same
         // showLoyaltyGreeting() handler, so duplicate delivery would
@@ -378,11 +384,32 @@ class MainActivity : AppCompatActivity() {
     private fun showOperatorPanel() {
         binding.opIn.text  = "IN $latestIn"
         binding.opOut.text = "OUT $latestOut"
+        renderBleStatusChip()
         binding.operatorPanel.visibility = View.VISIBLE
         binding.operatorPanel.bringToFront()
         operatorAutoDismiss?.let { ui.removeCallbacks(it) }
         operatorAutoDismiss = Runnable { hideOperatorPanel() }
         ui.postDelayed(operatorAutoDismiss!!, OPERATOR_AUTO_DISMISS_MS)
+    }
+
+    /**
+     * Push the latest BLE broadcaster status into the operator-panel
+     * chip. Always safe — `binding` is initialised before the
+     * BleBroadcaster constructor (and therefore before the callback
+     * could fire), and we guard the binding existence anyway.
+     */
+    private fun renderBleStatusChip() {
+        if (!::binding.isInitialized) return
+        val (text, colour) = when (val s = bleStatus) {
+            BleBroadcaster.Status.Broadcasting -> "BLE: broadcasting" to Color.parseColor("#00E676")
+            BleBroadcaster.Status.NoPermission -> "BLE: no permission" to Color.parseColor("#FFB300")
+            BleBroadcaster.Status.Unsupported  -> "BLE: unsupported"  to Color.parseColor("#9E9E9E")
+            BleBroadcaster.Status.NotPaired    -> "BLE: not paired"   to Color.parseColor("#9E9E9E")
+            BleBroadcaster.Status.Idle         -> "BLE: idle"         to Color.parseColor("#9E9E9E")
+            is BleBroadcaster.Status.Failed    -> "BLE: failed [${s.code} ${s.label}]" to Color.parseColor("#FF5252")
+        }
+        binding.opBle.text = text
+        binding.opBle.setTextColor(colour)
     }
 
     private fun hideOperatorPanel() {
