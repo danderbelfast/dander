@@ -60,4 +60,9 @@ dependencies {
 
     // QR code generation for the stranger-display app-download CTA.
     implementation("com.google.zxing:core:3.5.2")
+
+    // OkHttp — WebSocket client for real-time loyalty display commands.
+    // Standard pick on Android; same library backs Retrofit if we ever
+    // pull it in. The Uploader still uses plain HttpURLConnection.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

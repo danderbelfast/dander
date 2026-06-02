@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sensorHub: SensorHub
     private lateinit var uploader: Uploader
     private lateinit var bleBroadcaster: BleBroadcaster
+    private lateinit var wsClient: WsClient
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private val ui = Handler(Looper.getMainLooper())
@@ -111,6 +112,12 @@ class MainActivity : AppCompatActivity() {
             onDisplay   = { json -> runOnUiThread { showLoyaltyGreeting(json) } },
         )
         bleBroadcaster = BleBroadcaster(applicationContext, prefs)
+        // Real-time display channel. Falls back to the Uploader's 60s
+        // piggy-back if the WS is down — both paths feed the same
+        // showLoyaltyGreeting() handler, so duplicate delivery would
+        // just retrigger the same overlay (server-side delivered_at
+        // gating prevents duplicate enqueues).
+        wsClient = WsClient(prefs) { json -> runOnUiThread { showLoyaltyGreeting(json) } }
 
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -170,11 +177,13 @@ class MainActivity : AppCompatActivity() {
         analyzer.invertDirection = prefs.invertDirection
         applyCountingMode()
         orientationListener?.enable()
+        if (::wsClient.isInitialized) wsClient.start()
     }
 
     override fun onPause() {
         super.onPause()
         orientationListener?.disable()
+        if (::wsClient.isInitialized) wsClient.stop()
     }
 
     /**
@@ -519,6 +528,7 @@ class MainActivity : AppCompatActivity() {
         if (::uploader.isInitialized)  uploader.stop()
         if (::sensorHub.isInitialized) sensorHub.stop()
         if (::bleBroadcaster.isInitialized) bleBroadcaster.stop()
+        if (::wsClient.isInitialized) wsClient.stop()
         if (::binding.isInitialized) binding.strangerDisplay.stop()
         cameraExecutor.shutdown()
     }
