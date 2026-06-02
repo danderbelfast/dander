@@ -99,15 +99,6 @@ class SettingsActivity : AppCompatActivity() {
             if (!hasFocus) prefs.zoneName = editZone.text.toString().ifBlank { "Entrance" }
         }
 
-        // Camera lens. Persisted to Prefs immediately — MainActivity reads
-        // this in onResume and rebinds the camera with the right selector.
-        val groupCamera = findViewById<RadioGroup>(R.id.groupCamera)
-        if (prefs.cameraFacing == "front") groupCamera.check(R.id.camFront)
-        else                                groupCamera.check(R.id.camBack)
-        groupCamera.setOnCheckedChangeListener { _, id ->
-            prefs.cameraFacing = if (id == R.id.camFront) "front" else "back"
-        }
-
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, Prefs.ZONE_TYPES)
         spinType.adapter = adapter
         val idx = Prefs.ZONE_TYPES.indexOf(prefs.zoneType).coerceAtLeast(0)

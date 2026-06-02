@@ -58,9 +58,6 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var pausedRemotely: Boolean = false
     private var cameraBound = false
     private var pendingCameraStart = false
-    // Tracks which CameraSelector is currently bound so we can detect
-    // a Settings-side camera_facing change in onResume.
-    @Volatile private var boundLens: String = "back"
 
     // Latest IN/OUT for the operator panel readout. The detection
     // callback already updates the on-screen chips; we mirror the
@@ -239,8 +236,6 @@ class MainActivity : AppCompatActivity() {
         applyCountingMode()
         orientationListener?.enable()
         if (::wsClient.isInitialized) wsClient.start()
-        // Operator changed the camera in Settings → rebind with the new lens.
-        if (cameraBound && boundLens != prefs.cameraFacing) restartCameraForLensSwap()
     }
 
     override fun onPause() {
@@ -270,10 +265,10 @@ class MainActivity : AppCompatActivity() {
             else                                 PeopleAnalyzer.CountingMode.HORIZONTAL_LINE
         }
         analyzer.countingMode = mode
-        // Front-camera installs mirror the X axis; the analyzer applies
-        // it inside its detection loop so the IN direction stays
-        // consistent with the operator's invert setting.
-        analyzer.mirrorX = (prefs.cameraFacing == "front")
+        // Front camera is now the only supported lens — keep mirror on
+        // permanently so the analyzer's X axis matches what a customer
+        // sees on the screen.
+        analyzer.mirrorX = true
         binding.overlayView.setLineDirection(when (mode) {
             PeopleAnalyzer.CountingMode.HORIZONTAL_LINE -> OverlayView.LineDirection.HORIZONTAL
             PeopleAnalyzer.CountingMode.VERTICAL_LINE   -> OverlayView.LineDirection.VERTICAL
@@ -507,17 +502,6 @@ class MainActivity : AppCompatActivity() {
             }
             cmd.zoneName?.let { if (it != prefs.zoneName) prefs.zoneName = it }
             cmd.zoneType?.let { if (it != prefs.zoneType) prefs.zoneType = it }
-            // Remote camera-lens switch from the dashboard. Persist, refresh
-            // the analyzer's mirror flag, then rebind the camera with the
-            // new selector. Counts persist; tracker IDs reset (expected on
-            // any unbind).
-            cmd.cameraFacing?.let { facing ->
-                if ((facing == "front" || facing == "back") && facing != prefs.cameraFacing) {
-                    prefs.cameraFacing = facing
-                    applyCountingMode()
-                    restartCameraForLensSwap()
-                }
-            }
             // Sound toggle takes effect on the next greeting (the chime
             // function reads prefs.soundEnabled at fire time — no view
             // state to refresh here).
@@ -574,7 +558,6 @@ class MainActivity : AppCompatActivity() {
             queueAlert = open && prefs.zoneType == "till" &&
                 analyzer.currentQueueDepth() > prefs.queueThreshold,
             tillMode = if (prefs.zoneType == "till") prefs.tillMode else null,
-            cameraFacing = prefs.cameraFacing,
             soundEnabled = prefs.soundEnabled,
             heartbeat = !open,
         )
@@ -606,32 +589,20 @@ class MainActivity : AppCompatActivity() {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
-                val selector = if (prefs.cameraFacing == "front")
-                    CameraSelector.DEFAULT_FRONT_CAMERA
-                else
-                    CameraSelector.DEFAULT_BACK_CAMERA
-
+                // Wall-mount, screen-facing-outward install — front lens
+                // only. Rear lens support was removed; the analyzer's
+                // mirrorX flag is hard-true.
                 provider.unbindAll()
-                provider.bindToLifecycle(this, selector, preview, analysis)
+                provider.bindToLifecycle(
+                    this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis,
+                )
                 cameraBound = true
-                boundLens = prefs.cameraFacing
             } catch (e: Exception) {
                 binding.txtIn.text = "camera error"
             } finally {
                 pendingCameraStart = false
             }
         }, ContextCompat.getMainExecutor(this))
-    }
-
-    /**
-     * Switch front/back lens at runtime. CameraX requires a full
-     * unbind/rebind to swap selectors — analyzer counts persist
-     * because the analyzer instance survives.
-     */
-    private fun restartCameraForLensSwap() {
-        if (!cameraBound) return
-        unbindCamera()
-        if (granted(Manifest.permission.CAMERA)) startCamera()
     }
 
     private fun unbindCamera() {

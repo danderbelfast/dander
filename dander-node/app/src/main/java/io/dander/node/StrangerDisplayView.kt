@@ -53,8 +53,7 @@ class StrangerDisplayView @JvmOverloads constructor(
     private val ui = Handler(Looper.getMainLooper())
     private val io = Executors.newSingleThreadExecutor()
 
-    private val txtBusiness: TextView
-    private val txtVisitors: TextView
+    private val txtHeadline: TextView
     private val txtSpecialLabel: TextView
     private val txtOfferTitle: TextView
     private val txtOfferDesc:  TextView
@@ -82,22 +81,23 @@ class StrangerDisplayView @JvmOverloads constructor(
         }
         root.addView(section1)
 
-        txtBusiness = TextView(context).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 56f)
+        // Single combined headline: "[Business Name] · 247 visitors today".
+        // One line scales better on small kiosk screens than the two-stack
+        // it replaces. Single TextView with auto-sizing means the font
+        // shrinks to fit on narrow phones without overflowing.
+        txtHeadline = TextView(context).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 36f)
             setTextColor(Color.WHITE)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             gravity = Gravity.CENTER
+            maxLines = 1
+            // Autosize between 18sp and 36sp so it fits cleanly on any phone.
+            androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                this, 18, 36, 2, TypedValue.COMPLEX_UNIT_SP,
+            )
             text = ""
         }
-        txtVisitors = TextView(context).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
-            setTextColor(Color.parseColor("#FF6B35"))
-            gravity = Gravity.CENTER
-            setPadding(0, 18, 0, 0)
-            text = ""
-        }
-        section1.addView(txtBusiness)
-        section1.addView(txtVisitors)
+        section1.addView(txtHeadline)
 
         // ── Section 2: today's special / fallback ────────────────
         val section2 = LinearLayout(context).apply {
@@ -219,11 +219,20 @@ class StrangerDisplayView @JvmOverloads constructor(
             val visitors = json.optInt("visitor_count_today", 0)
             val offer    = json.optJSONObject("todays_offer")
             ui.post {
-                txtBusiness.text = name
-                txtVisitors.text = "Today: $visitors visitors"
+                txtHeadline.text = buildHeadline(name, visitors)
                 applyOfferOrFallback(offer)
             }
         }
+    }
+
+    private fun buildHeadline(name: String, visitors: Int): String {
+        val safeName = if (name.isBlank()) "Dander" else name
+        val visitorPart = when (visitors) {
+            0 -> ""
+            1 -> "  ·  1 visitor today"
+            else -> "  ·  $visitors visitors today"
+        }
+        return safeName + visitorPart
     }
 
     private fun generateQr(text: String, size: Int): Bitmap {

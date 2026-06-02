@@ -91,21 +91,6 @@
             android:inputType="number"
             android:textColor="#FFFFFF" />
 
-        <!-- Camera -->
-        <TextView style="@style/SectionLabel" android:text="Camera" />
-        <RadioGroup android:id="@+id/groupCamera"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <RadioButton android:id="@+id/camBack"
-                android:text="Rear camera (ceiling / high mount)"
-                android:textColor="#FFFFFF"
-                android:layout_width="wrap_content" android:layout_height="wrap_content" />
-            <RadioButton android:id="@+id/camFront"
-                android:text="Front camera (wall mount — screen faces outward)"
-                android:textColor="#FFFFFF"
-                android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        </RadioGroup>
-
         <!-- Zone -->
         <TextView style="@style/SectionLabel" android:text="Zone" />
         <EditText android:id="@+id/editZoneName"
