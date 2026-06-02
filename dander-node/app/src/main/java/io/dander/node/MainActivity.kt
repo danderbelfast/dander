@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.OrientationEventListener
 import android.util.Size
 import android.graphics.Color
 import android.view.View
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var pausedRemotely: Boolean = false
     private var cameraBound = false
     private var pendingCameraStart = false
+    private var orientationListener: OrientationEventListener? = null
 
     private val analyzer = PeopleAnalyzer(
         onResult = { inCount, outCount ->
@@ -111,23 +113,35 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
-        // Rotate counting line. Persist new orientation, recompute the
-        // counting mode, and rebind the camera so the analysis use case
-        // restarts cleanly (tracker IDs reset; counts persist).
-        binding.btnRotate.setOnClickListener {
-            prefs.orientation = if (prefs.orientation == "portrait") "landscape" else "portrait"
-            applyCountingMode()
-            if (cameraBound) {
-                unbindCamera()
-                if (granted(Manifest.permission.CAMERA)) startCamera()
-            }
-        }
-
-        // Invert IN / OUT. No restart — analyzer reads invertDirection on
-        // every bump(), so the next crossing flips immediately.
+        // Invert IN / OUT. No camera rebind — analyzer reads
+        // invertDirection on every bump(), so the next crossing flips
+        // immediately. The button text shows the live IN arrow so the
+        // operator never has to remember which way "inverted" means.
         binding.btnInvert.setOnClickListener {
             prefs.invertDirection = !prefs.invertDirection
             analyzer.invertDirection = prefs.invertDirection
+            updateInvertButton()
+        }
+
+        // Auto-rotate via accelerometer. Replaces the manual rotate
+        // button: when the phone is physically tilted, we just update
+        // `orientation` in prefs and re-derive the counting mode. No
+        // camera rebind — the analyzer/overlay swap state on the same
+        // running stream, which is what fixes the earlier "counting
+        // pauses on rotate" behaviour.
+        orientationListener = object : OrientationEventListener(this) {
+            override fun onOrientationChanged(degrees: Int) {
+                if (degrees == ORIENTATION_UNKNOWN) return
+                // Map to portrait / landscape with a generous deadband
+                // around the 45° boundaries so a phone held near a
+                // diagonal doesn't flap state every frame.
+                val isLandscape = degrees in 60..120 || degrees in 240..300
+                val next = if (isLandscape) "landscape" else "portrait"
+                if (next != prefs.orientation) {
+                    prefs.orientation = next
+                    applyCountingMode()
+                }
+            }
         }
 
         // Seed analyzer tunables from prefs before the camera spins up.
@@ -152,6 +166,12 @@ class MainActivity : AppCompatActivity() {
         analyzer.frameInterval = prefs.frameInterval
         analyzer.invertDirection = prefs.invertDirection
         applyCountingMode()
+        orientationListener?.enable()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        orientationListener?.disable()
     }
 
     /**
@@ -181,10 +201,38 @@ class MainActivity : AppCompatActivity() {
             PeopleAnalyzer.CountingMode.APPROACH        -> OverlayView.LineDirection.NONE
         })
         // Queue HUD only relevant for till zones.
-        binding.queueHud.visibility = if (prefs.zoneType == "till") View.VISIBLE else View.GONE
+        val isTill = prefs.zoneType == "till"
+        binding.queueHud.visibility = if (isTill) View.VISIBLE else View.GONE
+        binding.txtTillMode.visibility = if (isTill) View.VISIBLE else View.GONE
+        if (isTill) {
+            binding.txtTillMode.text = "Mode: " + when (prefs.tillMode) {
+                "approach" -> "Approach"
+                "walkpast" -> "Walk Past"
+                else        -> "Overhead"
+            }
+        }
         // Re-apply the current depth so the colour/bar reflect the new threshold
         // even if the count itself didn't move.
         refreshQueueHud(0, 0)
+        // Arrow on the invert button depends on the mode we just set.
+        updateInvertButton()
+    }
+
+    /**
+     * Render the invert button label as `IN: <arrow>` so the operator can
+     * see at a glance which direction currently counts as IN. The arrow
+     * tracks the active counting mode, not just the orientation pref:
+     *   horizontal line — ↑ (up = in, ↓ = inverted)
+     *   vertical line   — → (left-to-right = in, ← = inverted)
+     *   approach        — → (toward the camera = in, ← = inverted)
+     */
+    private fun updateInvertButton() {
+        val arrow = when (analyzer.countingMode) {
+            PeopleAnalyzer.CountingMode.HORIZONTAL_LINE -> if (prefs.invertDirection) "↓" else "↑"
+            PeopleAnalyzer.CountingMode.VERTICAL_LINE   -> if (prefs.invertDirection) "←" else "→"
+            PeopleAnalyzer.CountingMode.APPROACH        -> if (prefs.invertDirection) "←" else "→"
+        }
+        binding.btnInvert.text = "IN: $arrow"
     }
 
     private fun refreshQueueHud(@Suppress("UNUSED_PARAMETER") inCount: Int, @Suppress("UNUSED_PARAMETER") outCount: Int) {
