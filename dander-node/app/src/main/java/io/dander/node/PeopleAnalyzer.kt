@@ -119,9 +119,19 @@ class PeopleAnalyzer(
     @Volatile private var dwellOver300   = 0
 
     private var frameTick = 0L
+    // Wall-clock timestamp of the most recent analyze() entry. Surfaced
+    // so MainActivity's operator-panel "Camera: active/inactive" chip
+    // can show staleness if the ImageAnalysis pipeline dies silently
+    // (this is the regression mode that prompted the hidden-PreviewView
+    // fix — counting "looked bound" but no frames were flowing).
+    @Volatile private var lastFrameMs: Long = 0L
+    fun lastFrameMs(): Long = lastFrameMs
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
+        // Stamp before anything can short-circuit — even frames we drop
+        // (no media image, throttled, etc.) prove the pipeline is alive.
+        lastFrameMs = System.currentTimeMillis()
         val media = imageProxy.image
         if (media == null) { imageProxy.close(); return }
 

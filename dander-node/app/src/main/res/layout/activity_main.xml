@@ -5,16 +5,19 @@
     android:background="#000000">
 
     <!-- Plain camera preview + bounding-box overlay.
-         Customer-facing kiosk: preview is hidden by default — the
-         StrangerDisplayView fills the screen during idle. The camera
-         analysis use case still runs (counting continues), only the
-         visible preview surface is removed. The operator can toggle
-         this back later if a diagnostic view is needed. -->
+         The preview MUST stay visible at full size — CameraX needs a
+         live SurfaceProvider to drive the camera pipeline, and on some
+         devices the ImageAnalysis use case won't receive frames at all
+         when the Preview surface is GONE / 1x1. The StrangerDisplayView
+         below sits LATER in this FrameLayout, has an opaque #1A1A1A
+         background, and is match_parent — so it covers the preview
+         visually for customers while CameraX is still happy. The
+         OverlayView (bounding boxes / counting line) stays gone — that
+         was operator-only chrome and isn't needed in production. -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:layout_height="match_parent" />
 
     <io.dander.node.OverlayView
         android:id="@+id/overlayView"
@@ -249,6 +252,16 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:text="OUT 0" />
+
+            <TextView
+                android:id="@+id/opCamera"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="10dp"
+                android:textColor="#9E9E9E"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:text="Camera: …" />
 
             <TextView
                 android:id="@+id/opBle"

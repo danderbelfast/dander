@@ -385,11 +385,31 @@ class MainActivity : AppCompatActivity() {
         binding.opIn.text  = "IN $latestIn"
         binding.opOut.text = "OUT $latestOut"
         renderBleStatusChip()
+        renderCameraStatusChip()
         binding.operatorPanel.visibility = View.VISIBLE
         binding.operatorPanel.bringToFront()
         operatorAutoDismiss?.let { ui.removeCallbacks(it) }
         operatorAutoDismiss = Runnable { hideOperatorPanel() }
         ui.postDelayed(operatorAutoDismiss!!, OPERATOR_AUTO_DISMISS_MS)
+    }
+
+    /**
+     * Refresh the "Camera: active/inactive" chip in the operator panel.
+     * Active iff the camera use cases are bound AND the analyzer has
+     * received a frame in the last 2 seconds. Catches the silent
+     * failure mode where binding succeeds but no frames flow through
+     * the ImageAnalysis use case (the regression that prompted the
+     * hidden-PreviewView fix in this commit).
+     */
+    private fun renderCameraStatusChip() {
+        if (!::binding.isInitialized) return
+        val now = System.currentTimeMillis()
+        val active = cameraBound && analyzer.lastFrameMs() != 0L &&
+            (now - analyzer.lastFrameMs()) < 2_000L
+        binding.opCamera.text = if (active) "Camera: active" else "Camera: inactive"
+        binding.opCamera.setTextColor(
+            if (active) Color.parseColor("#00E676") else Color.parseColor("#FF5252")
+        )
     }
 
     /**
@@ -646,6 +666,12 @@ class MainActivity : AppCompatActivity() {
 
                 if (!isOpen) {
                     binding.txtNextOpen.text = BusinessHours.formatNextOpen(prefs, LocalDateTime.now())
+                }
+
+                // Keep the operator panel's Camera chip current — only
+                // worth the work if the panel is actually showing.
+                if (binding.operatorPanel.visibility == View.VISIBLE) {
+                    renderCameraStatusChip()
                 }
 
                 ui.postDelayed(this, 1500)
