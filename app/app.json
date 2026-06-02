@@ -13,7 +13,9 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Dander uses your location to discover nearby offers and improve coverage.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Dander uses your location in the background to suggest offers as you move around.",
-        "NSMotionUsageDescription": "Dander counts your steps to reward you for exploring the high street."
+        "NSMotionUsageDescription": "Dander counts your steps to reward you for exploring the high street.",
+        "NSBluetoothAlwaysUsageDescription": "Dander uses Bluetooth to recognise you at local businesses and award loyalty points automatically.",
+        "NSBluetoothPeripheralUsageDescription": "Dander uses Bluetooth to recognise you at local businesses and award loyalty points automatically."
       }
     },
     "android": {
@@ -24,7 +26,9 @@
         "ACCESS_WIFI_STATE",
         "CHANGE_WIFI_STATE",
         "ACCESS_NETWORK_STATE",
-        "ACTIVITY_RECOGNITION"
+        "ACTIVITY_RECOGNITION",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT"
       ]
     },
     "plugins": [

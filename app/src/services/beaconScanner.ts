@@ -21,6 +21,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PermissionsAndroid, Platform } from 'react-native';
 import { fetchKnownNodes, notifyDetected, KnownNode } from '../api/proximity';
 
 // Fixed Dander service UUID — must match BleBroadcaster.kt in dander-node.
@@ -126,6 +127,37 @@ function loadBlePlx(): any | null {
   }
 }
 
+/**
+ * Request every permission BLE scanning needs on the current Android
+ * SDK level. Returns true iff every required permission ended up
+ * granted (already-granted counts). Always true on non-Android — iOS
+ * surfaces the Bluetooth prompt automatically via the Info.plist
+ * NSBluetoothAlwaysUsageDescription key.
+ */
+export async function ensureBlePermissions(): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+
+  const sdk = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
+  // Pre-31 needs FINE_LOCATION for any BLE op. 31+ uses BLUETOOTH_SCAN
+  // and BLUETOOTH_CONNECT as runtime perms.
+  const needed: string[] = [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+  if (sdk >= 31) {
+    needed.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
+    needed.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
+  }
+
+  try {
+    const checks = await Promise.all(needed.map((p) => PermissionsAndroid.check(p as any)));
+    if (checks.every(Boolean)) return true;
+
+    const results = await PermissionsAndroid.requestMultiple(needed as any);
+    return needed.every((p) => results[p as keyof typeof results] === PermissionsAndroid.RESULTS.GRANTED);
+  } catch (e) {
+    if (__DEV__) console.warn('[beaconScanner] permission check failed', (e as Error)?.message);
+    return false;
+  }
+}
+
 export async function startBeaconScanner(
   onDetected?: State['onDetected'],
 ): Promise<boolean> {
@@ -135,6 +167,15 @@ export async function startBeaconScanner(
   const BleManager = loadBlePlx();
   if (!BleManager) {
     if (__DEV__) console.warn('[beaconScanner] react-native-ble-plx not installed — scan disabled.');
+    return false;
+  }
+
+  // Explicit permission request — react-native-ble-plx wraps the OS
+  // prompts but doesn't tell us *why* a scan returns nothing. Doing it
+  // ourselves lets the banner UI react to a clean denial signal.
+  const permsOk = await ensureBlePermissions();
+  if (!permsOk) {
+    if (__DEV__) console.warn('[beaconScanner] required permissions not granted — scan disabled.');
     return false;
   }
 

@@ -3,22 +3,56 @@
  * auth, stops it on logout/unmount. Mirrors the useWifiScanner pattern.
  *
  * Permissions:
- *   - On Android 12+ the OS requires runtime BLUETOOTH_SCAN permission.
- *     react-native-ble-plx surfaces this through the manager; we don't
- *     re-implement the prompt here. Until a fresh EAS build with
- *     react-native-ble-plx ships, startBeaconScanner() returns false
- *     gracefully and this hook is a no-op.
+ *   - On first scan attempt we show a one-time explanation dialog so the
+ *     user understands *why* we need Bluetooth before the system prompt
+ *     fires. Subsequent app launches skip the explanation (a flag in
+ *     AsyncStorage tracks "shown once"); the system prompts are still
+ *     handled by the scanner service.
+ *   - Pre-Android-12 needs ACCESS_FINE_LOCATION; Android 12+ also needs
+ *     BLUETOOTH_SCAN + BLUETOOTH_CONNECT.
  *
  * Side effects:
- *   - Haptic + lightweight console log on a successful proximity hit so
- *     the user has at-least-some feedback even before we ship a toast UI.
+ *   - Haptic + console log on a successful proximity hit; a real toast
+ *     lands in a follow-up.
  */
 
 import { useEffect } from 'react';
+import { Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '../context/AuthContext';
 import { startBeaconScanner, stopBeaconScanner, refreshKnownNodes } from '../services/beaconScanner';
+
+const EXPLAINED_KEY = 'dander_ble_explanation_shown_v1';
+
+/**
+ * Show the friendly "why Bluetooth?" prompt once. Resolves to true if
+ * the user agreed to continue (or if we've already shown it before);
+ * false if they tapped "Not now" the first time round. Non-Android
+ * resolves true immediately — iOS shows its own prompt with the
+ * Info.plist usage description.
+ */
+async function maybeShowExplanation(): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+  try {
+    const already = await AsyncStorage.getItem(EXPLAINED_KEY);
+    if (already) return true;
+  } catch { /* fall through and ask anyway */ }
+  const agreed = await new Promise<boolean>((resolve) => {
+    Alert.alert(
+      'Bluetooth for loyalty points',
+      'Dander uses Bluetooth to recognise you at local businesses and award loyalty points automatically.',
+      [
+        { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Allow',                       onPress: () => resolve(true)  },
+      ],
+      { cancelable: false },
+    );
+  });
+  try { await AsyncStorage.setItem(EXPLAINED_KEY, '1'); } catch { /* best-effort */ }
+  return agreed;
+}
 
 export function useBeaconScanner() {
   const { isAuth } = useAuth();
@@ -29,6 +63,9 @@ export function useBeaconScanner() {
     let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
     (async () => {
+      const agreed = await maybeShowExplanation();
+      if (!agreed || cancelled) return;
+
       const ok = await startBeaconScanner((hit) => {
         if (cancelled) return;
         // Haptic + log. A proper toast component lands in a follow-up.

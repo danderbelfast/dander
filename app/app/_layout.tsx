@@ -6,12 +6,14 @@
  */
 
 import React from 'react';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
 import { useDeviceFingerprint } from '../src/hooks/useDeviceFingerprint';
 import { useWifiScanner } from '../src/hooks/useWifiScanner';
 import useStepCounter from '../src/hooks/useStepCounter';
 import { useBeaconScanner } from '../src/hooks/useBeaconScanner';
+import { PermissionBanner } from '../src/components/PermissionBanner';
 
 function SideEffects() {
   // All four hooks gate themselves on isAuth and platform/permissions, so
@@ -27,7 +29,10 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SideEffects />
-      <Stack screenOptions={{ headerShown: false }} />
+      <View style={{ flex: 1 }}>
+        <PermissionBanner />
+        <Stack screenOptions={{ headerShown: false }} />
+      </View>
     </AuthProvider>
   );
 }
