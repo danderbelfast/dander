@@ -22,6 +22,14 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
 
+    <!-- BLE peripheral broadcasting — the Node advertises a Dander
+         service UUID + its device_id so nearby Dander user apps can
+         match this physical kiosk to the right business and trigger
+         the loyalty greeting. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADVERTISE"
+        tools:targetApi="s" />
+
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
 
     <application

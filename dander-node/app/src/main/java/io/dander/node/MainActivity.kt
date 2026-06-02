@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var deviceId: String
     private lateinit var sensorHub: SensorHub
     private lateinit var uploader: Uploader
+    private lateinit var bleBroadcaster: BleBroadcaster
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private val ui = Handler(Looper.getMainLooper())
@@ -107,7 +108,9 @@ class MainActivity : AppCompatActivity() {
             endpoint = ENDPOINT,
             buildSummary = { buildSummary() },
             onCommands  = { cmd -> applyRemoteCommands(cmd) },
+            onDisplay   = { json -> runOnUiThread { showLoyaltyGreeting(json) } },
         )
+        bleBroadcaster = BleBroadcaster(applicationContext, prefs)
 
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -254,11 +257,27 @@ class MainActivity : AppCompatActivity() {
     private fun onPermissionsSettled() {
         sensorHub.start()
         uploader.start()
+        bleBroadcaster.start()
+        binding.strangerDisplay.start(prefs.businessId)
+        binding.strangerDisplay.visibility = View.VISIBLE
         scheduleHudRefresh()
         scheduleHoursCheck()
         // Initial transition decides whether camera/sensors run right now.
         isOpen = BusinessHours.isOpen(prefs)
         applyRunningState()
+    }
+
+    /**
+     * Show the loyalty greeting overlay. Called from the Uploader's
+     * IO callback — already bounced to the UI thread by the caller.
+     * Hides the stranger-display strip while up, restores on dismiss
+     * via a one-shot scheduled show().
+     */
+    private fun showLoyaltyGreeting(cmd: org.json.JSONObject) {
+        binding.strangerDisplay.visibility = View.GONE
+        binding.displayMode.show(cmd)
+        val dur = cmd.optLong("display_duration", 8_000L).coerceIn(2_000L, 30_000L)
+        ui.postDelayed({ binding.strangerDisplay.visibility = View.VISIBLE }, dur)
     }
 
     // ─────────────────────────────────────────────────────────
@@ -499,6 +518,8 @@ class MainActivity : AppCompatActivity() {
         // for it (compile error — isInitialized only works on lateinit).
         if (::uploader.isInitialized)  uploader.stop()
         if (::sensorHub.isInitialized) sensorHub.stop()
+        if (::bleBroadcaster.isInitialized) bleBroadcaster.stop()
+        if (::binding.isInitialized) binding.strangerDisplay.stop()
         cameraExecutor.shutdown()
     }
 }

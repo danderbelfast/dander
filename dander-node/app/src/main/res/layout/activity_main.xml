@@ -195,6 +195,21 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- Stranger-display strip — shown along the bottom while idle. -->
+    <io.dander.node.StrangerDisplayView
+        android:id="@+id/strangerDisplay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:visibility="gone" />
+
+    <!-- Loyalty greeting overlay — full-screen GIF + customer name. -->
+    <io.dander.node.DisplayModeView
+        android:id="@+id/displayMode"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <!-- Remote-pause overlay (shown when the dashboard has toggled counting off) -->
     <FrameLayout
         android:id="@+id/pausedOverlay"

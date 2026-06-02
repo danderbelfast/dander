@@ -31,6 +31,7 @@ class Uploader(
     private val endpoint: String,
     private val buildSummary: () -> Summary,
     private val onCommands: (Commands) -> Unit = {},
+    private val onDisplay: (JSONObject) -> Unit = {},
 ) {
     /**
      * Remote commands the backend can piggy-back on the 200 response.
@@ -155,11 +156,14 @@ class Uploader(
             OutputStreamWriter(conn.outputStream).use { it.write(body); it.flush() }
             val code = conn.responseCode
             if (code in 200..299) {
-                // Read the body so the remote-command piggy-back gets applied.
+                // Read the body so the remote-command + loyalty-display
+                // piggy-backs both get applied. Both fields are optional;
+                // either / neither / both may be present per response.
                 val responseBody = try {
                     conn.inputStream.bufferedReader().use { it.readText() }
                 } catch (_: Exception) { "" }
                 parseCommands(responseBody)?.let { onCommands(it) }
+                parseDisplay(responseBody)?.let { onDisplay(it) }
                 true
             } else false
         } catch (e: Exception) {
@@ -167,6 +171,13 @@ class Uploader(
         } finally {
             conn?.disconnect()
         }
+    }
+
+    private fun parseDisplay(body: String): JSONObject? {
+        if (body.isBlank()) return null
+        return try {
+            JSONObject(body).optJSONObject("display")
+        } catch (_: Exception) { null }
     }
 
     private fun parseCommands(body: String): Commands? {

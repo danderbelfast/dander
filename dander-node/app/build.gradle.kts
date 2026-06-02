@@ -54,4 +54,10 @@ dependencies {
     // ML Kit on-device face detection — display-only privacy masking.
     // Face boxes are never stored, uploaded, or used for counting.
     implementation("com.google.mlkit:face-detection:16.1.7")
+
+    // Animated-GIF support for the loyalty-greeting display overlay.
+    implementation("pl.droidsonroids.gif:android-gif-drawable:1.2.28")
+
+    // QR code generation for the stranger-display app-download CTA.
+    implementation("com.google.zxing:core:3.5.2")
 }
