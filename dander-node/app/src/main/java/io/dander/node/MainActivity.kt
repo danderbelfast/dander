@@ -327,7 +327,11 @@ class MainActivity : AppCompatActivity() {
     private fun onPermissionsSettled() {
         sensorHub.start()
         uploader.start()
-        bleBroadcaster.start()
+        // BLE broadcasting needs different runtime permissions on different
+        // SDK levels. The broadcaster itself re-checks before advertising,
+        // but bail early here so we don't even attempt the start() when
+        // the user denied the required permission at the OS prompt.
+        if (canStartBleBroadcaster()) bleBroadcaster.start()
         binding.strangerDisplay.start(prefs.businessId)
         // Customer-facing kiosk: stranger display is the default visible
         // state. previewView stays GONE forever — counting runs behind it.
@@ -647,6 +651,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun granted(perm: String) =
         ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Whether we have the runtime perm required to start BLE advertising
+     * on this SDK level. API 31+ needs BLUETOOTH_ADVERTISE; earlier
+     * versions (including Android 9 / API 28) gate every BLE operation
+     * on ACCESS_FINE_LOCATION — even advertising, despite it being
+     * locationally meaningless.
+     */
+    private fun canStartBleBroadcaster(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            granted(Manifest.permission.BLUETOOTH_ADVERTISE)
+        else
+            granted(Manifest.permission.ACCESS_FINE_LOCATION)
 
     override fun onDestroy() {
         super.onDestroy()

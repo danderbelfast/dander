@@ -10,11 +10,14 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Location is required for WiFi/Bluetooth scan results on Android 8-11 -->
+    <!-- Location is required for WiFi/Bluetooth scan results on Android 8-11
+         (including Android 9 / API 28 — every BLE operation, scan or
+         advertise, is gated on ACCESS_FINE_LOCATION at that SDK level). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Bluetooth. Legacy perms for <=API 30, new perms for API 31+. -->
+    <!-- Bluetooth. Legacy perms for <=API 30 (Android 9-11 use these for
+         both scanning and advertising), new perms for API 31+ below. -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission

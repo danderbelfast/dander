@@ -123,10 +123,20 @@ class BleBroadcaster(
 
     private fun hasAdvertisePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // API 31+ (Android 12+): BLUETOOTH_ADVERTISE is a runtime
+            // permission that the user must grant explicitly.
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADVERTISE) ==
                 PackageManager.PERMISSION_GRANTED
         } else {
-            true   // pre-S inherits from the legacy BLUETOOTH/BLUETOOTH_ADMIN perms
+            // API ≤ 30 (Android 11 and earlier, including Android 9):
+            // BLUETOOTH and BLUETOOTH_ADMIN are install-time perms granted
+            // automatically. The runtime gate is ACCESS_FINE_LOCATION —
+            // Android 9 in particular rejects any BLE operation without
+            // it, even though advertising doesn't logically need location.
+            // Match what BLE scanning requires so the broadcaster and the
+            // scanner share a single permission gate.
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
         }
     }
 }
