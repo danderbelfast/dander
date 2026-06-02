@@ -59,7 +59,7 @@ router.get('/known', async (_req, res) => {
 router.get('/', requireBusiness, async (req, res) => {
   try {
     // Latest reading per device for this business, joined to the command
-    // row (if one exists). Online = last reading < 2 min ago.
+    // row (if one exists). Removed nodes (soft-deleted) are hidden.
     const { rows } = await pool.query(
       `SELECT DISTINCT ON (r.device_id)
               r.device_id,
@@ -75,6 +75,7 @@ router.get('/', requireBusiness, async (req, res) => {
          LEFT JOIN node_commands c ON c.device_id = r.device_id
         WHERE r.business_id = $1
           AND r.device_id IS NOT NULL
+          AND (c.removed_at IS NULL)
         ORDER BY r.device_id, r.timestamp DESC`,
       [req.business.id]
     );
@@ -83,6 +84,43 @@ router.get('/', requireBusiness, async (req, res) => {
   } catch (err) {
     console.error('[nodes/list]', err);
     return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load nodes.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/nodes/:device_id  — soft-remove a Node from the dashboard
+//
+// Confirms ownership (a reading exists for this business + device pair),
+// then marks the node_commands row removed_at = NOW(). Historical
+// phone_counter_readings are intentionally kept so analytics doesn't
+// lose continuity.
+// ---------------------------------------------------------------------------
+
+router.delete('/:device_id', requireBusiness, async (req, res) => {
+  const deviceId = String(req.params.device_id || '').slice(0, 100);
+  if (!deviceId) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'device_id is required.' });
+  }
+  try {
+    const own = await pool.query(
+      'SELECT 1 FROM phone_counter_readings WHERE device_id = $1 AND business_id = $2 LIMIT 1',
+      [deviceId, req.business.id]
+    );
+    if (own.rows.length === 0) {
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'No device with that id for this business.' });
+    }
+    // UPSERT so a Node that never had a command row still gets the
+    // removed_at marker. Future re-listing skips it.
+    await pool.query(
+      `INSERT INTO node_commands (device_id, business_id, counting_enabled, removed_at)
+       VALUES ($1, $2, TRUE, NOW())
+       ON CONFLICT (device_id) DO UPDATE SET removed_at = NOW(), updated_at = NOW()`,
+      [deviceId, req.business.id]
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[nodes/delete]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to remove node.' });
   }
 });
 

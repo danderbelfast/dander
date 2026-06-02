@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   getDevices, registerDevice, decommissionDevice,
   getFootfallDevices, registerFootfallDevice, getFootfallLive,
-  getNodes, setNodeCommand,
+  getNodes, setNodeCommand, removeNode,
 } from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
@@ -83,6 +83,18 @@ export default function MySensors() {
       toast({ message: err.response?.data?.message || 'Failed to update zone.', type: 'error' });
     }
     setNodeBusy(null);
+  }
+
+  async function handleRemoveNode(node) {
+    const label = node.zone_name || node.device_id;
+    if (!window.confirm(`Remove ${label} from your nodes?\nHistorical data will be preserved.`)) return;
+    try {
+      await removeNode(node.device_id);
+      setNodes((prev) => prev.filter((n) => n.device_id !== node.device_id));
+      toast({ message: `Removed ${label}.`, type: 'success' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Failed to remove node.', type: 'error' });
+    }
   }
 
   function load() {
@@ -370,14 +382,30 @@ export default function MySensors() {
                     <th>Status</th>
                     <th>Last seen</th>
                     <th>Counting</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {nodes.map((n) => {
+                  {nodes
+                    .slice()
+                    .sort((a, b) => {
+                      // Active first, then recent, then inactive — by ageMs.
+                      const aged = (n) => Date.now() - new Date(n.last_seen).getTime();
+                      return aged(a) - aged(b);
+                    })
+                    .map((n) => {
                     const isEditing = editingZone === n.device_id;
                     const busy      = nodeBusy === n.device_id;
+                    const ageMs     = Date.now() - new Date(n.last_seen).getTime();
+                    const tier      = ageMs > 7 * 24 * 60 * 60 * 1000 ? 'inactive'
+                                    : ageMs >     24 * 60 * 60 * 1000 ? 'recent'
+                                    : ageMs <          2 * 60 * 1000  ? 'active'
+                                    : 'recent';
+                    const tierStyle = tier === 'inactive'
+                      ? { opacity: 0.55, color: 'var(--c-text-muted)' }
+                      : undefined;
                     return (
-                      <tr key={n.device_id}>
+                      <tr key={n.device_id} style={tierStyle}>
                         <td>
                           {isEditing ? (
                             <input
@@ -426,9 +454,9 @@ export default function MySensors() {
                           )}
                         </td>
                         <td>
-                          <span className={`badge ${n.online ? 'badge-active' : 'badge-expired'}`}>
-                            {n.online ? 'online' : 'offline'}
-                          </span>
+                          {tier === 'active'   && <span className="badge badge-active">active</span>}
+                          {tier === 'recent'   && <span className="badge badge-scheduled" style={{ background: '#FFE0B2', color: '#7E4500' }}>recent</span>}
+                          {tier === 'inactive' && <span className="badge badge-expired" style={{ background: '#EEEEEE', color: '#757575' }}>inactive</span>}
                         </td>
                         <td style={{ color: 'var(--c-text-muted)', fontSize: '0.85rem' }}>{timeAgo(n.last_seen)}</td>
                         <td>
@@ -446,6 +474,19 @@ export default function MySensors() {
                               {busy ? '…' : (n.counting_enabled ? 'enabled' : 'paused')}
                             </span>
                           </label>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleRemoveNode(n)}
+                            style={{
+                              color: 'var(--c-danger)',
+                              fontWeight: tier === 'inactive' ? 700 : 400,
+                            }}
+                          >
+                            Remove
+                          </button>
                         </td>
                       </tr>
                     );

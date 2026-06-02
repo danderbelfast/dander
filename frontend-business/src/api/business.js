@@ -177,6 +177,9 @@ export const getNodes = () =>
 export const setNodeCommand = (deviceId, payload) =>
   client.post(`/api/nodes/${encodeURIComponent(deviceId)}/commands`, payload).then((r) => r.data);
 
+export const removeNode = (deviceId) =>
+  client.delete(`/api/nodes/${encodeURIComponent(deviceId)}`).then((r) => r.data);
+
 // ── Queue alerts ────────────────────────────────────────────
 export const getQueueAlerts = () =>
   client.get('/api/alerts/queue').then((r) => r.data);
