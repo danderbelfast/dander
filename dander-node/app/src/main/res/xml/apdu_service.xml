@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HCE service descriptor — emulates a Type 4 NDEF Tag so any NFC-capable
+  phone tapping a Dander Node reads back a URL into Chrome / Safari /
+  the Dander app (via App Links).
+
+  AID D2760000850101 is the NFC Forum NDEF Tag Application AID — using
+  it lets every smartphone's default NFC handler treat us as a regular
+  Type 4 NDEF tag.
+-->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/app_name"
+    android:requireDeviceUnlock="false">
+    <aid-group
+        android:description="@string/app_name"
+        android:category="other">
+        <aid-filter android:name="D2760000850101"/>
+    </aid-group>
+</host-apdu-service>

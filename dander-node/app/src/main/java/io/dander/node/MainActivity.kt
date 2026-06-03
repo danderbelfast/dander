@@ -11,6 +11,7 @@ import android.view.OrientationEventListener
 import android.util.Size
 import android.graphics.Color
 import android.media.RingtoneManager
+import android.nfc.NfcAdapter
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
@@ -338,11 +339,11 @@ class MainActivity : AppCompatActivity() {
     private fun onPermissionsSettled() {
         sensorHub.start()
         uploader.start()
-        // BLE broadcasting needs different runtime permissions on different
-        // SDK levels. The broadcaster itself re-checks before advertising,
-        // but bail early here so we don't even attempt the start() when
-        // the user denied the required permission at the OS prompt.
-        if (canStartBleBroadcaster()) bleBroadcaster.start()
+        // BLE broadcasting disabled — NFC HCE is now the primary check-in
+        // method (HceBroadcaster.kt). BLE scanning in SensorHub is kept
+        // for trilateration and per-zone device detection. To re-enable
+        // BLE advertising, uncomment the line below.
+        // if (canStartBleBroadcaster()) bleBroadcaster.start()
         binding.strangerDisplay.start(prefs.businessId)
         // Customer-facing kiosk: stranger display is the default visible
         // state. previewView IS bound to a live PreviewView (required for
@@ -446,6 +447,7 @@ class MainActivity : AppCompatActivity() {
         binding.opIn.text  = "IN $latestIn"
         binding.opOut.text = "OUT $latestOut"
         renderBleStatusChip()
+        renderNfcStatusChip()
         renderCameraStatusChip()
         binding.operatorPanel.visibility = View.VISIBLE
         binding.operatorPanel.bringToFront()
@@ -471,6 +473,26 @@ class MainActivity : AppCompatActivity() {
         binding.opCamera.setTextColor(
             if (active) Color.parseColor("#00E676") else Color.parseColor("#FF5252")
         )
+    }
+
+    /**
+     * Refresh the "NFC: active/unavailable" chip. The HCE service is
+     * always registered in the manifest, so "active" reflects whether
+     * the device has NFC hardware enabled (`NfcAdapter` non-null and
+     * isEnabled). No way to verify a tap happened from MainActivity —
+     * tap events fire in the HceBroadcaster service process — but the
+     * service logs every transaction under the "DanderNFC" tag.
+     */
+    private fun renderNfcStatusChip() {
+        if (!::binding.isInitialized) return
+        val adapter = NfcAdapter.getDefaultAdapter(this)
+        val (text, colour) = when {
+            adapter == null         -> "NFC: unavailable" to android.graphics.Color.parseColor("#9E9E9E")
+            !adapter.isEnabled      -> "NFC: disabled"    to android.graphics.Color.parseColor("#FFB300")
+            else                    -> "NFC: active"      to android.graphics.Color.parseColor("#00E676")
+        }
+        binding.opNfc.text = text
+        binding.opNfc.setTextColor(colour)
     }
 
     /**

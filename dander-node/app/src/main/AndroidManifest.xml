@@ -42,6 +42,18 @@
 
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
 
+    <!-- NFC HCE — the Node phone emulates a Type 4 NDEF tag so any
+         smartphone tapped against it reads back the Dander URL. Optional
+         feature so Nodes without an NFC chip still install/run; the HCE
+         service silently does nothing on those devices. -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.nfc.hce"
+        android:required="false" />
+
     <application
         android:allowBackup="false"
         android:icon="@android:drawable/sym_def_app_icon"
@@ -72,5 +84,20 @@
             android:exported="false"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- HCE service — registered with the standard NDEF Tag AID so
+             every phone's default NFC stack reads us as a regular tag. -->
+        <service
+            android:name=".HceBroadcaster"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/apdu_service" />
+        </service>
     </application>
 </manifest>
