@@ -154,6 +154,25 @@ app.use('/api/public',      require('../routes/public'));
 app.use('/docs', require('express').static(require('path').resolve(__dirname, '..', 'public', 'docs'), { index: 'index.html' }));
 
 // ---------------------------------------------------------------------------
+// Android App Links verification
+//
+// Google's verifier fetches https://dander.io/.well-known/assetlinks.json
+// over HTTPS (no redirects allowed) with Content-Type: application/json
+// and checks the SHA256 cert fingerprint(s) against the installed APK.
+// Cloudflare must NOT rewrite the Content-Type or follow any redirects —
+// add a Page Rule that forces this exact path to bypass caching if you
+// see verification fail after rotating the signing key.
+// ---------------------------------------------------------------------------
+
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  res.set('Content-Type', 'application/json');
+  // Google's verifier respects standard caching headers; short cache is
+  // safe and lets a fingerprint update propagate without waiting on a CDN.
+  res.set('Cache-Control', 'public, max-age=300');
+  res.sendFile(require('path').resolve(__dirname, '..', 'public', '.well-known', 'assetlinks.json'));
+});
+
+// ---------------------------------------------------------------------------
 // Health check  (exempt from auth; after routes so it doesn't interfere)
 // ---------------------------------------------------------------------------
 
