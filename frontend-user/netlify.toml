@@ -2,6 +2,18 @@
   command   = "npm run build"
   publish   = "dist"
 
+# Android App Links verification — Google fetches
+#   https://dander.io/.well-known/assetlinks.json
+# over HTTPS with no redirects. Netlify serves static files before
+# evaluating redirects so the SPA catch-all below won't shadow this
+# path, but we set the Content-Type explicitly so a stricter verifier
+# can't complain.
+[[headers]]
+  for = "/.well-known/assetlinks.json"
+  [headers.values]
+    Content-Type  = "application/json"
+    Cache-Control = "public, max-age=300"
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
