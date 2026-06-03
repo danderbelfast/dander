@@ -59,10 +59,10 @@ export function parseTapUrl(url: string | null | undefined): { node: string; bus
 }
 
 /**
- * Called by useTapLinkHandler when a tap URL arrives. POSTs the
- * check-in and emits the result. Throws nothing — any failure is
- * surfaced through the onNfcError listener so the UI can show a
- * lightweight retry toast.
+ * Called by app/tap.tsx when expo-router routes the tap URL to it.
+ * POSTs the check-in and emits the result. Throws nothing — any
+ * failure is surfaced through the onNfcError listener so the UI can
+ * show a lightweight retry toast.
  */
 export async function handleTapUrl(url: string): Promise<void> {
   const parsed = parseTapUrl(url);

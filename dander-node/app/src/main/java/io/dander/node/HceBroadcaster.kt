@@ -123,9 +123,13 @@ class HceBroadcaster : HostApduService() {
         val prefs = Prefs(applicationContext)
         val deviceId = prefs.resolveDeviceId()
         val businessId = prefs.businessId
+        // MUST be a fully-qualified https:// URL — App Links verification
+        // only works for the HTTPS scheme. Apps without a verified link
+        // fall through to the browser and hit the /join landing page.
         val url = "https://dander.io/tap" +
                   "?node=" + java.net.URLEncoder.encode(deviceId, "UTF-8") +
                   "&business=" + businessId
+        Log.d(TAG, "rebuildNdef url=$url")
         ndefBlob = buildNdefFile(url)
     }
 
