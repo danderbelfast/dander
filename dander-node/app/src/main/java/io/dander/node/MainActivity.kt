@@ -15,9 +15,6 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -88,13 +85,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         },
-        // Privacy compositing is off for hardware testing — see PeopleAnalyzer.
-        // Detections feed the OverlayView drawn on top of the PreviewView.
+        // Detections feed the OverlayView. The overlay sits between the
+        // PreviewView and the stranger display in z-order, both of which
+        // cover it visually — these calls are effectively no-ops for the
+        // customer view but keep the cache fresh for any future overlay.
         onDetections = { norms ->
             binding.overlayView.setDetections(norms)
         },
-        // Face boxes drive the privacy masks layered on top of the preview.
-        // Display-only — never stored or uploaded.
+        // Face boxes — display-only, never stored or uploaded. Same
+        // visual-cover situation as above.
         onFaces = { faces ->
             binding.overlayView.setFaces(faces)
         },
@@ -346,7 +345,9 @@ class MainActivity : AppCompatActivity() {
         if (canStartBleBroadcaster()) bleBroadcaster.start()
         binding.strangerDisplay.start(prefs.businessId)
         // Customer-facing kiosk: stranger display is the default visible
-        // state. previewView stays GONE forever — counting runs behind it.
+        // state. previewView IS bound to a live PreviewView (required for
+        // CameraX to drive the ImageAnalysis pipeline) but sits behind
+        // the opaque stranger display so customers never see it.
         binding.strangerDisplay.visibility = View.VISIBLE
         scheduleHudRefresh()
         scheduleHoursCheck()
@@ -649,6 +650,7 @@ class MainActivity : AppCompatActivity() {
     private fun startCamera() {
         if (cameraBound || pendingCameraStart) return
         pendingCameraStart = true
+        Log.i("DanderCamera", "startCamera() requested")
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
             try {
@@ -660,24 +662,27 @@ class MainActivity : AppCompatActivity() {
                     .build()
                     .also { it.setAnalyzer(cameraExecutor, analyzer) }
 
-                // Bind a Preview use case to the (hidden) previewView so
-                // CameraX still has a render target. The view itself is
-                // GONE — counting runs invisibly behind the stranger
-                // display. Spec: never call unbindCamera() for visibility.
+                // Preview use case is bound to a real (visible) PreviewView
+                // covered by the stranger display. CameraX needs a live
+                // SurfaceProvider for the camera pipeline to deliver frames
+                // to ImageAnalysis on many devices.
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
                 // Wall-mount, screen-facing-outward install — front lens
-                // only. Rear lens support was removed; the analyzer's
-                // mirrorX flag is hard-true.
+                // only. analyzer.mirrorX is hard-true.
                 provider.unbindAll()
                 provider.bindToLifecycle(
                     this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis,
                 )
                 cameraBound = true
+                Log.i("DanderCamera", "bindToLifecycle ok — front lens, 720p analysis + preview")
             } catch (e: Exception) {
-                binding.txtIn.text = "camera error"
+                // Operator can't see the chip behind the stranger display
+                // anyway — log instead, and surface via the operator
+                // panel's "Camera: inactive" chip on the long-press menu.
+                Log.e("DanderCamera", "startCamera failed: ${e.message}", e)
             } finally {
                 pendingCameraStart = false
             }
