@@ -29,6 +29,14 @@
         "ACTIVITY_RECOGNITION",
         "BLUETOOTH_SCAN",
         "BLUETOOTH_CONNECT"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [{ "scheme": "https", "host": "dander.io", "pathPrefix": "/tap" }],
+          "category": ["BROWSABLE", "DEFAULT"],
+          "autoVerify": true
+        }
       ]
     },
     "plugins": [

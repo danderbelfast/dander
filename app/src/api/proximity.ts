@@ -43,3 +43,42 @@ export async function fetchKnownNodes(): Promise<KnownNode[]> {
   const { data } = await client.get('/api/nodes/known');
   return Array.isArray(data?.nodes) ? (data.nodes as KnownNode[]) : [];
 }
+
+export type RewardUnlocked = {
+  id: string;
+  name: string;
+  emoji: string;
+  reward_type?: string;
+  points_required?: number;
+};
+
+export type CollectableUnlocked = {
+  id: string;
+  name: string;
+  emoji: string;
+  rarity: string;
+};
+
+export type NfcCheckinResponse = {
+  success: boolean;
+  points_awarded: number;
+  total_points: number;
+  visit_number: number;
+  tier: string;
+  tier_upgraded: boolean;
+  streak: number;
+  rewards_unlocked: RewardUnlocked[];
+  next_reward: { id: string; name: string; emoji: string; points_needed: number } | null;
+  collectable_unlocked: CollectableUnlocked | null;
+  collectable_evolved: CollectableUnlocked | null;
+  business_name: string;
+  delivery: 'websocket' | 'piggyback';
+};
+
+export async function nfcCheckin(params: {
+  node_device_id: string;
+  business_id: number;
+}): Promise<NfcCheckinResponse> {
+  const { data } = await client.post('/api/proximity/nfc-checkin', params);
+  return data as NfcCheckinResponse;
+}
