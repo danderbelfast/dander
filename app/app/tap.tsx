@@ -12,14 +12,12 @@
  * navigation never settles on /tap, and the home screen reappears
  * underneath the coins animation.
  *
- * NOTE: this file is currently in DEBUG mode for factory testing —
- * params are logged and shown via Alert so a hardware tap test can
- * confirm what the OS delivered. Remove the Alert + log lines once
- * the tap flow is verified end-to-end on real devices.
+ * Diagnostic console.log lines stay — they're cheap and useful for
+ * remote debugging via `adb logcat -s ReactNativeJS` when chasing
+ * App-Link wiring regressions.
  */
 
 import { useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { handleTapUrl } from '../src/services/nfcHandler';
@@ -34,7 +32,7 @@ export default function TapInterceptor() {
     if (fired.current) return;
     fired.current = true;
 
-    // DEBUG — log every param the OS delivered. Useful to confirm e.g.
+    // Log every param the OS delivered. Useful to confirm e.g.
     // that "node" arrived as "node-399454b3-5708-431d-841d-1dc5c4d31319"
     // rather than getting truncated by the URL parser.
     console.log('[tap] params:', JSON.stringify(params));
@@ -43,30 +41,16 @@ export default function TapInterceptor() {
     const node = Array.isArray(params.node) ? params.node[0] : params.node;
     const business = Array.isArray(params.business) ? params.business[0] : params.business;
 
-    // DEBUG alert — surfaces the received params on real hardware
-    // without logcat attached. Remove once verified.
-    Alert.alert(
-      'NFC Tap',
-      `node: ${node ?? '(missing)'}\nbusiness: ${business ?? '(missing)'}`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (node && business) {
-              const url =
-                `https://dander.io/tap?node=${encodeURIComponent(String(node))}` +
-                `&business=${encodeURIComponent(String(business))}`;
-              console.log('[tap] reconstructed URL:', url);
-              handleTapUrl(url).finally(() => router.replace('/'));
-            } else {
-              console.warn('[tap] node and/or business missing — skipping check-in');
-              router.replace('/');
-            }
-          },
-        },
-      ],
-      { cancelable: false },
-    );
+    if (node && business) {
+      const url =
+        `https://dander.io/tap?node=${encodeURIComponent(String(node))}` +
+        `&business=${encodeURIComponent(String(business))}`;
+      console.log('[tap] reconstructed URL:', url);
+      handleTapUrl(url).finally(() => router.replace('/'));
+    } else {
+      console.warn('[tap] node and/or business missing — skipping check-in');
+      router.replace('/');
+    }
   }, []);
 
   return null;

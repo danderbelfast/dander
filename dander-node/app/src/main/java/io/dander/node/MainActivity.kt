@@ -600,12 +600,13 @@ class MainActivity : AppCompatActivity() {
             cmd.openingHoursJson?.let { json ->
                 if (json != prefs.openingHoursJson) {
                     prefs.openingHoursJson = json
-                    Log.i("DanderMain", "Opening hours updated remotely")
-                    val nowOpen = BusinessHours.isOpen(prefs)
-                    if (nowOpen != isOpen) {
-                        isOpen = nowOpen
-                        applyRunningState()
-                    }
+                    val summary = BusinessHours.summary(prefs).replace("\n", " · ")
+                    Log.i("DanderMain", "Opening hours updated remotely: $summary")
+                    // Re-derive isOpen and always re-apply state so the
+                    // closed-overlay / next-open text refresh immediately,
+                    // not at the next 60-second hours-check tick.
+                    isOpen = BusinessHours.isOpen(prefs)
+                    applyRunningState()
                 }
             }
         }

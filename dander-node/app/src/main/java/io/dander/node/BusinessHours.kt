@@ -34,14 +34,17 @@ object BusinessHours {
         DayOfWeek.SUNDAY    to "sunday",
     ).toMap()
 
+    // Fresh-install default: Mon-Sat 09:00-18:00 open, Sun closed.
+    // A Node that boots before the dashboard has pushed remote hours
+    // should look "open during typical hours" rather than closed.
     private val DEFAULT_HOURS = """
-        {"monday":   {"open":"09:00","close":"17:30","closed":false},
-         "tuesday":  {"open":"09:00","close":"17:30","closed":false},
-         "wednesday":{"open":"09:00","close":"17:30","closed":false},
-         "thursday": {"open":"09:00","close":"17:30","closed":false},
-         "friday":   {"open":"09:00","close":"17:30","closed":false},
-         "saturday": {"open":"10:00","close":"16:00","closed":false},
-         "sunday":   {"open":"09:00","close":"17:30","closed":true}}
+        {"monday":   {"open":"09:00","close":"18:00","closed":false},
+         "tuesday":  {"open":"09:00","close":"18:00","closed":false},
+         "wednesday":{"open":"09:00","close":"18:00","closed":false},
+         "thursday": {"open":"09:00","close":"18:00","closed":false},
+         "friday":   {"open":"09:00","close":"18:00","closed":false},
+         "saturday": {"open":"09:00","close":"18:00","closed":false},
+         "sunday":   {"open":"09:00","close":"18:00","closed":true}}
     """.trimIndent()
 
     fun defaultJson(): String = DEFAULT_HOURS
