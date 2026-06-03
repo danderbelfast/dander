@@ -16,8 +16,11 @@
 
 const { Router } = require('express');
 const pool = require('../db/pool');
-const { requireBusiness } = require('../middleware/auth');
+const { requireBusiness, requireAuth } = require('../middleware/auth');
 const { buildGreetingCommand } = require('../services/loyaltyGreeting');
+const {
+  awardPointsAndAdvance, checkRewardUnlocks, checkCollectableUnlocks,
+} = require('../services/loyaltyMechanics');
 
 const router = Router();
 
@@ -255,6 +258,217 @@ router.post('/preview-greeting', requireBusiness, async (req, res) => {
   } catch (err) {
     console.error('[loyalty/preview-greeting]', err);
     return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Preview failed.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/loyalty/purchase-points
+// body: { user_id, amount_spent }
+// ---------------------------------------------------------------------------
+
+router.post('/purchase-points', requireBusiness, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const userId      = parseInt(body.user_id, 10);
+  const amountSpent = Number(body.amount_spent);
+  if (!Number.isFinite(userId) || !Number.isFinite(amountSpent) || amountSpent <= 0) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'user_id and positive amount_spent required.' });
+  }
+
+  try {
+    const { rows: settingsRows } = await pool.query(
+      `INSERT INTO business_loyalty_settings (business_id) VALUES ($1)
+       ON CONFLICT (business_id) DO UPDATE SET updated_at = business_loyalty_settings.updated_at
+       RETURNING points_per_pound`,
+      [req.business.id]
+    );
+    const perPound = Number(settingsRows[0].points_per_pound) || 5;
+    const pointsAwarded = Math.round(amountSpent * perPound);
+
+    // Read prior totals for reward-delta detection.
+    const { rows: priorRows } = await pool.query(
+      'SELECT points, total_visits FROM business_loyalty_points WHERE business_id = $1 AND user_id = $2',
+      [req.business.id, userId]
+    );
+    const prior = priorRows[0] || { points: 0, total_visits: 0 };
+
+    const advance = await awardPointsAndAdvance(pool, {
+      businessId: req.business.id, userId, pointsAwarded, samedayVisit: true,
+    });
+
+    const rewardInfo = await checkRewardUnlocks(pool, {
+      businessId: req.business.id, userId, priorPoints: prior.points, newPoints: advance.points,
+    });
+    const collectableInfo = await checkCollectableUnlocks(pool, {
+      businessId: req.business.id, userId,
+      priorVisits: prior.total_visits, newVisits: advance.total_visits,
+    });
+
+    return res.status(200).json({
+      success: true,
+      points_awarded:        pointsAwarded,
+      total_points:          advance.points,
+      tier:                  advance.tier,
+      tier_upgraded:         advance.tier_upgraded,
+      rewards_unlocked:      rewardInfo.rewards_unlocked,
+      next_reward:           rewardInfo.next_reward,
+      collectable_unlocked:  collectableInfo.collectable_unlocked,
+      collectable_evolved:   collectableInfo.collectable_evolved,
+    });
+  } catch (err) {
+    console.error('[loyalty/purchase-points]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to award points.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Reward journey CRUD (dashboard)
+// ---------------------------------------------------------------------------
+
+router.get('/rewards', requireBusiness, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, description, points_required, reward_type, emoji, is_active, sort_order, created_at
+         FROM loyalty_rewards
+        WHERE business_id = $1
+        ORDER BY points_required ASC`,
+      [req.business.id]
+    );
+    return res.status(200).json({ success: true, rewards: rows });
+  } catch (err) {
+    console.error('[loyalty/rewards GET]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+router.post('/rewards', requireBusiness, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const points = parseInt(body.points_required, 10);
+  const emoji = typeof body.emoji === 'string' && body.emoji.trim() ? body.emoji.trim().slice(0, 8) : '🎁';
+  const description = typeof body.description === 'string' ? body.description.slice(0, 500) : null;
+  const rewardType = ['freebie','discount','experience'].includes(body.reward_type) ? body.reward_type : 'freebie';
+  if (!name || !Number.isFinite(points) || points <= 0) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'name + positive points_required required.' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO loyalty_rewards (business_id, name, description, points_required, reward_type, emoji)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [req.business.id, name, description, points, rewardType, emoji]
+    );
+    return res.status(200).json({ success: true, reward: rows[0] });
+  } catch (err) {
+    console.error('[loyalty/rewards POST]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+router.put('/rewards/:id', requireBusiness, async (req, res) => {
+  const id = String(req.params.id || '');
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const name = typeof body.name === 'string' ? body.name.trim() : null;
+  const points = body.points_required != null ? parseInt(body.points_required, 10) : null;
+  const emoji = typeof body.emoji === 'string' ? body.emoji.slice(0, 8) : null;
+  const isActive = typeof body.is_active === 'boolean' ? body.is_active : null;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE loyalty_rewards
+          SET name             = COALESCE($3, name),
+              points_required  = COALESCE($4, points_required),
+              emoji            = COALESCE($5, emoji),
+              is_active        = COALESCE($6, is_active)
+        WHERE id = $1 AND business_id = $2
+        RETURNING *`,
+      [id, req.business.id, name, points, emoji, isActive]
+    );
+    if (rows.length === 0) return res.status(404).json({ success: false, code: 'NOT_FOUND' });
+    return res.status(200).json({ success: true, reward: rows[0] });
+  } catch (err) {
+    console.error('[loyalty/rewards PUT]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+router.delete('/rewards/:id', requireBusiness, async (req, res) => {
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM loyalty_rewards WHERE id = $1 AND business_id = $2',
+      [req.params.id, req.business.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ success: false, code: 'NOT_FOUND' });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[loyalty/rewards DELETE]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Business collectable read + edit
+// ---------------------------------------------------------------------------
+
+router.get('/collectable', requireBusiness, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM business_collectables WHERE business_id = $1',
+      [req.business.id]
+    );
+    return res.status(200).json({ success: true, collectable: rows[0] || null });
+  } catch (err) {
+    console.error('[loyalty/collectable GET]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+router.put('/collectable', requireBusiness, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const name = typeof body.name === 'string' ? body.name.slice(0, 80) : null;
+  const emoji = typeof body.emoji === 'string' ? body.emoji.slice(0, 8) : null;
+  const unlockVisits = body.unlock_visits != null ? parseInt(body.unlock_visits, 10) : null;
+  const evolvedEmoji = typeof body.evolved_emoji === 'string' ? body.evolved_emoji.slice(0, 8) : null;
+  const evolvedName = typeof body.evolved_name === 'string' ? body.evolved_name.slice(0, 80) : null;
+  const evolvedVisits = body.evolved_visits != null ? parseInt(body.evolved_visits, 10) : null;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE business_collectables
+          SET name           = COALESCE($2, name),
+              emoji          = COALESCE($3, emoji),
+              unlock_visits  = COALESCE($4, unlock_visits),
+              evolved_emoji  = COALESCE($5, evolved_emoji),
+              evolved_name   = COALESCE($6, evolved_name),
+              evolved_visits = COALESCE($7, evolved_visits)
+        WHERE business_id = $1
+        RETURNING *`,
+      [req.business.id, name, emoji, unlockVisits, evolvedEmoji, evolvedName, evolvedVisits]
+    );
+    return res.status(200).json({ success: true, collectable: rows[0] || null });
+  } catch (err) {
+    console.error('[loyalty/collectable PUT]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// User-facing summary: every business this user has loyalty data with
+// ---------------------------------------------------------------------------
+
+router.get('/user-businesses', requireAuth, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const { rows: lp } = await pool.query(
+      `SELECT bp.business_id, b.name, b.logo_url,
+              bp.points, bp.total_visits, bp.current_streak, bp.longest_streak, bp.tier
+         FROM business_loyalty_points bp
+         JOIN businesses b ON b.id = bp.business_id
+        WHERE bp.user_id = $1
+        ORDER BY bp.last_visit_at DESC NULLS LAST`,
+      [userId]
+    );
+    return res.status(200).json({ success: true, businesses: lp });
+  } catch (err) {
+    console.error('[loyalty/user-businesses]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
   }
 });
 

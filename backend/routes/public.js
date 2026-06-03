@@ -14,6 +14,7 @@ const { Router } = require('express');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { pickSearchTerm, fetchGifUrl } = require('../services/loyaltyGreeting');
+const nodeWs = require('../ws/nodes');
 
 const router = Router();
 
@@ -189,5 +190,192 @@ router.post('/stranger-milestone', milestoneLimiter, async (req, res) => {
     milestone,
   });
 });
+
+// ---------------------------------------------------------------------------
+// GET /api/public/tap
+//
+// The URL embedded in the Dander Node's NFC NDEF message. When the
+// Dander user app captures it via App Links, the app calls
+// POST /api/proximity/nfc-checkin directly — this endpoint is the
+// fallback for users who don't have the app: it redirects to the
+// stranger join page AND fires a stranger display command at the kiosk
+// so the customer feels recognised even on first contact.
+// ---------------------------------------------------------------------------
+
+router.get('/tap', async (req, res) => {
+  const nodeDeviceId = typeof req.query.node === 'string' ? req.query.node.slice(0, 100) : null;
+  const businessId   = parseInt(req.query.business, 10);
+
+  if (!nodeDeviceId || !Number.isFinite(businessId)) {
+    return res.redirect('https://dander.io');
+  }
+
+  // Fire the stranger display command — best-effort, never blocks redirect.
+  fireStrangerDisplay({ nodeDeviceId, businessId }).catch(() => {});
+
+  // Redirect to the stranger landing page (served at /join below).
+  return res.redirect(`/join?business=${encodeURIComponent(businessId)}&node=${encodeURIComponent(nodeDeviceId)}`);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/public/nfc-stranger
+// ---------------------------------------------------------------------------
+
+router.post('/nfc-stranger', async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const nodeDeviceId = typeof body.node_device_id === 'string' ? body.node_device_id.slice(0, 100) : null;
+  const businessId   = parseInt(body.business_id, 10);
+  if (!nodeDeviceId || !Number.isFinite(businessId)) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR' });
+  }
+  await fireStrangerDisplay({ nodeDeviceId, businessId });
+  return res.status(200).json({
+    success: true,
+    join_url: `https://dander.io/join?business=${encodeURIComponent(businessId)}&node=${encodeURIComponent(nodeDeviceId)}`,
+  });
+});
+
+const STRANGER_TAGLINES = [
+  "Someone new just discovered us! 👋",
+  "New friend alert! 🎉",
+  "Welcome — first time? 🌟",
+];
+
+async function fireStrangerDisplay({ nodeDeviceId, businessId }) {
+  try {
+    const { rows: bizRows } = await pool.query('SELECT name, category FROM businesses WHERE id = $1', [businessId]);
+    const business = bizRows[0] || { name: 'us', category: 'shop' };
+    const term = (await pickSearchTerm({
+      first_name: 'a new customer', visit_number: 1, greeting_type: 'first_visit',
+      business_category: business.category, part_of_day: 'today', tone: 'cheeky', last_visit_text: 'first time',
+    })) || 'excited welcome';
+    const gifUrl = await fetchGifUrl(term, null);
+    const message = STRANGER_TAGLINES[Math.floor(Math.random() * STRANGER_TAGLINES.length)]
+                      .replace('us', business.name);
+
+    const command = {
+      type: 'stranger_tap',
+      gif_url: gifUrl,
+      customer_name: '👋 NEW VISITOR',
+      message,
+      points_awarded: 0,
+      visit_number: 0,
+      display_duration: 8_000,
+      search_term: term,
+    };
+
+    const pushed = nodeWs.pushDisplayCommand(nodeDeviceId, command);
+    if (pushed) {
+      await pool.query(
+        `INSERT INTO node_display_commands (device_id, command, delivered_at)
+         VALUES ($1, $2::jsonb, NOW())`,
+        [nodeDeviceId, JSON.stringify(command)]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO node_display_commands (device_id, command) VALUES ($1, $2::jsonb)`,
+        [nodeDeviceId, JSON.stringify(command)]
+      );
+    }
+  } catch (err) {
+    console.warn('[public/fireStrangerDisplay]', err.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /join   — stranger landing page (no auth)
+// ---------------------------------------------------------------------------
+
+router.get('/join', async (req, res) => {
+  const businessId = parseInt(req.query.business, 10);
+  let business = null, offer = null, visitorCount = 0;
+  if (Number.isFinite(businessId)) {
+    try {
+      const bizRows = await pool.query('SELECT id, name, logo_url, category FROM businesses WHERE id = $1', [businessId]);
+      business = bizRows.rows[0] || null;
+      const offerRows = await pool.query(
+        `SELECT title, description, discount_percent FROM offers
+          WHERE business_id = $1 AND is_active = TRUE
+          ORDER BY created_at DESC LIMIT 1`,
+        [businessId]
+      );
+      offer = offerRows.rows[0] || null;
+      const countRows = await pool.query(
+        `SELECT COALESCE(SUM(count_in), 0)::int AS visitors
+           FROM phone_counter_readings
+          WHERE business_id = $1 AND zone_type = 'entrance'
+            AND (timestamp AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date`,
+        [businessId]
+      );
+      visitorCount = countRows.rows[0]?.visitors ?? 0;
+    } catch (err) {
+      console.warn('[public/join]', err.message);
+    }
+  }
+
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderJoinHtml({ business, offer, visitorCount }));
+});
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderJoinHtml({ business, offer, visitorCount }) {
+  const bizName = esc(business?.name || 'Dander');
+  const offerHtml = offer
+    ? `<div class="offer">
+         <div class="offer-label">Today's offer</div>
+         <div class="offer-title">${esc(offer.title)}</div>
+         ${offer.description ? `<div class="offer-desc">${esc(offer.description)}</div>` : ''}
+       </div>` : '';
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Join Dander — ${bizName}</title>
+<style>
+  :root { color-scheme: dark; }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;
+       background:#0f1115;color:#fff;padding:24px;max-width:540px;margin:auto}
+  h1{font-size:28px;margin:0 0 6px;line-height:1.15}
+  .biz{color:#FF6B35;font-weight:700}
+  .stats{display:flex;gap:16px;margin:20px 0;color:#bbb;font-size:14px}
+  .stats b{color:#fff;font-size:20px;display:block}
+  .perks{margin:24px 0;list-style:none;padding:0}
+  .perks li{padding:10px 0;border-bottom:1px solid #1f2530;font-size:15px}
+  .offer{background:#1a1f29;border-radius:12px;padding:16px;margin:24px 0}
+  .offer-label{font-size:11px;letter-spacing:.16em;color:#9aa4b1;text-transform:uppercase}
+  .offer-title{font-size:20px;font-weight:700;margin-top:4px}
+  .offer-desc{font-size:14px;color:#cfd6df;margin-top:6px}
+  .cta{display:flex;flex-direction:column;gap:10px;margin:28px 0}
+  .cta a{display:block;text-align:center;padding:14px;border-radius:10px;font-weight:700;text-decoration:none}
+  .cta .android{background:#FF6B35;color:#fff}
+  .cta .ios{background:#fff;color:#0f1115}
+  .already{font-size:13px;color:#9aa4b1;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+  <h1>You just tapped into <span class="biz">${bizName}</span>! 👋</h1>
+  <div class="stats">
+    <div><b>${visitorCount}</b>visitors today</div>
+  </div>
+  <ul class="perks">
+    <li>✨ Greeted by name on arrival</li>
+    <li>🎮 Loyalty points every visit</li>
+    <li>🏆 Rewards from free coffee to free meal</li>
+    <li>📱 Exclusive offers</li>
+  </ul>
+  ${offerHtml}
+  <div class="cta">
+    <a class="android" href="https://play.google.com/store/apps/details?id=io.dander.app">Get Dander — Android</a>
+    <a class="ios"     href="https://apps.apple.com/app/dander">Get Dander — iOS</a>
+    <div class="already">Already have Dander? Open the app and tap again.</div>
+  </div>
+</body></html>`;
+}
 
 module.exports = router;
