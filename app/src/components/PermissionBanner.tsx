@@ -19,51 +19,67 @@ import {
   StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 
 type Slot = {
   label: string;
   feature: string;
-  permission: string;
+  /** Returns true when the permission *needs* nagging. */
+  check: () => Promise<boolean>;
 };
+
+const isAndroid = Platform.OS === 'android';
+const sdk = typeof Platform.Version === 'number'
+  ? Platform.Version
+  : parseInt(String(Platform.Version), 10);
+
+async function androidPermDenied(perm: string): Promise<boolean> {
+  if (!isAndroid) return false;
+  try { return !(await PermissionsAndroid.check(perm as any)); }
+  catch { return false; }
+}
 
 const PRIORITY_SLOTS: Slot[] = [
   {
     label: 'Bluetooth',
     feature: 'recognising you at local businesses',
-    // BLUETOOTH_SCAN only matters on API 31+. On older Android, BLE
-    // is gated on ACCESS_FINE_LOCATION (covered by the next slot).
-    permission: 'android.permission.BLUETOOTH_SCAN',
+    // BLUETOOTH_SCAN only matters on API 31+; pre-API-31 BLE is gated
+    // by ACCESS_FINE_LOCATION (covered by the Location slot below).
+    check: async () => isAndroid && sdk >= 31
+      && await androidPermDenied('android.permission.BLUETOOTH_SCAN'),
   },
   {
     label: 'Location',
     feature: 'WiFi-based check-ins and Bluetooth scanning',
-    permission: 'android.permission.ACCESS_FINE_LOCATION',
+    check: async () => isAndroid
+      && await androidPermDenied('android.permission.ACCESS_FINE_LOCATION'),
+  },
+  {
+    label: 'Notifications',
+    feature: 'loyalty points alerts and nearby offers',
+    // expo-notifications cross-platform; reports 'undetermined' on first
+    // launch which we treat as denied so we nag, then the friendly
+    // walkthrough handles it on next launch.
+    check: async () => {
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        return status !== 'granted';
+      } catch { return false; }
+    },
   },
   {
     label: 'Activity',
     feature: 'step counting',
-    permission: 'android.permission.ACTIVITY_RECOGNITION',
+    // ACTIVITY_RECOGNITION is a no-op runtime perm pre-API-29.
+    check: async () => isAndroid && sdk >= 29
+      && await androidPermDenied('android.permission.ACTIVITY_RECOGNITION'),
   },
 ];
 
 async function findFirstDenied(): Promise<Slot | null> {
-  if (Platform.OS !== 'android') return null;
-  const sdk = typeof Platform.Version === 'number'
-    ? Platform.Version
-    : parseInt(String(Platform.Version), 10);
-
   for (const slot of PRIORITY_SLOTS) {
-    // BLUETOOTH_SCAN is a no-op runtime perm pre-API-31 — skip it there
-    // (location coverage is what actually gates BLE on those devices).
-    if (slot.permission === 'android.permission.BLUETOOTH_SCAN' && sdk < 31) continue;
-    // ACTIVITY_RECOGNITION is a no-op runtime perm pre-API-29.
-    if (slot.permission === 'android.permission.ACTIVITY_RECOGNITION' && sdk < 29) continue;
-
     try {
-      // Cast: TS types limit the union to known constants, but the
-      // string form works at runtime and we control these values.
-      const ok = await PermissionsAndroid.check(slot.permission as any);
-      if (!ok) return slot;
+      if (await slot.check()) return slot;
     } catch {
       // If we can't even check, don't bother nagging the user.
     }
