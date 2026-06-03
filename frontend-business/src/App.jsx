@@ -25,6 +25,7 @@ import ApiKeys          from './pages/ApiKeys';
 import Settings         from './pages/Settings';
 import LoyaltySettings  from './pages/LoyaltySettings';
 import Customers        from './pages/Customers';
+import AwardPoints      from './pages/AwardPoints';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/smart-specials"   element={<SmartSpecials />} />
           <Route path="/sensors"          element={<MySensors />} />
           <Route path="/loyalty"          element={<LoyaltySettings />} />
+          <Route path="/loyalty/award"    element={<AwardPoints />} />
           <Route path="/customers"        element={<Customers />} />
           <Route path="/reports"          element={<Reports />} />
           <Route path="/analytics"       element={<Analytics />} />

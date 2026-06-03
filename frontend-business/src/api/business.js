@@ -212,6 +212,26 @@ export const getLoyaltyCustomers = () =>
 export const previewLoyaltyGreeting = (payload) =>
   client.post('/api/loyalty/preview-greeting', payload).then((r) => r.data);
 
+// ── Reward journey ──────────────────────────────────────────
+export const getLoyaltyRewards = () =>
+  client.get('/api/loyalty/rewards').then((r) => r.data);
+export const addLoyaltyReward = (payload) =>
+  client.post('/api/loyalty/rewards', payload).then((r) => r.data);
+export const updateLoyaltyReward = (id, payload) =>
+  client.put(`/api/loyalty/rewards/${encodeURIComponent(id)}`, payload).then((r) => r.data);
+export const deleteLoyaltyReward = (id) =>
+  client.delete(`/api/loyalty/rewards/${encodeURIComponent(id)}`).then((r) => r.data);
+
+// ── Collectable ─────────────────────────────────────────────
+export const getLoyaltyCollectable = () =>
+  client.get('/api/loyalty/collectable').then((r) => r.data);
+export const updateLoyaltyCollectable = (payload) =>
+  client.put('/api/loyalty/collectable', payload).then((r) => r.data);
+
+// ── Purchase points (NFC / staff tablet) ────────────────────
+export const awardPurchasePoints = (payload) =>
+  client.post('/api/loyalty/purchase-points', payload).then((r) => r.data);
+
 // ── Opening hours ───────────────────────────────────────────
 export const saveOpeningHours = (opening_hours) =>
   client.post('/api/business/opening-hours', { opening_hours }).then((r) => r.data);
