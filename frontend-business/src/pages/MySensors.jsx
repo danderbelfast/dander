@@ -85,6 +85,17 @@ export default function MySensors() {
     setNodeBusy(null);
   }
 
+  async function handleRefreshGifs(node) {
+    setNodeBusy(node.device_id);
+    try {
+      await setNodeCommand(node.device_id, { refresh_gifs: true });
+      toast({ message: 'Refresh queued — the kiosk picks it up on its next upload.', type: 'success' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Failed to queue refresh.', type: 'error' });
+    }
+    setNodeBusy(null);
+  }
+
   async function handleRemoveNode(node) {
     const label = node.zone_name || node.device_id;
     if (!window.confirm(`Remove ${label} from your nodes?\nHistorical data will be preserved.`)) return;
@@ -495,7 +506,17 @@ export default function MySensors() {
                             </span>
                           )}
                         </td>
-                        <td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleRefreshGifs(n)}
+                            disabled={busy}
+                            style={{ marginRight: 4 }}
+                            title="Tell the kiosk to re-download every GIF"
+                          >
+                            ↻ GIFs
+                          </button>
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"

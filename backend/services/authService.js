@@ -160,7 +160,7 @@ async function verifyOtp(userId, code, purpose) {
  *
  * @returns {{ userId: number }}
  */
-async function registerUser(email, phone, password, firstName, lastName) {
+async function registerUser(email, phone, password, firstName, lastName, dateOfBirth = null) {
   const existing = await pool.query(
     'SELECT id FROM users WHERE email = $1',
     [email.toLowerCase().trim()]
@@ -174,10 +174,14 @@ async function registerUser(email, phone, password, firstName, lastName) {
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
+  // date_of_birth optional — only used for the 'birthday' loyalty
+  // greeting (and only when the user has birthday_sharing=true).
+  const dob = (typeof dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth))
+    ? dateOfBirth : null;
   const { rows } = await pool.query(
     `INSERT INTO users
-       (email, phone, password_hash, first_name, last_name, is_verified, is_active)
-     VALUES ($1, $2, $3, $4, $5, false, true)
+       (email, phone, password_hash, first_name, last_name, date_of_birth, is_verified, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, false, true)
      RETURNING id`,
     [
       email.toLowerCase().trim(),
@@ -185,6 +189,7 @@ async function registerUser(email, phone, password, firstName, lastName) {
       passwordHash,
       firstName ?? null,
       lastName  ?? null,
+      dob,
     ]
   );
   const userId = rows[0].id;

@@ -27,6 +27,18 @@ const {
 } = require('../services/loyaltyMechanics');
 const nodeWs = require('../ws/nodes');
 
+/**
+ * True iff `dob` (Date or YYYY-MM-DD string) shares its month-day with
+ * today (server local time — close enough for the kiosk use case).
+ */
+function isBirthdayToday(dob) {
+  if (!dob) return false;
+  const d = dob instanceof Date ? dob : new Date(dob);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  return d.getUTCMonth() === now.getUTCMonth() && d.getUTCDate() === now.getUTCDate();
+}
+
 const router = Router();
 
 // ---------------------------------------------------------------------------
@@ -49,7 +61,8 @@ router.post('/detected', requireAuth, async (req, res) => {
   try {
     // ── 1. User + business lookup ─────────────────────────────
     const { rows: userRows } = await pool.query(
-      `SELECT id, first_name, email, display_preference FROM users WHERE id = $1`,
+      `SELECT id, first_name, email, display_preference, date_of_birth, birthday_sharing
+         FROM users WHERE id = $1`,
       [req.user.id]
     );
     if (userRows.length === 0) {
@@ -113,6 +126,7 @@ router.post('/detected', requireAuth, async (req, res) => {
     else if (visitNumber % 100 === 0)     greetingType = 'milestone_100';
     else if (visitNumber % 50  === 0)     greetingType = 'milestone_50';
     else if (visitNumber % 10  === 0)     greetingType = 'milestone_10';
+    else if (user.birthday_sharing && isBirthdayToday(user.date_of_birth)) greetingType = 'birthday';
     else if (daysSinceLast != null && daysSinceLast > 21) greetingType = 'long_absence';
     else                                  greetingType = 'regular';
 
@@ -237,7 +251,9 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
 
   try {
     const { rows: userRows } = await pool.query(
-      'SELECT id, first_name, email, display_preference FROM users WHERE id = $1', [req.user.id]
+      `SELECT id, first_name, email, display_preference, date_of_birth, birthday_sharing
+         FROM users WHERE id = $1`,
+      [req.user.id]
     );
     if (userRows.length === 0) return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
     const user = userRows[0];
@@ -295,6 +311,7 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
     else if (advance.total_visits % 100 === 0)   greetingType = 'milestone_100';
     else if (advance.total_visits % 50  === 0)   greetingType = 'milestone_50';
     else if (advance.total_visits % 10  === 0)   greetingType = 'milestone_10';
+    else if (user.birthday_sharing && isBirthdayToday(user.date_of_birth)) greetingType = 'birthday';
     else if (daysSinceLast != null && daysSinceLast > 21) greetingType = 'long_absence';
     else                                          greetingType = 'regular';
 

@@ -51,13 +51,17 @@ router.post(
     body('firstName').notEmpty().trim().withMessage('First name is required.'),
     body('lastName').notEmpty().trim().withMessage('Last name is required.'),
     body('phone').optional().isMobilePhone().withMessage('Invalid phone number.'),
+    // date_of_birth is optional — only used for the birthday loyalty
+    // greeting. Format must be YYYY-MM-DD if provided.
+    body('dateOfBirth').optional({ values: 'falsy' })
+      .matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD.'),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;
 
     try {
-      const { email, password, firstName, lastName, phone } = req.body;
-      const result = await authService.registerUser(email, phone, password, firstName, lastName);
+      const { email, password, firstName, lastName, phone, dateOfBirth } = req.body;
+      const result = await authService.registerUser(email, phone, password, firstName, lastName, dateOfBirth);
 
       return ok(res, {
         message: 'Account created. We\'ve sent a 6-digit verification code to your email.',

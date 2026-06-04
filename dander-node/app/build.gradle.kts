@@ -12,7 +12,7 @@ android {
         minSdk = 26          // Android 8.0
         targetSdk = 34
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
     }
 
     buildTypes {
@@ -60,6 +60,10 @@ dependencies {
 
     // QR code generation for the stranger-display app-download CTA.
     implementation("com.google.zxing:core:3.5.2")
+
+    // WorkManager — schedules the daily GIF cache refresh that runs even
+    // when the kiosk has been on without restart for >24 hours.
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // OkHttp — WebSocket client for real-time loyalty display commands.
     // Standard pick on Android; same library backs Retrofit if we ever

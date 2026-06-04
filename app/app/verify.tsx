@@ -27,7 +27,24 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '../src/context/AuthContext';
 import { resendOtp } from '../src/api/auth';
+import { getDisplayPreference } from '../src/api/users';
 import { extractApiError } from '../src/api/errors';
+
+/**
+ * After a fresh signup we send the user to the display-preference
+ * picker. We treat any read failure (network blip, missing column) as
+ * "needs onboarding" so we err toward over-prompting; the picker
+ * itself is a no-op for users who pick the same value they already
+ * have, so a duplicate visit is harmless.
+ */
+async function needsDisplayPreferenceOnboarding(): Promise<boolean> {
+  try {
+    const state = await getDisplayPreference();
+    return !state?.display_preference_set_at;
+  } catch {
+    return true;
+  }
+}
 import { authStyles } from '../src/components/authStyles';
 import { Brand } from '../src/components/Brand';
 import { colors } from '../src/constants/colors';
@@ -63,7 +80,7 @@ export default function VerifyScreen() {
     // Decide where to navigate inside the try, but navigate _after_ the
     // try/finally so that a synchronous throw from the router can't be
     // misreported as a verification failure.
-    let dest: '/' | '/login' | null = null;
+    let dest: '/' | '/login' | '/onboarding/display-preference' | null = null;
     try {
       if (purpose === 'login') {
         if (!tempToken) throw new Error('Missing session — please sign in again.');
@@ -72,7 +89,18 @@ export default function VerifyScreen() {
       } else {
         if (!userId) throw new Error('Missing user — please sign up again.');
         const { signedIn } = await verifyRegisterOtp(userId, code);
-        dest = signedIn ? '/' : '/login';
+        if (signedIn) {
+          // Send fresh signups through the display-preference picker
+          // before they land on the home screen. Existing users who
+          // signed in normally skip this path. We treat any read
+          // failure as "haven't set it" — better to over-prompt than
+          // miss the onboarding window.
+          dest = (await needsDisplayPreferenceOnboarding())
+            ? '/onboarding/display-preference'
+            : '/';
+        } else {
+          dest = '/login';
+        }
       }
     } catch (e) {
       setError(extractApiError(e, 'Verification failed. Please try again.'));

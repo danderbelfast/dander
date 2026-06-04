@@ -163,6 +163,10 @@ class MainActivity : AppCompatActivity() {
         VersionChecker.checkAppVersion(prefs, BuildConfig.VERSION_NAME) { _, _ ->
             runOnUiThread { binding.strangerDisplay.refreshUpdateBanner() }
         }
+        // Daily 02:00 WorkManager job — covers kiosks that have been up
+        // >24h without a restart. KEEP policy means re-launching this
+        // activity doesn't reset the next-run clock.
+        GifRefreshWorker.schedule(applicationContext)
         // Real-time display channel. Falls back to the Uploader's 60s
         // piggy-back if the WS is down — both paths feed the same
         // showLoyaltyGreeting() handler, so duplicate delivery would

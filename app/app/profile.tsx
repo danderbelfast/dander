@@ -156,7 +156,7 @@ export default function ProfileScreen() {
       {/* Settings */}
       <Text style={styles.sectionTitle}>Settings</Text>
       <Row label="Notification preferences" onPress={stub('Notifications')} />
-      <Row label="Privacy"                  onPress={stub('Privacy')} />
+      <Row label="Privacy"                  onPress={() => router.push('/settings/privacy')} />
       <Row label="Help & support"           onPress={stub('Help')} />
       <Row label="Terms & privacy policy"   onPress={stub('Legal')} />
 
