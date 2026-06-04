@@ -363,6 +363,8 @@ export default function MySensors() {
         </p>
       </div>
 
+      <NodeUpdatesBanner nodes={nodes} />
+
       <div className="card">
         <div className="card-body">
           {nodesLoading ? (
@@ -382,6 +384,7 @@ export default function MySensors() {
                     <th>Status</th>
                     <th>Last seen</th>
                     <th>Counting</th>
+                    <th>Version</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -475,6 +478,23 @@ export default function MySensors() {
                             </span>
                           </label>
                         </td>
+                        <td title={n.update_available
+                          ? `Running v${n.app_version || '?'} — v${n.latest_version} available`
+                          : (n.app_version ? `v${n.app_version}` : 'unknown')}>
+                          {n.update_available ? (
+                            <span style={{
+                              display: 'inline-block', padding: '3px 8px', borderRadius: 999,
+                              background: '#FFF3CD', color: '#7E4500',
+                              fontSize: '0.78rem', fontWeight: 700,
+                            }}>
+                              ⚠️ v{n.app_version || '?'} → v{n.latest_version}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--c-text-muted)', fontSize: '0.85rem' }}>
+                              v{n.app_version || '—'}
+                            </span>
+                          )}
+                        </td>
                         <td>
                           <button
                             type="button"
@@ -497,6 +517,51 @@ export default function MySensors() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Yellow "X Dander Nodes need updating" banner. Counts the rows where
+// update_available is true and lets the operator dismiss for the session
+// (sessionStorage so re-opening the page after a fresh upload shows it
+// again if applicable).
+// ---------------------------------------------------------------------------
+
+function NodeUpdatesBanner({ nodes }) {
+  const outdated = (nodes || []).filter((n) => n.update_available);
+  const [dismissed, setDismissed] = React.useState(() => {
+    try { return sessionStorage.getItem('dander_node_updates_dismissed') === '1'; }
+    catch { return false; }
+  });
+  if (outdated.length === 0 || dismissed) return null;
+  const latest = outdated[0].latest_version;
+  return (
+    <div style={{
+      background: '#FFF3CD', border: '1px solid #FFB300',
+      borderRadius: 10, padding: 14, display: 'flex', alignItems: 'flex-start', gap: 12,
+    }}>
+      <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>⚠️</div>
+      <div style={{ flex: 1, color: '#5C4400' }}>
+        <strong>Updates available for {outdated.length} node{outdated.length === 1 ? '' : 's'}</strong>
+        <div style={{ fontSize: '0.86rem', marginTop: 4 }}>
+          Latest version is v{latest}. Staff can update via the long-press operator panel on each kiosk.
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          try { sessionStorage.setItem('dander_node_updates_dismissed', '1'); } catch {}
+          setDismissed(true);
+        }}
+        style={{
+          background: 'transparent', border: 'none', color: '#5C4400',
+          cursor: 'pointer', fontSize: '1.1rem', padding: 4,
+        }}
+        title="Dismiss for this session"
+      >
+        ✕
+      </button>
     </div>
   );
 }
