@@ -3,6 +3,7 @@ package io.dander.node
 import android.annotation.SuppressLint
 import android.graphics.Rect
 import android.graphics.RectF
+import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
@@ -129,6 +130,7 @@ class PeopleAnalyzer(
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
+        Log.v("DanderAnalyzer", "Frame received: ${imageProxy.width}x${imageProxy.height}")
         // Stamp before anything can short-circuit — even frames we drop
         // (no media image, throttled, etc.) prove the pipeline is alive.
         lastFrameMs = System.currentTimeMillis()
@@ -158,12 +160,23 @@ class PeopleAnalyzer(
         val pending = AtomicInteger((if (runPerson) 1 else 0) + (if (runFace) 1 else 0))
         val onAnyComplete = { if (pending.decrementAndGet() == 0) imageProxy.close() }
 
-        val input = InputImage.fromMediaImage(media, rotation)
+        // If fromMediaImage throws (rare — corrupt frame), close immediately
+        // and bail. Without this guard the imageProxy would leak and back-
+        // pressure would freeze the whole analysis pipeline after one frame.
+        val input = try {
+            InputImage.fromMediaImage(media, rotation)
+        } catch (e: Exception) {
+            Log.e("DanderML", "Detection failed: ${e.message}")
+            imageProxy.close()
+            return
+        }
 
         if (runPerson) {
-            detector.process(input)
-                .addOnSuccessListener { objects ->
-                    val now = System.currentTimeMillis()
+            try {
+                detector.process(input)
+                    .addOnSuccessListener { objects ->
+                        Log.d("DanderML", "Detection complete: ${objects.size} persons found")
+                        val now = System.currentTimeMillis()
                     val norms = ArrayList<RectF>(objects.size)
                     val mode = countingMode
                     val mirror = mirrorX
@@ -245,14 +258,21 @@ class PeopleAnalyzer(
                     onResult(inCount, outCount)
                     onDetections(norms)
                 }
-                .addOnFailureListener { /* drop this frame's ML; overlay reuses cache */ }
+                .addOnFailureListener { e ->
+                    Log.e("DanderML", "Detection failed: ${e.message}")
+                }
                 .addOnCompleteListener { onAnyComplete() }
+            } catch (e: Exception) {
+                Log.e("DanderML", "Detection failed: ${e.message}")
+                onAnyComplete()
+            }
         } else {
             onDetections(cachedDetections)
         }
 
         if (runFace) {
-            faceDetector.process(input)
+            try {
+                faceDetector.process(input)
                 .addOnSuccessListener { faces ->
                     val mirror = mirrorX
                     val faceNorms = ArrayList<RectF>(faces.size)
@@ -265,6 +285,12 @@ class PeopleAnalyzer(
                 }
                 .addOnFailureListener { /* mask reuses cache this frame */ }
                 .addOnCompleteListener { onAnyComplete() }
+            } catch (e: Exception) {
+                // Face detector throwing synchronously is rare, but we must
+                // still settle the pending counter so the imageProxy.close()
+                // fires and the analysis pipeline doesn't stall.
+                onAnyComplete()
+            }
         } else {
             onFaces(cachedFaces)
         }
