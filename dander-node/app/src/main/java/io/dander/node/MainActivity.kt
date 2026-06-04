@@ -23,6 +23,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import io.dander.node.BuildConfig
 import io.dander.node.databinding.ActivityMainBinding
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
