@@ -176,13 +176,21 @@ class PeopleAnalyzer(
                 detector.process(input)
                     .addOnSuccessListener { objects ->
                         Log.d("DanderML", "Detection complete: ${objects.size} persons found")
+                        Log.d("DanderCount",
+                            "Raw detection: ${objects.size} objects, " +
+                            "labels: ${objects.map { it.labels.map { l -> l.text } }}")
                         val now = System.currentTimeMillis()
                     val norms = ArrayList<RectF>(objects.size)
                     val mode = countingMode
                     val mirror = mirrorX
                     Log.d("DanderCount", "Counting line at: $LINE (mode=$mode invert=$invertDirection)")
                     for (obj in objects) {
-                        val id = obj.trackingId ?: continue
+                        val id = obj.trackingId
+                        if (id == null) {
+                            Log.d("DanderCount",
+                                "Skipping object — no trackingId; labels=${obj.labels.map { it.text }}")
+                            continue
+                        }
                         val raw = toUprightNorm(obj.boundingBox, bw, bh, rotation)
                         val norm = if (mirror) mirrorHoriz(raw) else raw
                         norms.add(norm)
