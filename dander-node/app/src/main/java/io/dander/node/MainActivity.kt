@@ -21,6 +21,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import io.dander.node.BuildConfig
@@ -740,9 +742,24 @@ class MainActivity : AppCompatActivity() {
         future.addListener({
             try {
                 val provider = future.get()
-                @Suppress("DEPRECATION")
+                // setTargetResolution() is a hint and CameraX 1.3 routinely
+                // ignores it on phones whose native front-sensor output is a
+                // square 3088x3088 — ML Kit then fails silently and no
+                // analyze() callback fires. ResolutionSelector with a
+                // ResolutionStrategy is the non-deprecated API that
+                // actually constrains the choice; FALLBACK_RULE_CLOSEST_
+                // LOWER_THEN_HIGHER prefers something at or below 720p so
+                // the analyzer keeps a sane workload.
+                val resSelector = ResolutionSelector.Builder()
+                    .setResolutionStrategy(
+                        ResolutionStrategy(
+                            TARGET_RES,
+                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                        )
+                    )
+                    .build()
                 val analysis = ImageAnalysis.Builder()
-                    .setTargetResolution(TARGET_RES) // 720p
+                    .setResolutionSelector(resSelector)
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
                     .also { it.setAnalyzer(cameraExecutor, analyzer) }
@@ -762,7 +779,9 @@ class MainActivity : AppCompatActivity() {
                     this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis,
                 )
                 cameraBound = true
-                Log.i("DanderCamera", "bindToLifecycle ok — front lens, 720p analysis + preview")
+                val chosen = analysis.resolutionInfo?.resolution
+                Log.i("DanderCamera",
+                    "bindToLifecycle ok — front lens; analysis resolution=$chosen (requested $TARGET_RES)")
                 scheduleCameraHealthCheck(isRetry)
                 scheduleBackgroundJobsOnce()
             } catch (e: Exception) {
