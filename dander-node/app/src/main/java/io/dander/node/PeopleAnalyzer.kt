@@ -75,11 +75,6 @@ class PeopleAnalyzer(
         ObjectDetectorOptions.Builder()
             .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
             .enableMultipleObjects()
-            // Classification on — the default base model still has no
-            // Person class, but classification confidence is what STREAM_MODE
-            // uses to maintain a stable trackingId across frames. Without
-            // this, IDs come back null on most non-static objects.
-            .enableClassification()
             .build()
     )
 
@@ -181,29 +176,14 @@ class PeopleAnalyzer(
                 detector.process(input)
                     .addOnSuccessListener { objects ->
                         Log.d("DanderML", "Detection complete: ${objects.size} persons found")
-                        Log.d("DanderCount",
-                            "Raw detection: ${objects.size} objects, " +
-                            "labels: ${objects.map { it.labels.map { l -> l.text } }}")
                         val now = System.currentTimeMillis()
                     val norms = ArrayList<RectF>(objects.size)
                     val mode = countingMode
                     val mirror = mirrorX
-                    Log.d("DanderCount", "Counting line at: $LINE (mode=$mode invert=$invertDirection)")
                     for (obj in objects) {
-                        // Tracking ID can be null on transient single-frame
-                        // detections even in STREAM_MODE. Fall back to a
-                        // position-derived synthetic ID so the detection
-                        // still feeds the crossing logic — when the next
-                        // frame's detection lands at a nearby centroid,
-                        // the same synthetic ID is recomputed and prev/curr
-                        // populate as if a real track had been assigned.
-                        val id = obj.trackingId ?:
-                            (obj.boundingBox.centerX() * 1000 + obj.boundingBox.centerY())
-                        val tracked = obj.trackingId != null
-                        if (!tracked) {
-                            Log.d("DanderCount",
-                                "Fallback id=$id (no trackingId); labels=${obj.labels.map { it.text }}")
-                        }
+                        val id = obj.trackingId
+                            ?: (obj.boundingBox.centerX().toInt() * 1000 +
+                                obj.boundingBox.centerY().toInt())
                         val raw = toUprightNorm(obj.boundingBox, bw, bh, rotation)
                         val norm = if (mirror) mirrorHoriz(raw) else raw
                         norms.add(norm)
@@ -211,35 +191,26 @@ class PeopleAnalyzer(
                         val cy = (norm.top + norm.bottom) / 2f
                         val cx = (norm.left + norm.right) / 2f
                         val area = (norm.right - norm.left) * (norm.bottom - norm.top)
-                        Log.d("DanderCount",
-                            "Person id=$id at: top=${norm.top} bottom=${norm.bottom} " +
-                            "centerY=$cy centerX=$cx")
 
                         when (mode) {
                             CountingMode.HORIZONTAL_LINE -> {
                                 // Top of frame = "out of the store"; crossing the
                                 // midline downwards = entering. up==true means IN.
                                 val prev = lastY[id]
-                                var crossed = false
                                 if (prev != null) {
-                                    if (prev > LINE && cy <= LINE)      { bump(up = true);  crossed = true }
-                                    else if (prev < LINE && cy >= LINE) { bump(up = false); crossed = true }
+                                    if (prev > LINE && cy <= LINE)      bump(up = true)
+                                    else if (prev < LINE && cy >= LINE) bump(up = false)
                                 }
-                                Log.d("DanderCount",
-                                    "Crossing check id=$id: prev=$prev curr=$cy line=$LINE crossed=$crossed")
                                 lastY[id] = cy
                             }
                             CountingMode.VERTICAL_LINE -> {
                                 // Walk-past row of tills. Left-to-right == IN.
                                 // up==true is reused to mean IN so bump()/invert work uniformly.
                                 val prev = lastX[id]
-                                var crossed = false
                                 if (prev != null) {
-                                    if (prev < LINE && cx >= LINE)      { bump(up = true);  crossed = true }
-                                    else if (prev > LINE && cx <= LINE) { bump(up = false); crossed = true }
+                                    if (prev < LINE && cx >= LINE)      bump(up = true)
+                                    else if (prev > LINE && cx <= LINE) bump(up = false)
                                 }
-                                Log.d("DanderCount",
-                                    "Crossing check id=$id: prev=$prev curr=$cx line=$LINE crossed=$crossed")
                                 lastX[id] = cx
                             }
                             CountingMode.APPROACH -> {
