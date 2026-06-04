@@ -65,15 +65,22 @@ export function parseTapUrl(url: string | null | undefined): { node: string; bus
  * show a lightweight retry toast.
  */
 export async function handleTapUrl(url: string): Promise<void> {
+  console.log('[handleTapUrl] called with:', url);
   const parsed = parseTapUrl(url);
-  if (!parsed) return;
+  if (!parsed) {
+    console.warn('[handleTapUrl] url did not parse to (node, business) — skipping');
+    return;
+  }
   try {
+    console.log('[handleTapUrl] posting to nfc-checkin');
     const result = await nfcCheckin({
       node_device_id: parsed.node,
       business_id: parsed.business,
     });
+    console.log('[handleTapUrl] response:', JSON.stringify(result));
     emitSuccess(result);
   } catch (err) {
+    console.error('[handleTapUrl] error:', err);
     emitError(err as Error);
   }
 }
