@@ -32,12 +32,6 @@ class GifRefreshWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
 
-    private companion object {
-        const val TAG = "DanderGifWorker"
-        const val UNIQUE_NAME = "dander.gif-refresh.daily"
-        const val TARGET_HOUR = 2  // 02:00 local
-    }
-
     override suspend fun doWork(): Result {
         return try {
             val prefs = Prefs(applicationContext)
@@ -54,7 +48,11 @@ class GifRefreshWorker(
         }
     }
 
-    companion object Scheduler {
+    companion object {
+        private const val TAG = "DanderGifWorker"
+        private const val UNIQUE_NAME = "dander.gif-refresh.daily"
+        private const val TARGET_HOUR = 2  // 02:00 local
+
         /**
          * Enqueue the worker with KEEP policy so re-launching the app
          * doesn't re-schedule and reset the next-run clock. Initial delay
