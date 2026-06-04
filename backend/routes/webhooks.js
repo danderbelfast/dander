@@ -282,21 +282,28 @@ router.post('/phone-counter', async (req, res) => {
       // We mark it delivered immediately — if the Node never actually
       // renders it (process killed, screen off) we lose that greeting
       // but never re-deliver and confuse a later visitor.
-      const { rows: dispRows } = await pool.query(
-        `SELECT id, command
-           FROM node_display_commands
-          WHERE device_id = $1 AND delivered_at IS NULL
-          ORDER BY created_at ASC
-          LIMIT 1`,
-        [deviceId]
-      );
-      if (dispRows.length > 0) {
-        const d = dispRows[0];
-        responsePayload.display = d.command;
-        await pool.query(
-          `UPDATE node_display_commands SET delivered_at = NOW() WHERE id = $1`,
-          [d.id]
+      //
+      // Skip entirely for legacy nodes (no app_version reported). Their
+      // Uploader.kt can't parse the `display` field, and marking the
+      // row delivered would lose the greeting forever; leaving it
+      // pending lets a modern Node pick it up after the kiosk upgrades.
+      if (reportedVersion !== null) {
+        const { rows: dispRows } = await pool.query(
+          `SELECT id, command
+             FROM node_display_commands
+            WHERE device_id = $1 AND delivered_at IS NULL
+            ORDER BY created_at ASC
+            LIMIT 1`,
+          [deviceId]
         );
+        if (dispRows.length > 0) {
+          const d = dispRows[0];
+          responsePayload.display = d.command;
+          await pool.query(
+            `UPDATE node_display_commands SET delivered_at = NOW() WHERE id = $1`,
+            [d.id]
+          );
+        }
       }
     }
 
