@@ -232,6 +232,16 @@ export const updateLoyaltyCollectable = (payload) =>
 export const awardPurchasePoints = (payload) =>
   client.post('/api/loyalty/purchase-points', payload).then((r) => r.data);
 
+// ── GIF library ─────────────────────────────────────────────
+export const getLoyaltyGifs = (triggerType) =>
+  client.get('/api/loyalty/gifs', { params: triggerType ? { trigger_type: triggerType } : {} }).then((r) => r.data);
+export const addLoyaltyGif = (payload) =>
+  client.post('/api/loyalty/gifs', payload).then((r) => r.data);
+export const deleteLoyaltyGif = (id) =>
+  client.delete(`/api/loyalty/gifs/${encodeURIComponent(id)}`).then((r) => r.data);
+export const searchGiphy = (q) =>
+  client.get('/api/loyalty/gifs/search', { params: { q } }).then((r) => r.data);
+
 // ── Opening hours ───────────────────────────────────────────
 export const saveOpeningHours = (opening_hours) =>
   client.post('/api/business/opening-hours', { opening_hours }).then((r) => r.data);

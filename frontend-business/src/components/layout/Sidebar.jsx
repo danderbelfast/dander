@@ -45,6 +45,11 @@ const NAV = [
           <circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/>
         </svg>
       )},
+      { to: '/loyalty/gifs', label: 'GIF Library', icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9v6l5-3z"/>
+        </svg>
+      )},
       { to: '/customers', label: 'Customers', icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
