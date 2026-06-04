@@ -104,13 +104,26 @@ class DisplayModeView @JvmOverloads constructor(
      * Show a loyalty greeting. Returns immediately; auto-dismisses after
      * `display_duration` ms (default 8 s) on the UI thread.
      */
+    /**
+     * Set by MainActivity. When non-null, getRandomGif(greetingType) is
+     * consulted before falling back to the command's gif_url field —
+     * makes local cache hits play instantly without a network fetch.
+     */
+    var gifCache: GifCache? = null
+
     fun show(cmd: JSONObject) {
         val name = cmd.optString("customer_name", "friend")
         val message = cmd.optString("message", "Welcome!")
         val pts  = cmd.optInt("points_awarded", 0)
         val visit = cmd.optInt("visit_number", 0)
         val durationMs = cmd.optLong("display_duration", 8_000L).coerceIn(2_000L, 30_000L)
-        val gifUrl = cmd.optString("gif_url", "").ifBlank { null }
+        val greetingType = cmd.optString("greeting_type", "regular")
+        val urlGif = cmd.optString("gif_url", "").ifBlank { null }
+        // Cache lookup first; fall back to the command's URL if no cached
+        // GIF for this trigger. Either path eventually feeds GifDrawable.
+        val cachedPath = gifCache?.getRandomGif(greetingType)
+        val gifSource: String? = cachedPath ?: urlGif
+        val isLocal = cachedPath != null
 
         nameView.text = name
         messageView.text = message
@@ -127,7 +140,9 @@ class DisplayModeView @JvmOverloads constructor(
         gifView.setImageDrawable(null)
         gifView.setBackgroundColor(Color.parseColor("#FF1A1A22"))
 
-        if (gifUrl != null) loadGifAsync(gifUrl)
+        if (gifSource != null) {
+            if (isLocal) loadLocalGif(gifSource) else loadGifAsync(gifSource)
+        }
 
         visibility = View.VISIBLE
         bringToFront()
@@ -142,6 +157,16 @@ class DisplayModeView @JvmOverloads constructor(
         val d = gifView.drawable
         if (d is GifDrawable) d.stop()
         gifView.setImageDrawable(null)
+    }
+
+    private fun loadLocalGif(path: String) {
+        // GifDrawable supports a File constructor — load synchronously on
+        // the UI thread since reading from internal storage is fast.
+        try {
+            gifView.setImageDrawable(GifDrawable(java.io.File(path)))
+        } catch (_: Exception) {
+            // Cached file corrupt — silently degrade to text.
+        }
     }
 
     private fun loadGifAsync(url: String) {

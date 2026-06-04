@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uploader: Uploader
     private lateinit var bleBroadcaster: BleBroadcaster
     private lateinit var wsClient: WsClient
+    private lateinit var gifCache: GifCache
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private val ui = Handler(Looper.getMainLooper())
@@ -140,6 +141,15 @@ class MainActivity : AppCompatActivity() {
             // posts back on — bounce to the UI for the chip update.
             bleStatus = status
             runOnUiThread { renderBleStatusChip() }
+        }
+
+        // Local GIF cache. Hand it to DisplayMode so loyalty greetings
+        // prefer the on-disk file over a fresh HTTP fetch. Refresh on
+        // boot if the manifest is empty or stale (>24h).
+        gifCache = GifCache(applicationContext)
+        binding.displayMode.gifCache = gifCache
+        if (gifCache.isStale()) {
+            gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
         }
         // Real-time display channel. Falls back to the Uploader's 60s
         // piggy-back if the WS is down — both paths feed the same
@@ -608,6 +618,11 @@ class MainActivity : AppCompatActivity() {
                     isOpen = BusinessHours.isOpen(prefs)
                     applyRunningState()
                 }
+            }
+            // Dashboard-triggered GIF cache refresh.
+            if (cmd.refreshGifs == true) {
+                Log.i("DanderMain", "Refreshing GIF cache (remote command)")
+                gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
             }
         }
     }

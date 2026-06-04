@@ -240,7 +240,7 @@ router.post('/phone-counter', async (req, res) => {
       const deviceId = p.device_id.slice(0, 100);
 
       const { rows: cmdRows } = await pool.query(
-        `SELECT counting_enabled, zone_name, zone_type, sound_enabled, opening_hours
+        `SELECT counting_enabled, zone_name, zone_type, sound_enabled, opening_hours, refresh_gifs
            FROM node_commands
           WHERE device_id = $1`,
         [deviceId]
@@ -253,7 +253,15 @@ router.post('/phone-counter', async (req, res) => {
           zone_type: c.zone_type,
           sound_enabled: c.sound_enabled,
           opening_hours: c.opening_hours,
+          refresh_gifs: c.refresh_gifs || false,
         };
+        // One-shot: clear refresh_gifs after the Node has been told.
+        if (c.refresh_gifs) {
+          await pool.query(
+            `UPDATE node_commands SET refresh_gifs = NULL WHERE device_id = $1`,
+            [deviceId]
+          );
+        }
       }
 
       // Drain the oldest undelivered display command for this device.

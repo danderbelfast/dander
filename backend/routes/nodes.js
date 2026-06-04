@@ -141,8 +141,12 @@ router.post('/:device_id/commands', requireBusiness, async (req, res) => {
   const zoneType = typeof body.zone_type === 'string' ? body.zone_type.slice(0, 30)  : null;
   const soundEnabled = typeof body.sound_enabled === 'boolean' ? body.sound_enabled : null;
   const openingHours = (body.opening_hours && typeof body.opening_hours === 'object') ? body.opening_hours : null;
+  // refresh_gifs is a one-shot flag, not persisted; it propagates via the
+  // commands piggy-back on the very next webhook upload and the Node
+  // clears its own behavior on receipt.
+  const refreshGifs = body.refresh_gifs === true;
 
-  if (countingEnabled === null && zoneName === null && zoneType === null && soundEnabled === null && openingHours === null) {
+  if (countingEnabled === null && zoneName === null && zoneType === null && soundEnabled === null && openingHours === null && !refreshGifs) {
     return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'No command fields provided.' });
   }
 
@@ -163,8 +167,8 @@ router.post('/:device_id/commands', requireBusiness, async (req, res) => {
     // partial commands (e.g. just toggling counting) are common.
     const { rows } = await pool.query(
       `INSERT INTO node_commands
-         (device_id, business_id, counting_enabled, zone_name, zone_type, sound_enabled, opening_hours, updated_at)
-       VALUES ($1, $2, COALESCE($3, TRUE), $4, $5, $6, $7::jsonb, NOW())
+         (device_id, business_id, counting_enabled, zone_name, zone_type, sound_enabled, opening_hours, refresh_gifs, updated_at)
+       VALUES ($1, $2, COALESCE($3, TRUE), $4, $5, $6, $7::jsonb, $8, NOW())
        ON CONFLICT (device_id) DO UPDATE
          SET business_id      = EXCLUDED.business_id,
              counting_enabled = COALESCE($3, node_commands.counting_enabled),
@@ -172,9 +176,12 @@ router.post('/:device_id/commands', requireBusiness, async (req, res) => {
              zone_type        = COALESCE($5, node_commands.zone_type),
              sound_enabled    = COALESCE($6, node_commands.sound_enabled),
              opening_hours    = COALESCE($7::jsonb, node_commands.opening_hours),
+             refresh_gifs     = $8,
              updated_at       = NOW()
        RETURNING *`,
-      [deviceId, req.business.id, countingEnabled, zoneName, zoneType, soundEnabled, openingHours ? JSON.stringify(openingHours) : null]
+      [deviceId, req.business.id, countingEnabled, zoneName, zoneType, soundEnabled,
+       openingHours ? JSON.stringify(openingHours) : null,
+       refreshGifs ? true : null]
     );
 
     return res.status(200).json({ success: true, command: rows[0] });

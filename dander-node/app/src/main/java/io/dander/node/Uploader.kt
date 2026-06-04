@@ -46,6 +46,8 @@ class Uploader(
         val soundEnabled: Boolean?,
         /** Raw JSON string of the per-day schedule, or null if not pushed this cycle. */
         val openingHoursJson: String?,
+        /** When true, MainActivity triggers a GIF cache refresh. */
+        val refreshGifs: Boolean?,
     )
 
     data class Summary(
@@ -201,6 +203,8 @@ class Uploader(
                     cmd.getBoolean("sound_enabled") else null,
                 openingHoursJson = if (cmd.has("opening_hours") && !cmd.isNull("opening_hours"))
                     cmd.getJSONObject("opening_hours").toString() else null,
+                refreshGifs = if (cmd.has("refresh_gifs") && !cmd.isNull("refresh_gifs"))
+                    cmd.getBoolean("refresh_gifs") else null,
             )
         } catch (_: Exception) { null }
     }
