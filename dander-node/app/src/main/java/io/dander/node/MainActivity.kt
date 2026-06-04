@@ -135,6 +135,12 @@ class MainActivity : AppCompatActivity() {
             buildSummary = { buildSummary() },
             onCommands  = { cmd -> applyRemoteCommands(cmd) },
             onDisplay   = { json -> runOnUiThread { showLoyaltyGreeting(json) } },
+            onVersionInfo = { latest, behind ->
+                val changed = prefs.latestVersion != latest || prefs.updateAvailable != behind
+                prefs.latestVersion = latest
+                prefs.updateAvailable = behind
+                if (changed) runOnUiThread { binding.strangerDisplay.refreshUpdateBanner() }
+            },
         )
         bleBroadcaster = BleBroadcaster(applicationContext, prefs) { status ->
             // Status callback fires on whichever thread the BLE adapter
@@ -150,6 +156,12 @@ class MainActivity : AppCompatActivity() {
         binding.displayMode.gifCache = gifCache
         if (gifCache.isStale()) {
             gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
+        }
+        // Daily-ish version check. Runs alongside the GIF refresh so a
+        // kiosk that's been offline picks up an APK update as soon as
+        // it's reachable again.
+        VersionChecker.checkAppVersion(prefs, BuildConfig.VERSION_NAME) { _, _ ->
+            runOnUiThread { binding.strangerDisplay.refreshUpdateBanner() }
         }
         // Real-time display channel. Falls back to the Uploader's 60s
         // piggy-back if the WS is down — both paths feed the same
@@ -201,6 +213,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         binding.opClose.setOnClickListener { hideOperatorPanel() }
+        binding.opUpdate.setOnClickListener {
+            hideOperatorPanel()
+            // Open the update instructions in the kiosk browser.
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://dander.io/update/node")))
+        }
 
         // Invert IN / OUT. No camera rebind — analyzer reads
         // invertDirection on every bump(), so the next crossing flips
@@ -355,6 +372,7 @@ class MainActivity : AppCompatActivity() {
         // BLE advertising, uncomment the line below.
         // if (canStartBleBroadcaster()) bleBroadcaster.start()
         binding.strangerDisplay.start(prefs.businessId)
+        binding.strangerDisplay.refreshUpdateBanner()
         // Customer-facing kiosk: stranger display is the default visible
         // state. previewView IS bound to a live PreviewView (required for
         // CameraX to drive the ImageAnalysis pipeline) but sits behind
@@ -459,6 +477,14 @@ class MainActivity : AppCompatActivity() {
         renderBleStatusChip()
         renderNfcStatusChip()
         renderCameraStatusChip()
+        // Update button — visible only when behind. Label includes the
+        // version delta so the operator knows what they're upgrading to.
+        if (prefs.updateAvailable && prefs.latestVersion.isNotBlank()) {
+            binding.opUpdate.text = "⬆️ v${BuildConfig.VERSION_NAME} → v${prefs.latestVersion}"
+            binding.opUpdate.visibility = View.VISIBLE
+        } else {
+            binding.opUpdate.visibility = View.GONE
+        }
         binding.operatorPanel.visibility = View.VISIBLE
         binding.operatorPanel.bringToFront()
         operatorAutoDismiss?.let { ui.removeCallbacks(it) }
@@ -677,6 +703,7 @@ class MainActivity : AppCompatActivity() {
                 analyzer.currentQueueDepth() > prefs.queueThreshold,
             tillMode = if (prefs.zoneType == "till") prefs.tillMode else null,
             soundEnabled = prefs.soundEnabled,
+            appVersion = BuildConfig.VERSION_NAME,
             heartbeat = !open,
         )
     }

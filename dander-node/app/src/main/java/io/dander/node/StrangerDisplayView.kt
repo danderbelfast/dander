@@ -54,6 +54,7 @@ class StrangerDisplayView @JvmOverloads constructor(
     private val io = Executors.newSingleThreadExecutor()
 
     private val txtHeadline: TextView
+    private val txtUpdateBanner: TextView
     private val txtSpecialLabel: TextView
     private val txtOfferTitle: TextView
     private val txtOfferDesc:  TextView
@@ -167,8 +168,32 @@ class StrangerDisplayView @JvmOverloads constructor(
         section3.addView(qrView)
         section3.addView(qrCaption)
 
+        // Subtle amber update-available chip at the very bottom — never
+        // obscures the QR / offer section above. The kiosk operator gets
+        // it via the long-press operator panel; this chip is for staff
+        // who happen to walk past.
+        txtUpdateBanner = TextView(context).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(Color.parseColor("#FFB300"))
+            gravity = Gravity.CENTER
+            setPadding(12, 8, 12, 8)
+            text = "⚠️ App update available"
+            visibility = View.GONE
+        }
+        root.addView(txtUpdateBanner)
+
         qrView.setImageBitmap(generateQr(APP_URL, QR_PX))
         applyOfferOrFallback(null)
+    }
+
+    /**
+     * Refresh the "App update available" chip from Prefs. Called from
+     * MainActivity whenever the version-info callback fires with a
+     * changed state.
+     */
+    fun refreshUpdateBanner() {
+        val prefs = Prefs(context)
+        txtUpdateBanner.visibility = if (prefs.updateAvailable) View.VISIBLE else View.GONE
     }
 
     /** Start the periodic refresh loop. Safe to call repeatedly. */

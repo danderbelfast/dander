@@ -32,6 +32,8 @@ class Uploader(
     private val buildSummary: () -> Summary,
     private val onCommands: (Commands) -> Unit = {},
     private val onDisplay: (JSONObject) -> Unit = {},
+    /** Fires on every successful response with (latestVersion, updateAvailable). */
+    private val onVersionInfo: (String, Boolean) -> Unit = { _, _ -> },
 ) {
     /**
      * Remote commands the backend can piggy-back on the 200 response.
@@ -80,6 +82,7 @@ class Uploader(
         val queueAlert: Boolean,
         val tillMode: String?,
         val soundEnabled: Boolean,
+        val appVersion: String,
         val heartbeat: Boolean = false,
     )
 
@@ -148,6 +151,7 @@ class Uploader(
             put("queue_alert", s.queueAlert)
             put("till_mode",   s.tillMode ?: JSONObject.NULL)
             put("sound_enabled", s.soundEnabled)
+            put("app_version", s.appVersion)
             put("heartbeat", s.heartbeat)
         }.toString()
 
@@ -171,6 +175,7 @@ class Uploader(
                 } catch (_: Exception) { "" }
                 parseCommands(responseBody)?.let { onCommands(it) }
                 parseDisplay(responseBody)?.let { onDisplay(it) }
+                parseVersion(responseBody)?.let { (latest, behind) -> onVersionInfo(latest, behind) }
                 true
             } else false
         } catch (e: Exception) {
@@ -178,6 +183,18 @@ class Uploader(
         } finally {
             conn?.disconnect()
         }
+    }
+
+    private fun parseVersion(body: String): Pair<String, Boolean>? {
+        if (body.isBlank()) return null
+        return try {
+            val root = JSONObject(body)
+            val latest = if (root.has("latest_version") && !root.isNull("latest_version"))
+                root.getString("latest_version") else return null
+            val behind = if (root.has("update_available") && !root.isNull("update_available"))
+                root.getBoolean("update_available") else false
+            Pair(latest, behind)
+        } catch (_: Exception) { null }
     }
 
     private fun parseDisplay(body: String): JSONObject? {

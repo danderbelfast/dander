@@ -284,6 +284,15 @@
                 android:text="NFC: …" />
 
             <Button
+                android:id="@+id/opUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="#FFB300"
+                android:text="⬆️ Update"
+                android:visibility="gone" />
+
+            <Button
                 android:id="@+id/opSettings"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

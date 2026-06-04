@@ -47,6 +47,14 @@ class Prefs(context: Context) {
     // silent.
     var soundEnabled:    Boolean get() = sp.getBoolean(KEY_SOUND_ENABLED, true);                     set(v) = sp.edit().putBoolean(KEY_SOUND_ENABLED, v).apply()
 
+    // App-update state. Both fields are mirrored from the webhook
+    // response on every upload (and refreshed by the daily version
+    // check). The StrangerDisplayView reads `updateAvailable` to show
+    // the amber banner; MainActivity's operator panel uses both to
+    // build the "Update available v0.9 → v1.0" button.
+    var updateAvailable: Boolean get() = sp.getBoolean(KEY_UPDATE_AVAILABLE, false); set(v) = sp.edit().putBoolean(KEY_UPDATE_AVAILABLE, v).apply()
+    var latestVersion:   String  get() = sp.getString(KEY_LATEST_VERSION, "") ?: "";  set(v) = sp.edit().putString(KEY_LATEST_VERSION, v).apply()
+
     // Business pairing — set during the first-launch setup flow.
     var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
     var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
@@ -78,6 +86,8 @@ class Prefs(context: Context) {
         const val KEY_TILL_MODE     = "till_mode"
         const val KEY_QUEUE_THRESHOLD = "queue_threshold"
         const val KEY_SOUND_ENABLED = "sound_enabled"
+        const val KEY_UPDATE_AVAILABLE = "update_available"
+        const val KEY_LATEST_VERSION   = "latest_version"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
         val TILL_MODES = listOf("overhead", "walkpast", "approach")
