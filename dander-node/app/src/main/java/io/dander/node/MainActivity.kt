@@ -60,6 +60,13 @@ class MainActivity : AppCompatActivity() {
     private var cameraBound = false
     private var pendingCameraStart = false
 
+    // Health-check / auto-recovery state. We grant exactly one retry per
+    // bind cycle: if frames still aren't flowing after a fresh bind, mark
+    // cameraFailed and let the operator tap the chip to try again.
+    private var pendingHealthCheck: Runnable? = null
+    private var cameraRecoveryInFlight = false
+    private var backgroundJobsScheduled = false
+
     // Latest IN/OUT for the operator panel readout. The detection
     // callback already updates the on-screen chips; we mirror the
     // values here so the operator panel can show them on demand
@@ -151,23 +158,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Local GIF cache. Hand it to DisplayMode so loyalty greetings
-        // prefer the on-disk file over a fresh HTTP fetch. Refresh on
-        // boot if the manifest is empty or stale (>24h).
+        // prefer the on-disk file over a fresh HTTP fetch. The on-boot
+        // network refresh, version check, and periodic WorkManager job
+        // are all deferred until startCamera() confirms a successful
+        // bindToLifecycle — camera is the highest-priority startup task
+        // and we keep the main thread out of any HTTP/WorkManager I/O
+        // until counting is up.
         gifCache = GifCache(applicationContext)
         binding.displayMode.gifCache = gifCache
-        if (gifCache.isStale()) {
-            gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
-        }
-        // Daily-ish version check. Runs alongside the GIF refresh so a
-        // kiosk that's been offline picks up an APK update as soon as
-        // it's reachable again.
-        VersionChecker.checkAppVersion(prefs, BuildConfig.VERSION_NAME) { _, _ ->
-            runOnUiThread { binding.strangerDisplay.refreshUpdateBanner() }
-        }
-        // Daily 02:00 WorkManager job — covers kiosks that have been up
-        // >24h without a restart. KEEP policy means re-launching this
-        // activity doesn't reset the next-run clock.
-        GifRefreshWorker.schedule(applicationContext)
         // Real-time display channel. Falls back to the Uploader's 60s
         // piggy-back if the WS is down — both paths feed the same
         // showLoyaltyGreeting() handler, so duplicate delivery would
@@ -508,12 +506,28 @@ class MainActivity : AppCompatActivity() {
     private fun renderCameraStatusChip() {
         if (!::binding.isInitialized) return
         val now = System.currentTimeMillis()
-        val active = cameraBound && analyzer.lastFrameMs() != 0L &&
+        val recentFrames = cameraBound && analyzer.lastFrameMs() != 0L &&
             (now - analyzer.lastFrameMs()) < 2_000L
-        binding.opCamera.text = if (active) "Camera: active" else "Camera: inactive"
-        binding.opCamera.setTextColor(
-            if (active) Color.parseColor("#00E676") else Color.parseColor("#FF5252")
-        )
+        when {
+            prefs.cameraFailed -> {
+                binding.opCamera.text = "Camera: failed ❌ — tap to restart"
+                binding.opCamera.setTextColor(Color.parseColor("#FF5252"))
+                binding.opCamera.isClickable = true
+                binding.opCamera.setOnClickListener { restartCameraFromOperator() }
+            }
+            recentFrames -> {
+                binding.opCamera.text = "Camera: active ✅"
+                binding.opCamera.setTextColor(Color.parseColor("#00E676"))
+                binding.opCamera.isClickable = false
+                binding.opCamera.setOnClickListener(null)
+            }
+            else -> {
+                binding.opCamera.text = "Camera: inactive"
+                binding.opCamera.setTextColor(Color.parseColor("#FF5252"))
+                binding.opCamera.isClickable = false
+                binding.opCamera.setOnClickListener(null)
+            }
+        }
     }
 
     /**
@@ -721,6 +735,7 @@ class MainActivity : AppCompatActivity() {
         if (cameraBound || pendingCameraStart) return
         pendingCameraStart = true
         Log.i("DanderCamera", "startCamera() requested")
+        val isRetry = cameraRecoveryInFlight
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
             try {
@@ -748,6 +763,8 @@ class MainActivity : AppCompatActivity() {
                 )
                 cameraBound = true
                 Log.i("DanderCamera", "bindToLifecycle ok — front lens, 720p analysis + preview")
+                scheduleCameraHealthCheck(isRetry)
+                scheduleBackgroundJobsOnce()
             } catch (e: Exception) {
                 // Operator can't see the chip behind the stranger display
                 // anyway — log instead, and surface via the operator
@@ -761,11 +778,83 @@ class MainActivity : AppCompatActivity() {
 
     private fun unbindCamera() {
         if (!cameraBound) return
+        pendingHealthCheck?.let { ui.removeCallbacks(it) }
+        pendingHealthCheck = null
         ProcessCameraProvider.getInstance(this).get()?.unbindAll()
         // Clear tracking state so any person mid-frame at unbind doesn't
         // get a stale dwell of "minutes since the camera last ran".
         analyzer.clearTracking()
         cameraBound = false
+    }
+
+    /**
+     * Schedule a single +30s health check. `isRetry` carries over from
+     * the startCamera() call site so the check knows whether a pass
+     * means "Auto-recovery successful" or just "normal bind succeeded".
+     */
+    private fun scheduleCameraHealthCheck(isRetry: Boolean) {
+        pendingHealthCheck?.let { ui.removeCallbacks(it) }
+        val r = Runnable { runCameraHealthCheck(isRetry) }
+        pendingHealthCheck = r
+        ui.postDelayed(r, 30_000L)
+    }
+
+    private fun runCameraHealthCheck(isRetry: Boolean) {
+        pendingHealthCheck = null
+        if (!cameraBound) return
+        val last = analyzer.lastFrameMs()
+        val now = System.currentTimeMillis()
+        val healthy = last > 0L && (now - last) < 5_000L
+        if (healthy) {
+            if (isRetry) {
+                Log.i("DanderCamera", "Auto-recovery successful")
+                if (prefs.cameraFailed) {
+                    prefs.cameraFailed = false
+                    if (binding.operatorPanel.visibility == View.VISIBLE) renderCameraStatusChip()
+                }
+            }
+            cameraRecoveryInFlight = false
+            return
+        }
+        Log.w("DanderCamera", "HEALTH CHECK FAILED — camera not producing frames")
+        if (isRetry) {
+            Log.e("DanderCamera", "Auto-recovery failed — manual restart needed")
+            prefs.cameraFailed = true
+            cameraRecoveryInFlight = false
+            if (binding.operatorPanel.visibility == View.VISIBLE) renderCameraStatusChip()
+            return
+        }
+        cameraRecoveryInFlight = true
+        unbindCamera()
+        startCamera()
+    }
+
+    /** Operator-tap recovery — fresh attempt budget, clears the sticky flag. */
+    private fun restartCameraFromOperator() {
+        cameraRecoveryInFlight = false
+        prefs.cameraFailed = false
+        unbindCamera()
+        startCamera()
+        renderCameraStatusChip()
+    }
+
+    /**
+     * Fires the on-boot GIF refresh, version check, and daily WorkManager
+     * job — but only after the first successful camera bind. Idempotent;
+     * subsequent rebinds (closed→open transitions, recovery retries) skip
+     * this entirely so we don't re-enqueue WorkManager work or thrash the
+     * GIF cache on every state change.
+     */
+    private fun scheduleBackgroundJobsOnce() {
+        if (backgroundJobsScheduled) return
+        backgroundJobsScheduled = true
+        if (gifCache.isStale()) {
+            gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
+        }
+        VersionChecker.checkAppVersion(prefs, BuildConfig.VERSION_NAME) { _, _ ->
+            runOnUiThread { binding.strangerDisplay.refreshUpdateBanner() }
+        }
+        GifRefreshWorker.schedule(applicationContext)
     }
 
     // ─────────────────────────────────────────────────────────

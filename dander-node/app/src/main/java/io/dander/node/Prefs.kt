@@ -55,6 +55,11 @@ class Prefs(context: Context) {
     var updateAvailable: Boolean get() = sp.getBoolean(KEY_UPDATE_AVAILABLE, false); set(v) = sp.edit().putBoolean(KEY_UPDATE_AVAILABLE, v).apply()
     var latestVersion:   String  get() = sp.getString(KEY_LATEST_VERSION, "") ?: "";  set(v) = sp.edit().putString(KEY_LATEST_VERSION, v).apply()
 
+    // Sticky after auto-recovery exhausts its one retry. Operator sees a
+    // red "tap to restart" chip; tapping clears it and runs startCamera()
+    // again. Never surfaced on the customer-facing stranger display.
+    var cameraFailed:    Boolean get() = sp.getBoolean(KEY_CAMERA_FAILED, false);     set(v) = sp.edit().putBoolean(KEY_CAMERA_FAILED, v).apply()
+
     // Business pairing — set during the first-launch setup flow.
     var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
     var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
@@ -88,6 +93,7 @@ class Prefs(context: Context) {
         const val KEY_SOUND_ENABLED = "sound_enabled"
         const val KEY_UPDATE_AVAILABLE = "update_available"
         const val KEY_LATEST_VERSION   = "latest_version"
+        const val KEY_CAMERA_FAILED    = "camera_failed"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
         val TILL_MODES = listOf("overhead", "walkpast", "approach")
