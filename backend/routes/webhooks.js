@@ -236,15 +236,19 @@ router.post('/phone-counter', async (req, res) => {
     //   display  → one-shot loyalty greeting (node_display_commands)
     // Both are attached when present so the Node can pull state +
     // render a GIF in the same network round trip.
-    // We also include latest_version + update_available on every
-    // response so the kiosk knows whether to nag the operator.
+    //
+    // latest_version + update_available are only included when the
+    // payload reports app_version. Legacy nodes whose Uploader.kt
+    // can't parse those fields would crash on the response otherwise.
     const reportedVersion = typeof p.app_version === 'string' ? p.app_version : null;
     const responsePayload = {
       success: true,
       received: true,
-      latest_version: appVersion.nodeAppVersion,
-      update_available: appVersion.isBehind(reportedVersion),
     };
+    if (reportedVersion !== null) {
+      responsePayload.latest_version = appVersion.nodeAppVersion;
+      responsePayload.update_available = appVersion.isBehind(reportedVersion);
+    }
 
     if (typeof p.device_id === 'string' && p.device_id.length > 0) {
       const deviceId = p.device_id.slice(0, 100);
