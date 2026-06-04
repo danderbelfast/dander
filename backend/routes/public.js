@@ -15,6 +15,7 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { pickGifUrl } = require('../services/loyaltyGreeting');
 const nodeWs = require('../ws/nodes');
+const appVersion = require('../config/appVersion');
 
 const router = Router();
 
@@ -366,5 +367,17 @@ function renderJoinHtml({ business, offer, visitorCount }) {
   </div>
 </body></html>`;
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/public/app-version  — Node WorkManager job hits this daily.
+// ---------------------------------------------------------------------------
+
+router.get('/app-version', (_req, res) => {
+  res.status(200).json({
+    node_app:       appVersion.nodeAppVersion,
+    min_supported:  appVersion.nodeMinSupported,
+    release_notes:  appVersion.releaseNotes,
+  });
+});
 
 module.exports = router;

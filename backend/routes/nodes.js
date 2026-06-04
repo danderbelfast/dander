@@ -22,6 +22,7 @@
 const { Router } = require('express');
 const pool = require('../db/pool');
 const { requireBusiness } = require('../middleware/auth');
+const appVersion = require('../config/appVersion');
 
 const router = Router();
 
@@ -65,6 +66,7 @@ router.get('/', requireBusiness, async (req, res) => {
               r.device_id,
               r.zone_name,
               r.zone_type,
+              r.app_version,
               r.timestamp AS last_seen,
               (NOW() - r.timestamp) < INTERVAL '2 minutes' AS online,
               COALESCE(c.counting_enabled, TRUE) AS counting_enabled,
@@ -80,7 +82,14 @@ router.get('/', requireBusiness, async (req, res) => {
       [req.business.id]
     );
 
-    return res.status(200).json({ success: true, nodes: rows });
+    const latest = appVersion.nodeAppVersion;
+    const enriched = rows.map((row) => ({
+      ...row,
+      latest_version:   latest,
+      update_available: appVersion.isBehind(row.app_version, latest),
+    }));
+
+    return res.status(200).json({ success: true, nodes: enriched });
   } catch (err) {
     console.error('[nodes/list]', err);
     return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load nodes.' });

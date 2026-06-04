@@ -16,6 +16,7 @@
 
 const { Router } = require('express');
 const pool = require('../db/pool');
+const appVersion = require('../config/appVersion');
 
 const router = Router();
 
@@ -137,11 +138,11 @@ router.post('/phone-counter', async (req, res) => {
           avg_dwell_seconds, max_dwell_seconds,
           dwell_under_30s, dwell_30_to_2min, dwell_2_to_5min, dwell_over_5min,
           bt_apple, bt_samsung, bt_google, bt_huawei, bt_other_android,
-          queue_depth, queue_alert, orientation, till_mode, camera_facing)
+          queue_depth, queue_alert, orientation, till_mode, camera_facing, app_version)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                $13, $14, $15, $16, $17, $18,
                $19, $20, $21, $22, $23,
-               $24, $25, $26, $27, $28)`,
+               $24, $25, $26, $27, $28, $29)`,
       [
         typeof p.device_id === 'string' ? p.device_id.slice(0, 100) : null,
         ts,
@@ -171,6 +172,7 @@ router.post('/phone-counter', async (req, res) => {
         typeof p.orientation === 'string' ? p.orientation.slice(0, 10) : null,
         typeof p.till_mode   === 'string' ? p.till_mode.slice(0, 20)   : null,
         typeof p.camera_facing === 'string' ? p.camera_facing.slice(0, 8) : null,
+        typeof p.app_version === 'string' ? p.app_version.slice(0, 20) : null,
       ]
     );
 
@@ -234,7 +236,15 @@ router.post('/phone-counter', async (req, res) => {
     //   display  → one-shot loyalty greeting (node_display_commands)
     // Both are attached when present so the Node can pull state +
     // render a GIF in the same network round trip.
-    const responsePayload = { success: true, received: true };
+    // We also include latest_version + update_available on every
+    // response so the kiosk knows whether to nag the operator.
+    const reportedVersion = typeof p.app_version === 'string' ? p.app_version : null;
+    const responsePayload = {
+      success: true,
+      received: true,
+      latest_version: appVersion.nodeAppVersion,
+      update_available: appVersion.isBehind(reportedVersion),
+    };
 
     if (typeof p.device_id === 'string' && p.device_id.length > 0) {
       const deviceId = p.device_id.slice(0, 100);

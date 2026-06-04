@@ -153,6 +153,11 @@ app.use('/api/public',      require('../routes/public'));
 // ---------------------------------------------------------------------------
 
 app.use('/docs', require('express').static(require('path').resolve(__dirname, '..', 'public', 'docs'), { index: 'index.html' }));
+// APK downloads for the Dander Node /update/node page. Drop the
+// latest signed APK into backend/public/downloads/ to enable in-app
+// updates; otherwise the link 404s and the operator falls back to a
+// manual install from GitHub releases.
+app.use('/downloads', require('express').static(require('path').resolve(__dirname, '..', 'public', 'downloads')));
 
 // ---------------------------------------------------------------------------
 // Android App Links verification
@@ -171,6 +176,49 @@ app.get('/.well-known/assetlinks.json', (_req, res) => {
   // safe and lets a fingerprint update propagate without waiting on a CDN.
   res.set('Cache-Control', 'public, max-age=300');
   res.sendFile(require('path').resolve(__dirname, '..', 'public', '.well-known', 'assetlinks.json'));
+});
+
+// ---------------------------------------------------------------------------
+// Update page for Dander Node kiosks. Static HTML so an operator on a
+// kiosk browser doesn't need our SPA to load — just a download button.
+// ---------------------------------------------------------------------------
+app.get('/update/node', (_req, res) => {
+  const v = require('../config/appVersion');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dander Node Update</title>
+<style>
+  :root { color-scheme: dark; }
+  body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;
+       background:#0F1115;color:#fff;padding:24px;max-width:520px;margin:auto}
+  h1{font-size:26px;margin:0 0 6px}
+  .ver{color:#FFB300;font-size:18px;font-weight:700;margin:8px 0 18px}
+  .notes{background:#1A1F29;border-radius:12px;padding:14px;font-size:14px;line-height:1.55;color:#cfd6df;margin:8px 0 20px}
+  ol{padding-left:22px;margin:0 0 24px}
+  ol li{padding:6px 0;font-size:15px}
+  .cta{display:block;text-align:center;background:#FF6B35;color:#fff;font-weight:700;
+       padding:14px;border-radius:10px;text-decoration:none;font-size:17px}
+  .hint{color:#9AA4B1;font-size:12px;margin-top:14px;text-align:center}
+</style>
+</head>
+<body>
+  <h1>Dander Node Update</h1>
+  <div class="ver">Latest version: v${v.nodeAppVersion}</div>
+  <div class="notes"><strong>What's new:</strong><br>${v.releaseNotes}</div>
+  <ol>
+    <li>Long-press the kiosk screen for 2 seconds.</li>
+    <li>Tap <strong>Settings</strong> in the operator panel.</li>
+    <li>Tap <strong>Download Update</strong>.</li>
+    <li>Install the APK when downloaded.</li>
+    <li>Reopen the Dander Node app.</li>
+  </ol>
+  <a class="cta" href="/downloads/dander-node-latest.apk">Download Latest APK</a>
+  <div class="hint">Or grab it from the GitHub Releases page if /downloads isn't populated yet.</div>
+</body></html>`);
 });
 
 // ---------------------------------------------------------------------------
