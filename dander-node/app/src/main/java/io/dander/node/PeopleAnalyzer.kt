@@ -75,6 +75,11 @@ class PeopleAnalyzer(
         ObjectDetectorOptions.Builder()
             .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
             .enableMultipleObjects()
+            // Classification on — the default base model still has no
+            // Person class, but classification confidence is what STREAM_MODE
+            // uses to maintain a stable trackingId across frames. Without
+            // this, IDs come back null on most non-static objects.
+            .enableClassification()
             .build()
     )
 
@@ -185,11 +190,19 @@ class PeopleAnalyzer(
                     val mirror = mirrorX
                     Log.d("DanderCount", "Counting line at: $LINE (mode=$mode invert=$invertDirection)")
                     for (obj in objects) {
-                        val id = obj.trackingId
-                        if (id == null) {
+                        // Tracking ID can be null on transient single-frame
+                        // detections even in STREAM_MODE. Fall back to a
+                        // position-derived synthetic ID so the detection
+                        // still feeds the crossing logic — when the next
+                        // frame's detection lands at a nearby centroid,
+                        // the same synthetic ID is recomputed and prev/curr
+                        // populate as if a real track had been assigned.
+                        val id = obj.trackingId ?:
+                            (obj.boundingBox.centerX() * 1000 + obj.boundingBox.centerY())
+                        val tracked = obj.trackingId != null
+                        if (!tracked) {
                             Log.d("DanderCount",
-                                "Skipping object — no trackingId; labels=${obj.labels.map { it.text }}")
-                            continue
+                                "Fallback id=$id (no trackingId); labels=${obj.labels.map { it.text }}")
                         }
                         val raw = toUprightNorm(obj.boundingBox, bw, bh, rotation)
                         val norm = if (mirror) mirrorHoriz(raw) else raw
