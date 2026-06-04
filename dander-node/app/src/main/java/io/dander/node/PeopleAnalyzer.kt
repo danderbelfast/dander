@@ -180,6 +180,7 @@ class PeopleAnalyzer(
                     val norms = ArrayList<RectF>(objects.size)
                     val mode = countingMode
                     val mirror = mirrorX
+                    Log.d("DanderCount", "Counting line at: $LINE (mode=$mode invert=$invertDirection)")
                     for (obj in objects) {
                         val id = obj.trackingId ?: continue
                         val raw = toUprightNorm(obj.boundingBox, bw, bh, rotation)
@@ -189,26 +190,35 @@ class PeopleAnalyzer(
                         val cy = (norm.top + norm.bottom) / 2f
                         val cx = (norm.left + norm.right) / 2f
                         val area = (norm.right - norm.left) * (norm.bottom - norm.top)
+                        Log.d("DanderCount",
+                            "Person id=$id at: top=${norm.top} bottom=${norm.bottom} " +
+                            "centerY=$cy centerX=$cx")
 
                         when (mode) {
                             CountingMode.HORIZONTAL_LINE -> {
                                 // Top of frame = "out of the store"; crossing the
                                 // midline downwards = entering. up==true means IN.
                                 val prev = lastY[id]
+                                var crossed = false
                                 if (prev != null) {
-                                    if (prev > LINE && cy <= LINE)      bump(up = true)
-                                    else if (prev < LINE && cy >= LINE) bump(up = false)
+                                    if (prev > LINE && cy <= LINE)      { bump(up = true);  crossed = true }
+                                    else if (prev < LINE && cy >= LINE) { bump(up = false); crossed = true }
                                 }
+                                Log.d("DanderCount",
+                                    "Crossing check id=$id: prev=$prev curr=$cy line=$LINE crossed=$crossed")
                                 lastY[id] = cy
                             }
                             CountingMode.VERTICAL_LINE -> {
                                 // Walk-past row of tills. Left-to-right == IN.
                                 // up==true is reused to mean IN so bump()/invert work uniformly.
                                 val prev = lastX[id]
+                                var crossed = false
                                 if (prev != null) {
-                                    if (prev < LINE && cx >= LINE)      bump(up = true)
-                                    else if (prev > LINE && cx <= LINE) bump(up = false)
+                                    if (prev < LINE && cx >= LINE)      { bump(up = true);  crossed = true }
+                                    else if (prev > LINE && cx <= LINE) { bump(up = false); crossed = true }
                                 }
+                                Log.d("DanderCount",
+                                    "Crossing check id=$id: prev=$prev curr=$cx line=$LINE crossed=$crossed")
                                 lastX[id] = cx
                             }
                             CountingMode.APPROACH -> {
