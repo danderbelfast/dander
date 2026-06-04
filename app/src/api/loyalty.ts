@@ -3,7 +3,7 @@
  * across every business they've checked into.
  */
 
-import client from './client';
+import { client } from './client';
 
 export type UserBusinessLoyalty = {
   business_id: number;

@@ -9,7 +9,17 @@
  * screen wants to render the coins animation.
  */
 
-import { nfcCheckin, NfcCheckinResponse } from '../api/proximity';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { env } from '../env';
+import { NfcCheckinResponse } from '../api/proximity';
+
+// Mirrors the storage key used by api/client.ts. We read it directly
+// from AsyncStorage so a cold-start NFC tap works even before
+// AuthContext has restored the in-memory token (the api/client
+// instance's request interceptor reads from in-memory state, which is
+// null at that point).
+const TOKEN_KEY = 'dander_access_token';
 
 type Listener = (result: NfcCheckinResponse) => void;
 type ErrorListener = (err: Error) => void;
@@ -72,13 +82,25 @@ export async function handleTapUrl(url: string): Promise<void> {
     return;
   }
   try {
+    // Bypass api/client and call axios directly. The shared client's
+    // request interceptor reads an in-memory _accessToken that may not
+    // be populated yet on a cold-start NFC tap (AuthContext restores
+    // it asynchronously on boot). Pulling the JWT from AsyncStorage
+    // here is robust against that race.
+    let token: string | null = null;
+    try { token = await AsyncStorage.getItem(TOKEN_KEY); } catch { /* unauth still posts */ }
+
     console.log('[handleTapUrl] posting to nfc-checkin');
-    const result = await nfcCheckin({
-      node_device_id: parsed.node,
-      business_id: parsed.business,
-    });
-    console.log('[handleTapUrl] response:', JSON.stringify(result));
-    emitSuccess(result);
+    const response = await axios.post<NfcCheckinResponse>(
+      `${env.API_URL}/api/proximity/nfc-checkin`,
+      { node_device_id: parsed.node, business_id: parsed.business },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        timeout: 15_000,
+      },
+    );
+    console.log('[handleTapUrl] response:', JSON.stringify(response.data));
+    emitSuccess(response.data);
   } catch (err) {
     console.error('[handleTapUrl] error:', err);
     emitError(err as Error);
