@@ -22,6 +22,12 @@ const {
   awardPointsAndAdvance, checkRewardUnlocks, checkCollectableUnlocks,
 } = require('../services/loyaltyMechanics');
 
+const TRIGGER_TYPES = new Set([
+  'regular','first_visit','milestone_10','milestone_50','milestone_100',
+  'long_absence','birthday','already_visited_today','stranger',
+]);
+const GIPHY_BASE = 'https://api.giphy.com/v1/gifs/search';
+
 const router = Router();
 
 const VALID_TONES = ['professional', 'friendly', 'cheeky', 'custom'];
@@ -468,6 +474,158 @@ router.get('/user-businesses', requireAuth, async (req, res) => {
     return res.status(200).json({ success: true, businesses: lp });
   } catch (err) {
     console.error('[loyalty/user-businesses]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GIF LIBRARY
+// ---------------------------------------------------------------------------
+
+// GET /api/loyalty/gifs?trigger_type=... — list business GIFs supplemented
+// with globals where the business has fewer than 3 of a given trigger.
+router.get('/gifs', requireBusiness, async (req, res) => {
+  const trigger = typeof req.query.trigger_type === 'string' && TRIGGER_TYPES.has(req.query.trigger_type)
+    ? req.query.trigger_type : null;
+  try {
+    const ownQ = trigger
+      ? `SELECT id, gif_url, gif_id, trigger_type FROM business_gif_library
+          WHERE business_id = $1 AND trigger_type = $2 AND is_active = TRUE ORDER BY created_at DESC`
+      : `SELECT id, gif_url, gif_id, trigger_type FROM business_gif_library
+          WHERE business_id = $1 AND is_active = TRUE ORDER BY trigger_type, created_at DESC`;
+    const { rows: own } = await pool.query(ownQ, trigger ? [req.business.id, trigger] : [req.business.id]);
+
+    // Supplement with globals where own count < 3 per trigger.
+    const byTrigger = {};
+    for (const r of own) (byTrigger[r.trigger_type] ||= []).push(r);
+
+    const triggersToFill = trigger ? [trigger] : Array.from(TRIGGER_TYPES);
+    const supplemented = {};
+    for (const t of triggersToFill) {
+      const ownCount = (byTrigger[t] || []).length;
+      let rows = byTrigger[t] || [];
+      if (ownCount < 3) {
+        const { rows: globals } = await pool.query(
+          `SELECT id, gif_url, gif_id, trigger_type FROM business_gif_library
+            WHERE business_id IS NULL AND trigger_type = $1 AND is_active = TRUE
+            ORDER BY created_at ASC LIMIT $2`,
+          [t, 3 - ownCount]
+        );
+        rows = rows.concat(globals);
+      }
+      supplemented[t] = rows;
+    }
+
+    if (trigger) {
+      return res.status(200).json({ success: true, trigger_type: trigger, gifs: supplemented[trigger] });
+    }
+    return res.status(200).json({ success: true, gifs: supplemented });
+  } catch (err) {
+    console.error('[loyalty/gifs GET]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// POST /api/loyalty/gifs — add a GIF to the business library (max 20 per trigger).
+router.post('/gifs', requireBusiness, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const gifId  = typeof body.gif_id  === 'string' ? body.gif_id.slice(0, 100) : null;
+  const gifUrl = typeof body.gif_url === 'string' ? body.gif_url : null;
+  const trigger = typeof body.trigger_type === 'string' && TRIGGER_TYPES.has(body.trigger_type)
+    ? body.trigger_type : null;
+  if (!gifId || !gifUrl || !trigger) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'gif_id, gif_url, trigger_type required.' });
+  }
+  try {
+    const { rows: existing } = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM business_gif_library
+        WHERE business_id = $1 AND trigger_type = $2 AND is_active = TRUE`,
+      [req.business.id, trigger]
+    );
+    if (existing[0].n >= 20) {
+      return res.status(400).json({ success: false, code: 'LIMIT_REACHED', message: 'Max 20 GIFs per trigger.' });
+    }
+    const { rows } = await pool.query(
+      `INSERT INTO business_gif_library (business_id, gif_url, gif_id, trigger_type, added_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [req.business.id, gifUrl, gifId, trigger, req.user?.id || null]
+    );
+    return res.status(200).json({ success: true, gif: rows[0] });
+  } catch (err) {
+    console.error('[loyalty/gifs POST]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// DELETE /api/loyalty/gifs/:id — soft-delete (is_active = false).
+router.delete('/gifs/:id', requireBusiness, async (req, res) => {
+  try {
+    const { rowCount } = await pool.query(
+      `UPDATE business_gif_library SET is_active = FALSE
+        WHERE id = $1 AND business_id = $2`,
+      [req.params.id, req.business.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ success: false, code: 'NOT_FOUND' });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[loyalty/gifs DELETE]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// GET /api/loyalty/gifs/search?q=... — Giphy proxy so the API key stays
+// server-side. Returns the top 20 PG results.
+router.get('/gifs/search', requireBusiness, async (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (!q) return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'q required.' });
+  const key = process.env.GIPHY_API_KEY;
+  if (!key) return res.status(503).json({ success: false, code: 'GIPHY_UNCONFIGURED', message: 'Giphy not configured.' });
+  try {
+    const url = `${GIPHY_BASE}?api_key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&limit=20&rating=pg`;
+    const r = await fetch(url);
+    if (!r.ok) return res.status(502).json({ success: false, code: 'GIPHY_ERROR' });
+    const json = await r.json();
+    const results = (json.data || []).map((g) => ({
+      id: g.id,
+      gif_url: g.images?.downsized_medium?.url || g.images?.original?.url || g.url,
+      preview_url: g.images?.fixed_height_small?.url || g.images?.preview_gif?.url || null,
+      title: g.title,
+    }));
+    return res.status(200).json({ success: true, results });
+  } catch (err) {
+    console.error('[loyalty/gifs/search]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+  }
+});
+
+// GET /api/loyalty/gif-cache?device_id=... — bulk cache for Dander Node.
+// No auth: device_id maps to a business via phone_counter_readings, no
+// secret exposed since the URLs are already-public Giphy CDN links.
+router.get('/gif-cache', async (req, res) => {
+  const deviceId = typeof req.query.device_id === 'string' ? req.query.device_id.slice(0, 100) : null;
+  if (!deviceId) return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'device_id required.' });
+  try {
+    const { rows: biz } = await pool.query(
+      `SELECT DISTINCT business_id FROM phone_counter_readings
+        WHERE device_id = $1 AND business_id IS NOT NULL
+        LIMIT 1`,
+      [deviceId]
+    );
+    const businessId = biz[0]?.business_id || null;
+
+    const result = {};
+    for (const t of TRIGGER_TYPES) {
+      const params = businessId == null ? [t] : [businessId, t];
+      const q = businessId == null
+        ? `SELECT gif_url FROM business_gif_library WHERE business_id IS NULL AND trigger_type = $1 AND is_active = TRUE`
+        : `SELECT gif_url FROM business_gif_library
+            WHERE (business_id = $1 OR business_id IS NULL) AND trigger_type = $2 AND is_active = TRUE`;
+      const { rows } = await pool.query(q, params);
+      result[t] = rows.map((r) => r.gif_url);
+    }
+    return res.status(200).json({ success: true, cache: result, business_id: businessId });
+  } catch (err) {
+    console.error('[loyalty/gif-cache]', err);
     return res.status(500).json({ success: false, code: 'SERVER_ERROR' });
   }
 });

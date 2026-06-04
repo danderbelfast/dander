@@ -49,13 +49,14 @@ router.post('/detected', requireAuth, async (req, res) => {
   try {
     // ── 1. User + business lookup ─────────────────────────────
     const { rows: userRows } = await pool.query(
-      `SELECT id, first_name, email FROM users WHERE id = $1`,
+      `SELECT id, first_name, email, display_preference FROM users WHERE id = $1`,
       [req.user.id]
     );
     if (userRows.length === 0) {
       return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
     }
     const user = userRows[0];
+    const anonymous = user.display_preference === 'anonymous';
 
     const { rows: bizRows } = await pool.query(
       `SELECT id, name, category FROM businesses WHERE id = $1`,
@@ -139,19 +140,27 @@ router.post('/detected', requireAuth, async (req, res) => {
       : daysSinceLast === 1 ? 'yesterday'
       : `${daysSinceLast} days ago`;
 
+    // Anonymous users get a generic command — no name, no personalised
+    // milestones. Points/visits are tracked normally; only the display
+    // payload changes.
+    const effectiveGreetingType = anonymous ? 'regular' : greetingType;
     const command = await buildGreetingCommand(pool, {
       business_id:       businessId,
       business_name:     business.name,
       business_category: business.category,
-      first_name:        user.first_name,
+      first_name:        anonymous ? 'A loyal customer' : user.first_name,
       visit_number:      visitNumber,
-      greeting_type:     greetingType,
+      greeting_type:     effectiveGreetingType,
       tone:              settings.greeting_tone,
       giphy_api_key:     settings.giphy_api_key,
       points_awarded:    pointsAwarded,
       total_points:      newPointsTotal,
       last_visit_text:   lastVisitText,
     });
+    if (anonymous) {
+      command.customer_name = 'A loyal customer';
+      command.message = 'A loyal customer just checked in! 🎉';
+    }
 
     // ── 8. Insert customer_visits + node_display_commands ─────
     await pool.query(
@@ -228,10 +237,11 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
 
   try {
     const { rows: userRows } = await pool.query(
-      'SELECT id, first_name, email FROM users WHERE id = $1', [req.user.id]
+      'SELECT id, first_name, email, display_preference FROM users WHERE id = $1', [req.user.id]
     );
     if (userRows.length === 0) return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'User not found.' });
     const user = userRows[0];
+    const anonymous = user.display_preference === 'anonymous';
 
     const { rows: bizRows } = await pool.query(
       'SELECT id, name, category FROM businesses WHERE id = $1', [businessId]
@@ -293,19 +303,25 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
       : daysSinceLast === 1 ? 'yesterday'
       : `${daysSinceLast} days ago`;
 
+    // Same anonymous override as /detected — see comments there.
+    const effectiveGreetingType = anonymous ? 'regular' : greetingType;
     const command = await buildGreetingCommand(pool, {
       business_id:       businessId,
       business_name:     business.name,
       business_category: business.category,
-      first_name:        user.first_name,
+      first_name:        anonymous ? 'A loyal customer' : user.first_name,
       visit_number:      advance.total_visits,
-      greeting_type:     greetingType,
+      greeting_type:     effectiveGreetingType,
       tone:              settings.greeting_tone,
       giphy_api_key:     settings.giphy_api_key,
       points_awarded:    pointsAwarded,
       total_points:      advance.points,
       last_visit_text:   lastVisitText,
     });
+    if (anonymous) {
+      command.customer_name = 'A loyal customer';
+      command.message = 'A loyal customer just checked in! 🎉';
+    }
 
     // Persist visit row.
     await pool.query(

@@ -13,7 +13,7 @@
 const { Router } = require('express');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
-const { pickSearchTerm, fetchGifUrl } = require('../services/loyaltyGreeting');
+const { pickGifUrl } = require('../services/loyaltyGreeting');
 const nodeWs = require('../ws/nodes');
 
 const router = Router();
@@ -167,26 +167,20 @@ router.post('/stranger-milestone', milestoneLimiter, async (req, res) => {
     }
   }
 
-  // Claude → Giphy. Both degrade to null on failure; the Node already
-  // renders text-only in that case so the celebration still happens.
-  const searchTerm =
-    (await pickSearchTerm({
-      first_name: 'a customer',
-      visit_number: milestone,
-      greeting_type: 'milestone_visitor',
-      business_category: category,
-      part_of_day: 'today',
-      tone: 'celebratory',
-      last_visit_text: '',
-    })) || 'celebration confetti';
-
-  const gifUrl = await fetchGifUrl(searchTerm, null);
+  // Pick a milestone GIF from the library — try the closest matching
+  // trigger first, then fall back to 'regular' for variety.
+  const triggerKey = milestone >= 100 ? 'milestone_100'
+                    : milestone >= 50  ? 'milestone_50'
+                    : milestone >= 10  ? 'milestone_10'
+                    : 'regular';
+  let gifUrl = await pickGifUrl(pool, Number.isFinite(businessId) ? businessId : -1, triggerKey);
+  if (!gifUrl) gifUrl = await pickGifUrl(pool, Number.isFinite(businessId) ? businessId : -1, 'regular');
 
   return res.status(200).json({
     success: true,
     gif_url: gifUrl,
     message: messageFor(milestone),
-    search_term: searchTerm,
+    search_term: triggerKey,
     milestone,
   });
 });
@@ -245,11 +239,7 @@ async function fireStrangerDisplay({ nodeDeviceId, businessId }) {
   try {
     const { rows: bizRows } = await pool.query('SELECT name, category FROM businesses WHERE id = $1', [businessId]);
     const business = bizRows[0] || { name: 'us', category: 'shop' };
-    const term = (await pickSearchTerm({
-      first_name: 'a new customer', visit_number: 1, greeting_type: 'first_visit',
-      business_category: business.category, part_of_day: 'today', tone: 'cheeky', last_visit_text: 'first time',
-    })) || 'excited welcome';
-    const gifUrl = await fetchGifUrl(term, null);
+    const gifUrl = await pickGifUrl(pool, businessId, 'stranger');
     const message = STRANGER_TAGLINES[Math.floor(Math.random() * STRANGER_TAGLINES.length)]
                       .replace('us', business.name);
 
@@ -261,7 +251,6 @@ async function fireStrangerDisplay({ nodeDeviceId, businessId }) {
       points_awarded: 0,
       visit_number: 0,
       display_duration: 8_000,
-      search_term: term,
     };
 
     const pushed = nodeWs.pushDisplayCommand(nodeDeviceId, command);
