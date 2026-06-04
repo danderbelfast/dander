@@ -50,3 +50,36 @@ export const claimDailyLogin = () =>
   client
     .post<DailyLoginResponse>('/api/users/daily-login')
     .then((r) => r.data);
+
+// ── Display preference (personalised vs anonymous) ─────────
+export type DisplayPreference = 'personalised' | 'anonymous';
+
+export interface DisplayPreferenceState {
+  display_preference: DisplayPreference;
+  display_preference_set_at: string | null;
+  birthday_sharing: boolean;
+}
+
+export async function getDisplayPreference(): Promise<DisplayPreferenceState | null> {
+  try {
+    const { data } = await client.get('/api/users/display-preference');
+    if (!data?.success) return null;
+    return {
+      display_preference: data.display_preference,
+      display_preference_set_at: data.display_preference_set_at,
+      birthday_sharing: data.birthday_sharing,
+    };
+  } catch { return null; }
+}
+
+export async function setDisplayPreference(
+  pref: DisplayPreference,
+  birthday_sharing?: boolean,
+): Promise<boolean> {
+  try {
+    const body: Record<string, unknown> = { display_preference: pref };
+    if (typeof birthday_sharing === 'boolean') body.birthday_sharing = birthday_sharing;
+    const { data } = await client.post('/api/users/display-preference', body);
+    return !!data?.success;
+  } catch { return false; }
+}
