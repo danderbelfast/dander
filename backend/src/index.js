@@ -122,6 +122,9 @@ app.use('/api/auth', authLimiter);
 app.use('/api/auth',        require('../routes/auth'));
 app.use('/api/offers',      require('../routes/offers'));
 app.use('/api/coupons',     require('../routes/coupons'));
+// rewards route mounted FIRST so it matches /:id/rewards before
+// business.js's router.use(requireBusiness) intercepts the request.
+app.use('/api/business',    require('../routes/rewards'));
 app.use('/api/business',    require('../routes/business'));
 app.use('/api/admin',       require('../routes/admin'));
 app.use('/api/push',        require('../routes/push'));
