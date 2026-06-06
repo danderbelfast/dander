@@ -56,6 +56,12 @@ const NAV = [
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       )},
+      { to: '/sales', label: 'Sales', icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3h18v4H3z"/><path d="M5 7v13a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7"/>
+          <line x1="9" y1="11" x2="15" y2="11"/>
+        </svg>
+      )},
     ],
   },
   {

@@ -295,3 +295,10 @@ export const assessSmartSpecialPhoto = (formData) =>
 
 export const postSmartSpecialOffer = (data) =>
   client.post('/api/business/smart-specials/post', data).then((r) => r.data);
+
+// ── Till NFC flow ───────────────────────────────────────────
+export const awardTillPoints = (payload) =>
+  client.post('/api/till/award-points', payload).then((r) => r.data);
+
+export const listSales = (params = {}) =>
+  client.get('/api/till/sales', { params }).then((r) => r.data);

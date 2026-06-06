@@ -27,6 +27,7 @@ import LoyaltySettings  from './pages/LoyaltySettings';
 import Customers        from './pages/Customers';
 import AwardPoints      from './pages/AwardPoints';
 import GifLibrary       from './pages/GifLibrary';
+import Sales            from './pages/Sales';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/loyalty"          element={<LoyaltySettings />} />
           <Route path="/loyalty/award"    element={<AwardPoints />} />
           <Route path="/loyalty/gifs"     element={<GifLibrary />} />
+          <Route path="/sales"            element={<Sales />} />
           <Route path="/customers"        element={<Customers />} />
           <Route path="/reports"          element={<Reports />} />
           <Route path="/analytics"       element={<Analytics />} />

@@ -3,6 +3,11 @@
    Clean, professional SaaS dashboard.
    ============================================================ */
 
+@keyframes tillSlideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
 /* ── Design tokens ───────────────────────────────────────── */

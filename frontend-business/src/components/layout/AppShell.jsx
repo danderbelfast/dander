@@ -7,6 +7,7 @@ import { QueueAlertBell } from './QueueAlertBell';
 import { ToastContainer } from '../ui/Toast';
 import { LoadingBlock } from '../ui/Spinner';
 import { AssistantWidget } from '../ui/AssistantWidget';
+import { TillPanel } from '../TillPanel';
 
 const PAGE_TITLES = {
   '/dashboard':  'Dashboard',
@@ -65,6 +66,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <AssistantWidget />
+      <TillPanel />
     </div>
   );
 }
