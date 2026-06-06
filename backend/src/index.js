@@ -148,6 +148,7 @@ app.use('/api/nodes',       require('../routes/nodes'));
 app.use('/api/alerts',      require('../routes/alerts'));
 app.use('/api/proximity',   require('../routes/proximity'));
 app.use('/api/loyalty',     require('../routes/loyalty'));
+app.use('/api/till',        require('../routes/till'));
 app.use('/api/users',       require('../routes/userPreferences'));
 app.use('/api/public',      require('../routes/public'));
 
@@ -266,6 +267,16 @@ io.on('connection', (socket) => {
   socket.on('join', (userId) => {
     socket.join(`user:${userId}`);
     console.log(`[socket] ${socket.id} joined room user:${userId}`);
+  });
+
+  // Business dashboard joins its own room — used by the till flow to push
+  // the customer-arrived profile to staff in real time, and to push the
+  // till_complete confirmation when staff hits Award.
+  socket.on('joinBusiness', (businessId) => {
+    const bid = parseInt(businessId, 10);
+    if (!Number.isFinite(bid) || bid <= 0) return;
+    socket.join(`business:${bid}`);
+    console.log(`[socket] ${socket.id} joined room business:${bid}`);
   });
 
   socket.on('disconnect', () => {

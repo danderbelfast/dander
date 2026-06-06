@@ -26,6 +26,7 @@ const {
   awardPointsAndAdvance, checkRewardUnlocks, checkCollectableUnlocks,
 } = require('../services/loyaltyMechanics');
 const nodeWs = require('../ws/nodes');
+const { pushToBusiness } = require('../lib/wsPush');
 
 /**
  * True iff `dob` (Date or YYYY-MM-DD string) shares its month-day with
@@ -383,6 +384,94 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[proximity/nfc-checkin]', err);
     return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'NFC check-in failed.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/proximity/till-arrive   (requireAuth)
+//
+// Customer taps the till NFC sticker; this fires before staff have entered
+// anything. We look up the user's standing with this business and push the
+// profile to the business dashboard's WebSocket room so the staff member
+// sees who just tapped (name, tier, points, next reward).
+//
+// NO points are awarded here — points come later via /api/till/award-points
+// once staff types the spend amount.
+// ---------------------------------------------------------------------------
+
+router.post('/till-arrive', requireAuth, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const businessId = parseInt(body.business_id, 10);
+  if (!Number.isFinite(businessId) || businessId <= 0) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'business_id required.' });
+  }
+
+  try {
+    const { rows: bizRows } = await pool.query(
+      'SELECT id, name FROM businesses WHERE id = $1 AND status = $2 LIMIT 1',
+      [businessId, 'active']
+    );
+    if (bizRows.length === 0) {
+      return res.status(404).json({ success: false, code: 'BUSINESS_NOT_FOUND' });
+    }
+    const business = bizRows[0];
+
+    const userId = req.user.id;
+    const { rows: userRows } = await pool.query(
+      'SELECT id, first_name FROM users WHERE id = $1 LIMIT 1',
+      [userId]
+    );
+    if (userRows.length === 0) {
+      return res.status(404).json({ success: false, code: 'USER_NOT_FOUND' });
+    }
+    const user = userRows[0];
+
+    // Loyalty standing. No row = brand-new customer; defaults below.
+    const { rows: lpRows } = await pool.query(
+      `SELECT points, total_visits, current_streak, tier
+         FROM business_loyalty_points
+        WHERE business_id = $1 AND user_id = $2`,
+      [businessId, userId]
+    );
+    const lp = lpRows[0] || { points: 0, total_visits: 0, current_streak: 0, tier: 'bronze' };
+
+    // Next reward — pick the lowest-points reward they haven't earned yet.
+    const { rows: rewardRows } = await pool.query(
+      `SELECT id, name, points_required
+         FROM loyalty_rewards
+        WHERE business_id = $1
+          AND is_active = TRUE
+          AND points_required > $2
+        ORDER BY points_required ASC
+        LIMIT 1`,
+      [businessId, lp.points]
+    );
+    const nextReward = rewardRows[0] || null;
+
+    const payload = {
+      user_id:        user.id,
+      first_name:     user.first_name || 'Customer',
+      tier:           lp.tier,
+      total_points:   lp.points,
+      total_visits:   lp.total_visits,
+      current_streak: lp.current_streak,
+      next_reward_at: nextReward ? nextReward.points_required : null,
+      points_to_next: nextReward ? Math.max(0, nextReward.points_required - lp.points) : null,
+      next_reward_name: nextReward ? nextReward.name : null,
+      arrived_at:     new Date().toISOString(),
+    };
+
+    const io = req.app.get('io');
+    pushToBusiness(io, businessId, 'till_customer', payload);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Staff notified',
+      business_name: business.name,
+    });
+  } catch (err) {
+    console.error('[proximity/till-arrive]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Till arrive failed.' });
   }
 });
 
