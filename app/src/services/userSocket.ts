@@ -23,8 +23,13 @@ export function connectUserSocket(userId: number): Socket | null {
     socket = null;
   }
 
+  // Polling-first then upgrade. Cloudflare's WebSocket proxy mangles
+  // permessage-deflate RSV bits during the WebSocket handshake; long-
+  // polling establishes the Socket.IO session cleanly first, then the
+  // client upgrades to WebSocket. Paired with `perMessageDeflate: false`
+  // on the Socket.IO server (see backend/src/index.js).
   socket = socketIo(env.API_URL, {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,

@@ -29,6 +29,16 @@ const io         = new Server(httpServer, {
     origin:  process.env.FRONTEND_URL || '*',
     methods: ['GET', 'POST'],
   },
+  // Cloudflare's WebSocket proxy mangles permessage-deflate RSV bits,
+  // which makes the server's frame parser throw
+  //   "reserved bits are on: reserved1=1, reserved2=0, reserved3=1"
+  // on every browser connection coming through CF. Disabling
+  // compression on both transports stops the negotiation entirely and
+  // the connection survives Cloudflare cleanly. The raw `ws` server
+  // at /ws/node is unaffected because the Android OkHttp client never
+  // requests permessage-deflate in the first place.
+  perMessageDeflate: false,
+  httpCompression:   false,
 });
 
 // Make io available to route handlers via req.app.get('io')

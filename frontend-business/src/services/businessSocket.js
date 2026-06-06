@@ -32,8 +32,14 @@ export function connectBusinessSocket(businessId) {
     socket = null;
   }
 
+  // Polling-first then upgrade. Cloudflare's WebSocket proxy mangles
+  // permessage-deflate RSV bits during the WebSocket handshake — long-
+  // polling establishes the Socket.IO session cleanly first, then the
+  // client upgrades to WebSocket once the engine.io session id is in
+  // place. The server-side `perMessageDeflate: false` setting on the
+  // Socket.IO server is the paired fix that makes the upgrade survive.
   socket = socketIo(BASE_URL, {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
