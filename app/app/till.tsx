@@ -23,6 +23,7 @@ export default function TillInterceptor() {
   const fired = useRef(false);
 
   useEffect(() => {
+    console.log('[till] route mounted');
     if (fired.current) return;
     fired.current = true;
 

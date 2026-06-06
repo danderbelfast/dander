@@ -5,8 +5,8 @@
  * this directory.
  */
 
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Linking, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
 import { useDeviceFingerprint } from '../src/hooks/useDeviceFingerprint';
@@ -17,6 +17,7 @@ import { useUserSocket } from '../src/hooks/useUserSocket';
 import { usePermissionWalkthrough } from '../src/hooks/usePermissionWalkthrough';
 import { PermissionBanner } from '../src/components/PermissionBanner';
 import { NfcCheckInScreen } from '../src/components/NfcCheckInScreen';
+import { handleTapUrl, handleTillUrl } from '../src/services/nfcHandler';
 
 function SideEffects() {
   // All hooks gate themselves on isAuth and platform/permissions, so
@@ -35,6 +36,25 @@ function SideEffects() {
   // points_awarded pushes into the NfcCheckInScreen coins overlay so
   // the till flow re-uses the existing animation pipeline.
   useUserSocket();
+
+  // Foreground deep-link bridge. expo-router handles cold-start URLs
+  // (Android opens app → routes to /tap or /till → that route's
+  // useEffect fires handleTapUrl / handleTillUrl). But when the app
+  // is already foregrounded and a fresh App Link arrives, expo-router
+  // doesn't always re-route, so we listen here and dispatch directly.
+  //
+  // tap.tsx / till.tsx each carry a per-mount fired.current guard, so
+  // even if expo-router DOES re-mount the route on top of this
+  // dispatch the POST only fires once per real tap.
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      console.log('[deep-link] foreground url:', url);
+      if (url.includes('/till')) handleTillUrl(url);
+      else if (url.includes('/tap')) handleTapUrl(url);
+    });
+    return () => subscription.remove();
+  }, []);
+
   return null;
 }
 
