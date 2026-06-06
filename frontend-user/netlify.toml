@@ -14,6 +14,17 @@
     Content-Type  = "application/json"
     Cache-Control = "public, max-age=300"
 
+# Till NFC URL — https://dander.io/till?business=<id>. Each business has
+# their own sticker programmed with their business id. Android's App
+# Links intent filter intercepts before the SPA renders; the no-cache
+# header is here so that on browsers / desktops (where the SPA does
+# render) we always pick up the latest deep-link fallback rather than
+# a stale cached one.
+[[headers]]
+  for = "/till"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
