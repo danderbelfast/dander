@@ -13,6 +13,7 @@ import { useDeviceFingerprint } from '../src/hooks/useDeviceFingerprint';
 import { useWifiScanner } from '../src/hooks/useWifiScanner';
 import useStepCounter from '../src/hooks/useStepCounter';
 import { useBeaconScanner } from '../src/hooks/useBeaconScanner';
+import { useUserSocket } from '../src/hooks/useUserSocket';
 import { usePermissionWalkthrough } from '../src/hooks/usePermissionWalkthrough';
 import { PermissionBanner } from '../src/components/PermissionBanner';
 import { NfcCheckInScreen } from '../src/components/NfcCheckInScreen';
@@ -30,6 +31,10 @@ function SideEffects() {
   useWifiScanner();
   useStepCounter();
   useBeaconScanner();
+  // Keeps a Socket.IO connection open while authed and bridges
+  // points_awarded pushes into the NfcCheckInScreen coins overlay so
+  // the till flow re-uses the existing animation pipeline.
+  useUserSocket();
   return null;
 }
 

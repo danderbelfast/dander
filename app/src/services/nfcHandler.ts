@@ -74,6 +74,72 @@ export function parseTapUrl(url: string | null | undefined): { node: string; bus
  * failure is surfaced through the onNfcError listener so the UI can
  * show a lightweight retry toast.
  */
+/**
+ * Public re-entry point for screens/services that didn't come through
+ * an NFC tap themselves but still want to trigger the coins overlay —
+ * e.g. the user socket hook converts a points_awarded WebSocket event
+ * into a synthesised NfcCheckinResponse and pumps it through here so
+ * NfcCheckInScreen plays the same animation it does for a real tap.
+ */
+export function triggerCheckInOverlay(result: NfcCheckinResponse): void {
+  emitSuccess(result);
+}
+
+/**
+ * Parse a Dander till URL.
+ *   https://dander.io/till?business=<id>
+ * Returns null if it doesn't match.
+ */
+export function parseTillUrl(url: string | null | undefined): { business: number } | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.pathname !== '/till' && u.pathname !== '/till/') return null;
+    const business = parseInt(u.searchParams.get('business') || '', 10);
+    if (!Number.isFinite(business)) return null;
+    return { business };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Called by app/till.tsx when expo-router routes the till URL to it.
+ * POSTs the arrive event so the business dashboard sees the customer
+ * profile. NO points are awarded by this call — the customer is shown
+ * a "staff will process" toast and the coins overlay fires later when
+ * the points_awarded WebSocket event arrives.
+ */
+export async function handleTillUrl(url: string): Promise<void> {
+  console.log('[handleTillUrl] called with:', url);
+  const parsed = parseTillUrl(url);
+  if (!parsed) {
+    console.warn('[handleTillUrl] url did not parse to business — skipping');
+    return;
+  }
+  try {
+    let token: string | null = null;
+    try { token = await AsyncStorage.getItem(TOKEN_KEY); } catch { /* unauth still posts; backend will reject */ }
+    if (!token) {
+      console.warn('[handleTillUrl] no auth token — skipping till-arrive');
+      return;
+    }
+    console.log('[handleTillUrl] posting to till-arrive');
+    const response = await axios.post(
+      `${env.API_URL}/api/proximity/till-arrive`,
+      { business_id: parsed.business },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15_000,
+      },
+    );
+    console.log('[handleTillUrl] response:', JSON.stringify(response.data));
+  } catch (err) {
+    console.error('[handleTillUrl] error:', err);
+    emitError(err as Error);
+  }
+}
+
 export async function handleTapUrl(url: string): Promise<void> {
   console.log('[handleTapUrl] called with:', url);
   const parsed = parseTapUrl(url);
