@@ -24,11 +24,14 @@ const pool             = require('../db/pool');
 const app        = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
+// CORS is NOT set here. /socket.io/* requests are intercepted by
+// Socket.IO before they reach Express middleware, so a `cors:` option
+// here would normally be the right place — but our edge (Cloudflare /
+// Railway) is already injecting Access-Control-Allow-Origin and the
+// two were colliding into a malformed header list ("contains multiple
+// values"). Trust the upstream header; if CORS regresses post-deploy
+// re-add the block and instead drop the edge-level rule.
 const io         = new Server(httpServer, {
-  cors: {
-    origin:  process.env.FRONTEND_URL || '*',
-    methods: ['GET', 'POST'],
-  },
   // Cloudflare's WebSocket proxy mangles permessage-deflate RSV bits,
   // which makes the server's frame parser throw
   //   "reserved bits are on: reserved1=1, reserved2=0, reserved3=1"
