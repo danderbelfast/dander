@@ -45,6 +45,11 @@ const NAV = [
           <circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/>
         </svg>
       )},
+      { to: '/loyalty/tiers', label: 'Reward Tiers', icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15 9 22 10 17 15 18 22 12 19 6 22 7 15 2 10 9 9"/>
+        </svg>
+      )},
       { to: '/loyalty/gifs', label: 'GIF Library', icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9v6l5-3z"/>

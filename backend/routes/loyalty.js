@@ -630,4 +630,100 @@ router.get('/gif-cache', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Reward tiers — variable bronze/silver/gold pool + standard baseline.
+//   GET /api/loyalty/reward-tiers
+//   PUT /api/loyalty/reward-tiers
+// Both create the row on first hit so the dashboard can show defaults.
+// ---------------------------------------------------------------------------
+
+router.get('/reward-tiers', requireBusiness, async (req, res) => {
+  try {
+    await pool.query(
+      `INSERT INTO reward_tiers (business_id) VALUES ($1) ON CONFLICT (business_id) DO NOTHING`,
+      [req.business.id]
+    );
+    const { rows } = await pool.query(
+      `SELECT standard_points,
+              bronze_points, bronze_monthly_count, bronze_remaining,
+              silver_points, silver_monthly_count, silver_remaining,
+              gold_points,   gold_monthly_count,   gold_remaining,
+              reset_day, last_reset_at, updated_at
+         FROM reward_tiers WHERE business_id = $1`,
+      [req.business.id]
+    );
+    return res.status(200).json({ success: true, tiers: rows[0] });
+  } catch (err) {
+    console.error('[loyalty/reward-tiers GET]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load tiers.' });
+  }
+});
+
+router.put('/reward-tiers', requireBusiness, async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const intOrNull = (v) => {
+    if (v == null) return null;
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const sp  = intOrNull(body.standard_points);
+  const bp  = intOrNull(body.bronze_points);
+  const bmc = intOrNull(body.bronze_monthly_count);
+  const sip = intOrNull(body.silver_points);
+  const smc = intOrNull(body.silver_monthly_count);
+  const gp  = intOrNull(body.gold_points);
+  const gmc = intOrNull(body.gold_monthly_count);
+
+  if (sp != null && (sp < 10 || sp > 50)) {
+    return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'standard_points must be 10–50.' });
+  }
+  for (const [name, v] of [['bronze_points', bp], ['silver_points', sip], ['gold_points', gp]]) {
+    if (v != null && (v <= 0 || v > 100_000)) {
+      return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: `${name} out of range.` });
+    }
+  }
+  for (const [name, v] of [['bronze_monthly_count', bmc], ['silver_monthly_count', smc], ['gold_monthly_count', gmc]]) {
+    if (v != null && (v < 0 || v > 1000)) {
+      return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: `${name} out of range.` });
+    }
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO reward_tiers (business_id) VALUES ($1) ON CONFLICT (business_id) DO NOTHING`,
+      [req.business.id]
+    );
+    // _remaining is NOT updated when _monthly_count grows mid-month —
+    // the new cap takes effect at the next month boundary. If
+    // _monthly_count is REDUCED below _remaining, clamp _remaining
+    // to the new cap so a future tap can't draw past it.
+    const { rows } = await pool.query(
+      `UPDATE reward_tiers
+          SET standard_points       = COALESCE($2, standard_points),
+              bronze_points         = COALESCE($3, bronze_points),
+              bronze_monthly_count  = COALESCE($4, bronze_monthly_count),
+              bronze_remaining      = LEAST(bronze_remaining, COALESCE($4, bronze_monthly_count)),
+              silver_points         = COALESCE($5, silver_points),
+              silver_monthly_count  = COALESCE($6, silver_monthly_count),
+              silver_remaining      = LEAST(silver_remaining, COALESCE($6, silver_monthly_count)),
+              gold_points           = COALESCE($7, gold_points),
+              gold_monthly_count    = COALESCE($8, gold_monthly_count),
+              gold_remaining        = LEAST(gold_remaining, COALESCE($8, gold_monthly_count)),
+              updated_at            = NOW()
+        WHERE business_id = $1
+      RETURNING standard_points,
+                bronze_points, bronze_monthly_count, bronze_remaining,
+                silver_points, silver_monthly_count, silver_remaining,
+                gold_points,   gold_monthly_count,   gold_remaining,
+                reset_day, last_reset_at, updated_at`,
+      [req.business.id, sp, bp, bmc, sip, smc, gp, gmc]
+    );
+    return res.status(200).json({ success: true, tiers: rows[0] });
+  } catch (err) {
+    console.error('[loyalty/reward-tiers PUT]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to update tiers.' });
+  }
+});
+
 module.exports = router;

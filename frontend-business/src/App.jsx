@@ -28,6 +28,7 @@ import AwardPoints      from './pages/AwardPoints';
 import GifLibrary       from './pages/GifLibrary';
 import Sales            from './pages/Sales';
 import Conversions      from './pages/Conversions';
+import RewardTiers      from './pages/RewardTiers';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/sensors"          element={<MySensors />} />
           <Route path="/loyalty"          element={<LoyaltySettings />} />
           <Route path="/loyalty/award"    element={<AwardPoints />} />
+          <Route path="/loyalty/tiers"    element={<RewardTiers />} />
           <Route path="/loyalty/gifs"     element={<GifLibrary />} />
           <Route path="/sales"            element={<Sales />} />
           <Route path="/conversions"      element={<Conversions />} />

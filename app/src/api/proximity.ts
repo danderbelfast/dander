@@ -62,6 +62,10 @@ export type CollectableUnlocked = {
 export type NfcCheckinResponse = {
   success: boolean;
   points_awarded: number;
+  /** Variable reward draw — 'standard' on most taps, bronze/silver/
+   *  gold on a rare hit from the business's monthly pool. Drives the
+   *  CheckIn overlay's coin count, haptics, banner and screen tint. */
+  reward_tier?: 'standard' | 'bronze' | 'silver' | 'gold';
   total_points: number;
   visit_number: number;
   tier: string;

@@ -28,6 +28,7 @@ const {
 const nodeWs = require('../ws/nodes');
 const { pushToBusiness } = require('../lib/wsPush');
 const adAttribution = require('../services/adAttribution');
+const rewardTiers = require('../services/rewardTiers');
 
 /**
  * True iff `dob` (Date or YYYY-MM-DD string) shares its month-day with
@@ -291,7 +292,19 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
     );
     const prior = priorRows[0] || { points: 0, total_visits: 0, last_visit_at: null };
 
-    const pointsAwarded = sameDay ? 0 : settings.points_per_visit;
+    // Variable reward tier — bronze/silver/gold are rare excitement
+    // moments drawn from a monthly pool; everyone else gets 'standard'.
+    // Repeat-same-day taps award 0 points / 'standard' tier (no draw
+    // from the pool, so a customer can't burn a gold by spam-tapping).
+    let rewardTier = 'standard';
+    let pointsAwarded;
+    if (sameDay) {
+      pointsAwarded = 0;
+    } else {
+      const pick = await rewardTiers.selectAndAward(pool, { businessId });
+      rewardTier    = pick.reward_tier;
+      pointsAwarded = pick.points_awarded;
+    }
 
     const advance = await awardPointsAndAdvance(pool, {
       businessId, userId: user.id, pointsAwarded, samedayVisit: sameDay,
@@ -381,6 +394,7 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
     return res.status(200).json({
       success: true,
       points_awarded:        pointsAwarded,
+      reward_tier:           rewardTier,
       total_points:          advance.points,
       visit_number:          advance.total_visits,
       tier:                  advance.tier,

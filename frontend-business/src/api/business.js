@@ -228,6 +228,12 @@ export const getLoyaltyCollectable = () =>
 export const updateLoyaltyCollectable = (payload) =>
   client.put('/api/loyalty/collectable', payload).then((r) => r.data);
 
+// ── Variable reward tiers ───────────────────────────────────
+export const getRewardTiers = () =>
+  client.get('/api/loyalty/reward-tiers').then((r) => r.data);
+export const updateRewardTiers = (payload) =>
+  client.put('/api/loyalty/reward-tiers', payload).then((r) => r.data);
+
 // ── Purchase points (NFC / staff tablet) ────────────────────
 export const awardPurchasePoints = (payload) =>
   client.post('/api/loyalty/purchase-points', payload).then((r) => r.data);

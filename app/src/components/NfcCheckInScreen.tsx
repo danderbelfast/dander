@@ -25,7 +25,6 @@ import * as Haptics from 'expo-haptics';
 import { onNfcCheckin } from '../services/nfcHandler';
 import { NfcCheckinResponse, RewardUnlocked, CollectableUnlocked } from '../api/proximity';
 
-const COIN_COUNT = 6;
 const DURATION_MS = 5_000;
 
 const TIER_LABELS: Record<string, string> = {
@@ -34,22 +33,94 @@ const TIER_LABELS: Record<string, string> = {
   obsidian: '🌑 OBSIDIAN', legend: '👑 LEGEND',
 };
 
+/**
+ * reward_tier on the check-in response drives the "dopamine" variants
+ * — standard is the everyday tap, bronze/silver/gold are rare moments
+ * pulled from each business's monthly pool. Each variant pumps more
+ * coins, a brighter background tint, and a "Lucky!/Amazing!/JACKPOT!"
+ * banner. Customer never sees the pool counts — surprise on every tap.
+ */
+type RewardTier = 'standard' | 'bronze' | 'silver' | 'gold';
+type VariantSpec = {
+  coinCount: number;
+  banner:    string | null;       // null = no special banner (standard)
+  tintColor: string | null;       // null = no full-screen tint
+  haptics:   Array<{ at: number; kind: 'light' | 'medium' | 'heavy' }>;
+};
+const VARIANTS: Record<RewardTier, VariantSpec> = {
+  standard: {
+    coinCount: 6,
+    banner:    null,
+    tintColor: null,
+    haptics: [
+      { at: 400, kind: 'light' }, { at: 900, kind: 'light' },
+      { at: 1400, kind: 'light' }, { at: 2400, kind: 'heavy' },
+    ],
+  },
+  bronze: {
+    coinCount: 12,
+    banner:    'Lucky!',
+    tintColor: 'rgba(205, 127, 50, 0.18)',
+    haptics: [
+      { at: 200, kind: 'medium' }, { at: 600, kind: 'medium' },
+      { at: 1100, kind: 'medium' }, { at: 1700, kind: 'heavy' },
+      { at: 2400, kind: 'heavy' },
+    ],
+  },
+  silver: {
+    coinCount: 24,
+    banner:    'Amazing!',
+    tintColor: 'rgba(192, 192, 192, 0.28)',
+    haptics: [
+      { at: 100, kind: 'heavy' }, { at: 500, kind: 'medium' },
+      { at: 900, kind: 'heavy' }, { at: 1400, kind: 'medium' },
+      { at: 1900, kind: 'heavy' }, { at: 2500, kind: 'heavy' },
+    ],
+  },
+  gold: {
+    coinCount: 40,
+    banner:    'JACKPOT!',
+    tintColor: 'rgba(245, 176, 65, 0.55)',
+    haptics: [
+      { at: 0,    kind: 'heavy' }, { at: 200,  kind: 'heavy' },
+      { at: 500,  kind: 'heavy' }, { at: 900,  kind: 'heavy' },
+      { at: 1400, kind: 'heavy' }, { at: 1900, kind: 'heavy' },
+      { at: 2400, kind: 'heavy' }, { at: 3000, kind: 'heavy' },
+    ],
+  },
+};
+
+function variantFor(tier: string | undefined | null): VariantSpec {
+  const t = (tier as RewardTier) || 'standard';
+  return VARIANTS[t] || VARIANTS.standard;
+}
+
 export function NfcCheckInScreen() {
   const [result, setResult] = useState<NfcCheckinResponse | null>(null);
 
   useEffect(() => {
     const off = onNfcCheckin((res) => {
       setResult(res);
+      const variant = variantFor(res.reward_tier);
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch { /* swallow */ }
-      // Stagger a few impacts during the coin transfer for tactile feedback.
-      const t1 = setTimeout(() => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {} }, 400);
-      const t2 = setTimeout(() => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {} }, 900);
-      const t3 = setTimeout(() => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {} }, 1400);
-      const t4 = setTimeout(() => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} }, 2400);
+      // Tier-aware haptic schedule. Gold gets a sustained pulse train,
+      // silver / bronze a bigger-than-standard pattern.
+      const timers = variant.haptics.map((h) =>
+        setTimeout(() => {
+          try {
+            const style = h.kind === 'heavy'
+              ? Haptics.ImpactFeedbackStyle.Heavy
+              : h.kind === 'medium'
+                ? Haptics.ImpactFeedbackStyle.Medium
+                : Haptics.ImpactFeedbackStyle.Light;
+            Haptics.impactAsync(style);
+          } catch { /* swallow */ }
+        }, h.at)
+      );
       const dismiss = setTimeout(() => setResult(null), DURATION_MS);
-      return () => { [t1, t2, t3, t4, dismiss].forEach(clearTimeout); };
+      return () => { timers.forEach(clearTimeout); clearTimeout(dismiss); };
     });
     return off;
   }, []);
@@ -63,12 +134,22 @@ export function NfcCheckInScreen() {
 }
 
 function CheckInOverlay({ result, onClose }: { result: NfcCheckinResponse; onClose: () => void }) {
+  const variant = variantFor(result.reward_tier);
   return (
     <View style={styles.root}>
+      {variant.tintColor && (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFillObject as any, { backgroundColor: variant.tintColor }]}
+        />
+      )}
       <PotAtTop />
-      <CoinSwarm />
+      <CoinSwarm count={variant.coinCount} />
       <PointCounter target={result.points_awarded} />
       <View style={styles.card}>
+        {variant.banner && (
+          <Text style={styles.banner}>{variant.banner}</Text>
+        )}
         <Text style={styles.business}>{result.business_name}</Text>
         <Text style={styles.points}>+{result.points_awarded} POINTS!</Text>
         <Text style={styles.balance}>Balance: {result.total_points.toLocaleString()}</Text>
@@ -105,23 +186,23 @@ function PotAtTop() {
   );
 }
 
-function CoinSwarm() {
-  // Six coins, each with a slightly staggered launch.
-  const coins = useMemo(() => Array.from({ length: COIN_COUNT }, (_, i) => i), []);
+function CoinSwarm({ count }: { count: number }) {
+  // Coin count is driven by the reward tier (standard=6 → gold=40).
+  const coins = useMemo(() => Array.from({ length: count }, (_, i) => i), [count]);
   return (
     <View pointerEvents="none" style={styles.swarm}>
-      {coins.map((i) => <Coin key={i} index={i} />)}
+      {coins.map((i) => <Coin key={i} index={i} total={count} />)}
     </View>
   );
 }
 
-function Coin({ index }: { index: number }) {
+function Coin({ index, total }: { index: number; total: number }) {
   const y = useRef(new Animated.Value(0)).current;
   const x = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const delay = index * 80;
-    const lateralOffset = (index - COIN_COUNT / 2) * 22;
+    const lateralOffset = (index - total / 2) * 22;
     Animated.parallel([
       Animated.sequence([
         Animated.delay(delay),
@@ -229,6 +310,11 @@ const styles = StyleSheet.create({
     width: '100%', maxWidth: 480, paddingHorizontal: 24, paddingVertical: 28,
     alignItems: 'center', backgroundColor: '#0E0E12',
     borderRadius: 18, borderColor: '#222', borderWidth: 1,
+  },
+  banner:   {
+    color: '#FFD54F', fontSize: 26, fontWeight: '900',
+    textAlign: 'center', letterSpacing: 2, marginBottom: 6,
+    textShadowColor: '#FFD54F', textShadowRadius: 12,
   },
   business: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', textAlign: 'center' },
   points:   { color: '#FF6B35', fontSize: 34, fontWeight: '800', marginTop: 10 },
