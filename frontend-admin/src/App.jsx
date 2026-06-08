@@ -10,6 +10,7 @@ import Offers     from './pages/Offers';
 import Users      from './pages/Users';
 import Reports    from './pages/Reports';
 import Settings   from './pages/Settings';
+import Countries  from './pages/Countries';
 
 function PublicRoute({ children }) {
   const { isAuth, loading } = useAuth();
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/users"      element={<Users />} />
           <Route path="/reports"    element={<Reports />} />
           <Route path="/settings"   element={<Settings />} />
+          <Route path="/countries"  element={<Countries />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -1043,4 +1043,151 @@ router.get(
   }
 );
 
+// ---------------------------------------------------------------------------
+// Countries / markets management
+//   GET    /api/admin/countries
+//   POST   /api/admin/countries
+//   PUT    /api/admin/countries/:code
+//   PATCH  /api/admin/countries/:code/toggle
+// ---------------------------------------------------------------------------
+
+function normaliseCode(s, len) {
+  return typeof s === 'string' ? s.trim().toUpperCase().slice(0, len) : '';
+}
+
+router.get('/countries', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, code, name, currency_code, currency_symbol,
+              monthly_price, stripe_price_id, is_active,
+              created_at, updated_at
+         FROM countries
+        ORDER BY name`
+    );
+    return ok(res, {
+      countries: rows.map((r) => ({ ...r, monthly_price: Number(r.monthly_price) })),
+    });
+  } catch (err) {
+    console.error('[admin/countries GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to load countries.');
+  }
+});
+
+router.post(
+  '/countries',
+  [
+    body('name').notEmpty().trim().isLength({ max: 100 }).withMessage('name required.'),
+    body('code').matches(/^[A-Za-z]{2}$/).withMessage('code must be 2 letters.'),
+    body('currency_code').matches(/^[A-Za-z]{3}$/).withMessage('currency_code must be 3 letters.'),
+    body('currency_symbol').notEmpty().isLength({ max: 5 }).withMessage('currency_symbol required.'),
+    body('monthly_price').isFloat({ min: 0 }).withMessage('monthly_price must be >= 0.'),
+    body('is_active').optional().isBoolean().withMessage('is_active must be boolean.'),
+    body('stripe_price_id').optional({ values: 'falsy' }).isLength({ max: 100 }).withMessage('stripe_price_id too long.'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    const code         = normaliseCode(req.body.code, 2);
+    const currencyCode = normaliseCode(req.body.currency_code, 3);
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO countries
+           (name, code, currency_code, currency_symbol, monthly_price, stripe_price_id, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, TRUE))
+         RETURNING id, code, name, currency_code, currency_symbol,
+                   monthly_price, stripe_price_id, is_active,
+                   created_at, updated_at`,
+        [
+          String(req.body.name).trim(),
+          code,
+          currencyCode,
+          String(req.body.currency_symbol).trim(),
+          parseFloat(req.body.monthly_price),
+          req.body.stripe_price_id || null,
+          req.body.is_active,
+        ]
+      );
+      const c = rows[0];
+      return ok(res, { country: { ...c, monthly_price: Number(c.monthly_price) } }, 201);
+    } catch (err) {
+      if (err.code === '23505') {
+        return fail(res, 409, 'CODE_TAKEN', `Country code ${code} already exists.`);
+      }
+      console.error('[admin/countries POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to create country.');
+    }
+  }
+);
+
+router.put(
+  '/countries/:code',
+  [
+    param('code').matches(/^[A-Za-z]{2}$/).withMessage('code must be 2 letters.'),
+    body('name').optional().trim().isLength({ max: 100 }),
+    body('currency_code').optional().matches(/^[A-Za-z]{3}$/),
+    body('currency_symbol').optional().isLength({ max: 5 }),
+    body('monthly_price').optional().isFloat({ min: 0 }),
+    body('is_active').optional().isBoolean(),
+    body('stripe_price_id').optional({ values: 'falsy' }).isLength({ max: 100 }),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    const code = normaliseCode(req.params.code, 2);
+    try {
+      const { rows } = await pool.query(
+        `UPDATE countries
+            SET name             = COALESCE($2, name),
+                currency_code    = COALESCE($3, currency_code),
+                currency_symbol  = COALESCE($4, currency_symbol),
+                monthly_price    = COALESCE($5, monthly_price),
+                stripe_price_id  = COALESCE($6, stripe_price_id),
+                is_active        = COALESCE($7, is_active),
+                updated_at       = NOW()
+          WHERE code = $1
+       RETURNING id, code, name, currency_code, currency_symbol,
+                 monthly_price, stripe_price_id, is_active,
+                 created_at, updated_at`,
+        [
+          code,
+          req.body.name ? String(req.body.name).trim() : null,
+          req.body.currency_code ? normaliseCode(req.body.currency_code, 3) : null,
+          req.body.currency_symbol ? String(req.body.currency_symbol).trim() : null,
+          req.body.monthly_price != null ? parseFloat(req.body.monthly_price) : null,
+          req.body.stripe_price_id || null,
+          req.body.is_active != null ? req.body.is_active : null,
+        ]
+      );
+      if (rows.length === 0) return fail(res, 404, 'NOT_FOUND', 'Country not found.');
+      const c = rows[0];
+      return ok(res, { country: { ...c, monthly_price: Number(c.monthly_price) } });
+    } catch (err) {
+      console.error('[admin/countries PUT]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to update country.');
+    }
+  }
+);
+
+router.patch(
+  '/countries/:code/toggle',
+  [param('code').matches(/^[A-Za-z]{2}$/)],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    const code = normaliseCode(req.params.code, 2);
+    try {
+      const { rows } = await pool.query(
+        `UPDATE countries
+            SET is_active  = NOT is_active,
+                updated_at = NOW()
+          WHERE code = $1
+      RETURNING code, is_active`,
+        [code]
+      );
+      if (rows.length === 0) return fail(res, 404, 'NOT_FOUND', 'Country not found.');
+      return ok(res, { code: rows[0].code, is_active: rows[0].is_active });
+    } catch (err) {
+      console.error('[admin/countries PATCH toggle]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to toggle country.');
+    }
+  }
+);
+
 module.exports = router;

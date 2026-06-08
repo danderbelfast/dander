@@ -114,3 +114,16 @@ export const updateBusinessPlan = (id, data) =>
 
 export const getPlanHistory = (id) =>
   client.get(`/api/admin/businesses/${id}/plan-history`).then((r) => r.data);
+
+// ── Countries / markets ─────────────────────────────────────
+export const listCountries = () =>
+  client.get('/api/admin/countries').then((r) => r.data);
+
+export const createCountry = (payload) =>
+  client.post('/api/admin/countries', payload).then((r) => r.data);
+
+export const updateCountry = (code, payload) =>
+  client.put(`/api/admin/countries/${encodeURIComponent(code)}`, payload).then((r) => r.data);
+
+export const toggleCountry = (code) =>
+  client.patch(`/api/admin/countries/${encodeURIComponent(code)}/toggle`).then((r) => r.data);

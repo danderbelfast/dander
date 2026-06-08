@@ -160,7 +160,7 @@ async function verifyOtp(userId, code, purpose) {
  *
  * @returns {{ userId: number }}
  */
-async function registerUser(email, phone, password, firstName, lastName, dateOfBirth = null) {
+async function registerUser(email, phone, password, firstName, lastName, dateOfBirth = null, countryCode = null) {
   const existing = await pool.query(
     'SELECT id FROM users WHERE email = $1',
     [email.toLowerCase().trim()]
@@ -178,10 +178,15 @@ async function registerUser(email, phone, password, firstName, lastName, dateOfB
   // greeting (and only when the user has birthday_sharing=true).
   const dob = (typeof dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth))
     ? dateOfBirth : null;
+  // country_code falls back to the column DEFAULT 'GB' when null is
+  // passed (or fails the regex), so a missing payload still produces
+  // a valid row keyed to the home market.
+  const cc = (typeof countryCode === 'string' && /^[A-Za-z]{2}$/.test(countryCode))
+    ? countryCode.toUpperCase() : null;
   const { rows } = await pool.query(
     `INSERT INTO users
-       (email, phone, password_hash, first_name, last_name, date_of_birth, is_verified, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, false, true)
+       (email, phone, password_hash, first_name, last_name, date_of_birth, country_code, is_verified, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'GB'), false, true)
      RETURNING id`,
     [
       email.toLowerCase().trim(),
@@ -190,6 +195,7 @@ async function registerUser(email, phone, password, firstName, lastName, dateOfB
       firstName ?? null,
       lastName  ?? null,
       dob,
+      cc,
     ]
   );
   const userId = rows[0].id;
@@ -458,8 +464,10 @@ async function registerBusiness(ownerDetails, businessDetails) {
   const {
     name, description, category,
     address, city, lat, lng,
-    website, phone: bizPhone,
+    website, phone: bizPhone, countryCode,
   } = businessDetails;
+  const cc = (typeof countryCode === 'string' && /^[A-Za-z]{2}$/.test(countryCode))
+    ? countryCode.toUpperCase() : null;
 
   const existing = await pool.query(
     'SELECT id FROM users WHERE email = $1',
@@ -482,8 +490,8 @@ async function registerBusiness(ownerDetails, businessDetails) {
 
     const userResult = await client.query(
       `INSERT INTO users
-         (email, phone, password_hash, first_name, last_name, role, is_verified, is_active)
-       VALUES ($1, $2, $3, $4, $5, 'business', false, true)
+         (email, phone, password_hash, first_name, last_name, role, country_code, is_verified, is_active)
+       VALUES ($1, $2, $3, $4, $5, 'business', COALESCE($6, 'GB'), false, true)
        RETURNING id`,
       [
         email.toLowerCase().trim(),
@@ -491,6 +499,7 @@ async function registerBusiness(ownerDetails, businessDetails) {
         passwordHash,
         firstName ?? null,
         lastName  ?? null,
+        cc,
       ]
     );
     userId = userResult.rows[0].id;
@@ -499,9 +508,9 @@ async function registerBusiness(ownerDetails, businessDetails) {
       `INSERT INTO businesses
          (owner_id, name, description, category,
           address, city, lat, lng,
-          website, phone, status, is_verified)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', false)
-       RETURNING id`,
+          website, phone, country_code, status, is_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'GB'), 'pending', false)
+       RETURNING id, country_code`,
       [
         userId,
         name,
@@ -513,6 +522,7 @@ async function registerBusiness(ownerDetails, businessDetails) {
         lng         ?? null,
         website     ?? null,
         bizPhone    ?? null,
+        cc,
       ]
     );
     businessId = bizResult.rows[0].id;

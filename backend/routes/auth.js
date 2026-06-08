@@ -55,13 +55,18 @@ router.post(
     // greeting. Format must be YYYY-MM-DD if provided.
     body('dateOfBirth').optional({ values: 'falsy' })
       .matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD.'),
+    body('countryCode').optional({ values: 'falsy' })
+      .matches(/^[A-Za-z]{2}$/).withMessage('countryCode must be 2 letters.'),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;
 
     try {
-      const { email, password, firstName, lastName, phone, dateOfBirth } = req.body;
-      const result = await authService.registerUser(email, phone, password, firstName, lastName, dateOfBirth);
+      const { email, password, firstName, lastName, phone, dateOfBirth, countryCode } = req.body;
+      const result = await authService.registerUser(
+        email, phone, password, firstName, lastName, dateOfBirth,
+        countryCode ? String(countryCode).toUpperCase() : null,
+      );
 
       return ok(res, {
         message: 'Account created. We\'ve sent a 6-digit verification code to your email.',
@@ -220,6 +225,8 @@ router.post(
     body('address').optional().trim(),
     body('lat').optional().isFloat({ min: -90,  max: 90  }).withMessage('Invalid latitude.'),
     body('lng').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.'),
+    body('countryCode').optional({ values: 'falsy' })
+      .matches(/^[A-Za-z]{2}$/).withMessage('countryCode must be 2 letters.'),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;
@@ -228,6 +235,7 @@ router.post(
       const {
         email, password, firstName, lastName, phone,
         businessName, businessCategory, address, city, lat, lng, website, businessPhone,
+        countryCode,
       } = req.body;
 
       const result = await authService.registerBusiness(
@@ -241,6 +249,7 @@ router.post(
           lng:      lng != null ? parseFloat(lng) : null,
           website,
           phone:    businessPhone,
+          countryCode,
         }
       );
 
@@ -272,10 +281,24 @@ router.post(
         ownerEmail: email,
       }).catch(() => {});
 
+      // Look up the resolved market so the dashboard can confirm the
+      // pricing tier and currency back to the user post-signup.
+      const pool = require('../db/pool');
+      const { rows: countryRows } = await pool.query(
+        `SELECT c.code, c.name, c.currency_code, c.currency_symbol, c.monthly_price
+           FROM businesses b JOIN countries c ON c.code = b.country_code
+          WHERE b.id = $1`,
+        [result.businessId]
+      );
+      const country = countryRows[0]
+        ? { ...countryRows[0], monthly_price: Number(countryRows[0].monthly_price) }
+        : null;
+
       return ok(res, {
         message:    'Business account created. We\'ve sent a 6-digit verification code to your email.',
         userId:     result.userId,
         businessId: result.businessId,
+        country,
       }, 201);
     } catch (err) {
       if (err.code === 'EMAIL_TAKEN') return fail(res, 409, err.code, err.message);
