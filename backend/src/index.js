@@ -139,6 +139,28 @@ app.use(generalLimiter);
 app.use('/api/auth', authLimiter);
 
 // ---------------------------------------------------------------------------
+// Maintenance kill switch.
+//
+// Set MAINTENANCE_MODE=true on the Railway env to drop every API call
+// (including the Stripe webhook and the WebSocket-handshake polling
+// transport) with a 503. Only /health stays open so the platform
+// health probe still resolves and the operator can detect the gate is
+// on. This is the ONLY thing standing between maintenance-mode and
+// the rest of the stack — flip the env var, redeploy is not needed.
+// ---------------------------------------------------------------------------
+
+app.use((req, res, next) => {
+  if (req.path === '/health') return next();
+  if (process.env.MAINTENANCE_MODE === 'true') {
+    return res.status(503).json({
+      error:   'maintenance',
+      message: 'Coming soon',
+    });
+  }
+  return next();
+});
+
+// ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
 

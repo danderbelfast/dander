@@ -64,14 +64,10 @@ function SideEffects() {
 }
 
 export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <SideEffects />
-      <View style={{ flex: 1 }}>
-        <PermissionBanner />
-        <Stack screenOptions={{ headerShown: false }} />
-        <NfcCheckInScreen />
-      </View>
-    </AuthProvider>
-  );
+  // Platform lockdown — maintenance mode. The entire shell (auth,
+  // side-effects, deep-link bridge, NFC overlay, route stack) is
+  // bypassed and the app renders a single blank white surface on
+  // launch. All underlying code is intact on disk; reverting this
+  // function body restores the app.
+  return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
 }
