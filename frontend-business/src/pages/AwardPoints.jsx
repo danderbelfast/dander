@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { awardPurchasePoints } from '../api/business';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../hooks/useCurrency';
 import { Spinner } from '../components/ui/Spinner';
 
 const POINTS_PER_POUND = 5; // mirrors business_loyalty_settings default
 
 export default function AwardPoints() {
   const { toast } = useToast();
+  const { symbol: ccy } = useCurrency();
   const [amount, setAmount] = useState('');
   const [userId, setUserId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -40,14 +42,14 @@ export default function AwardPoints() {
       <div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Award Purchase Points</h2>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
-          £1 spent = {POINTS_PER_POUND} points. Award after each purchase to grow loyalty.
+          {ccy}1 spent = {POINTS_PER_POUND} points. Award after each purchase to grow loyalty.
         </p>
       </div>
 
       <div className="card">
         <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="field">
-            <label className="label">Purchase amount (£)</label>
+            <label className="label">Purchase amount ({ccy})</label>
             <input
               className="input"
               type="number"
@@ -65,7 +67,7 @@ export default function AwardPoints() {
           }}>
             <div style={{ fontSize: '2.4rem', fontWeight: 800 }}>{points}</div>
             <div style={{ fontSize: '0.85rem', color: '#9aa4b1', marginTop: 4 }}>
-              points based on £1 = {POINTS_PER_POUND} pts
+              points based on {ccy}1 = {POINTS_PER_POUND} pts
             </div>
           </div>
         </div>

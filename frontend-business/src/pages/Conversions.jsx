@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import client from '../api/client';
 import { LoadingBlock } from '../components/ui/Spinner';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../hooks/useCurrency';
 
 /**
  * Conversions — the data that will make advertisers pay for Dander Ads.
@@ -15,6 +16,7 @@ import { useToast } from '../context/ToastContext';
  */
 export default function Conversions() {
   const { toast } = useToast();
+  const { fmt } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [ads, setAds] = useState([]);
 
@@ -52,8 +54,8 @@ export default function Conversions() {
         <SummaryCard label="Clicks"             value={totals.clicks} />
         <SummaryCard label="Entry conversions"  value={totals.entries} sub={`${pct(totals.entries, totals.clicks)}% of clicks`} />
         <SummaryCard label="Qualified sales"    value={totals.sales}   sub={`${pct(totals.sales, totals.entries)}% of visits`} />
-        <SummaryCard label="Sale value"         value={`£${totals.saleValue.toFixed(2)}`} />
-        <SummaryCard label="Commission tracked" value={`£${totals.commission.toFixed(2)}`} sub="not yet charged" />
+        <SummaryCard label="Sale value"         value={fmt(totals.saleValue)} />
+        <SummaryCard label="Commission tracked" value={fmt(totals.commission)} sub="not yet charged" />
       </div>
 
       {ads.length === 0 ? (
@@ -93,8 +95,8 @@ export default function Conversions() {
                     <Td align="right">{a.qualified_sales}</Td>
                     <Td align="right">{a.click_to_visit}%</Td>
                     <Td align="right">{a.visit_to_sale}%</Td>
-                    <Td align="right">£{Number(a.sale_value_total).toFixed(2)}</Td>
-                    <Td align="right">£{Number(a.commission_tracked).toFixed(2)}</Td>
+                    <Td align="right">{fmt(a.sale_value_total)}</Td>
+                    <Td align="right">{fmt(a.commission_tracked)}</Td>
                   </tr>
                 ))}
               </tbody>

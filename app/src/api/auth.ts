@@ -46,12 +46,13 @@ export interface RegisterInitResponse {
 }
 
 export interface AuthUser {
-  id:        number;
-  email:     string;
-  firstName: string | null;
-  lastName:  string | null;
-  avatarUrl: string | null;
-  role:      string;
+  id:           number;
+  email:        string;
+  firstName:    string | null;
+  lastName:     string | null;
+  avatarUrl:    string | null;
+  role:         string;
+  countryCode?: string;
 }
 
 export interface LoginCompleteResponse {

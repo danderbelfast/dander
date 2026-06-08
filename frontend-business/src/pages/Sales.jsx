@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { listSales } from '../api/business';
 import { LoadingBlock } from '../components/ui/Spinner';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../hooks/useCurrency';
 
 /**
  * Sales — read-only list of till_transactions for the authenticated
@@ -11,6 +12,7 @@ import { useToast } from '../context/ToastContext';
  */
 export default function Sales() {
   const { toast } = useToast();
+  const { fmt } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
 
@@ -36,7 +38,7 @@ export default function Sales() {
       <div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Sales</h2>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
-          Till NFC transactions. {rows.length} shown · £{totalAmount.toFixed(2)} ·{' '}
+          Till NFC transactions. {rows.length} shown · {fmt(totalAmount)} ·{' '}
           {totalPoints.toLocaleString()} points awarded.
         </p>
       </div>
@@ -68,7 +70,7 @@ export default function Sales() {
                   <tr key={r.id} style={{ borderBottom: '1px solid var(--c-border, rgba(0,0,0,0.04))' }}>
                     <Td>{formatWhen(r.created_at)}</Td>
                     <Td>{r.customer_first_name}</Td>
-                    <Td align="right">£{Number(r.amount_spent).toFixed(2)}</Td>
+                    <Td align="right">{fmt(r.amount_spent)}</Td>
                     <Td>{r.category || '—'}</Td>
                     <Td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.item_description || '—'}

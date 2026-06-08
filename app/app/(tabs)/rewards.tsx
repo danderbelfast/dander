@@ -23,6 +23,7 @@ import {
 
 import { colors } from '../../src/constants/colors';
 import { usePoints } from '../../src/hooks/usePoints';
+import { useCurrency } from '../../src/hooks/useCurrency';
 import { redeemInStoreCredit } from '../../src/api/rewards';
 import { ProgressBar } from '../../src/components/ProgressBar';
 
@@ -44,6 +45,7 @@ const EARN_ROWS = [
 
 export default function RewardsScreen() {
   const { loyalty, loading, refresh } = usePoints();
+  const { symbol: ccy } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
   const [howOpen, setHowOpen]       = useState(false);
   const [redeeming, setRedeeming]   = useState(false);
@@ -66,7 +68,7 @@ export default function RewardsScreen() {
   function confirmRedeem() {
     Alert.alert(
       'Redeem points',
-      `Redeem 500 points for £10 in-store credit?\nBalance after: ${balance - CREDIT_COST} pts`,
+      `Redeem 500 points for ${ccy}10 in-store credit?\nBalance after: ${balance - CREDIT_COST} pts`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Confirm', style: 'default', onPress: doRedeem },
@@ -78,7 +80,7 @@ export default function RewardsScreen() {
     setRedeeming(true);
     try {
       await redeemInStoreCredit(CREDIT_COST);
-      Alert.alert('Redeemed', 'Your £10 in-store credit is on the way.');
+      Alert.alert('Redeemed', `Your ${ccy}10 in-store credit is on the way.`);
       await refresh();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
@@ -107,7 +109,7 @@ export default function RewardsScreen() {
       </View>
 
       <View style={styles.valueBanner}>
-        <Text style={styles.valueBannerHead}>500 points = £10 in-store credit</Text>
+        <Text style={styles.valueBannerHead}>500 points = {ccy}10 in-store credit</Text>
         <Text style={styles.valueBannerBody}>
           Use at any Dander business — high street only.
         </Text>
@@ -121,7 +123,7 @@ export default function RewardsScreen() {
           <Text style={styles.cardIcon}>💳</Text>
           <View style={styles.cardHeadText}>
             <View style={styles.cardTitleRow}>
-              <Text style={styles.cardTitle}>500 points = £10 credit</Text>
+              <Text style={styles.cardTitle}>500 points = {ccy}10 credit</Text>
               <View style={styles.bestBadge}>
                 <Text style={styles.bestBadgeText}>BEST VALUE</Text>
               </View>

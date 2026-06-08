@@ -49,6 +49,10 @@ router.get('/me', async (req, res) => {
          u.first_name  AS owner_first_name,
          u.last_name   AS owner_last_name,
          u.phone       AS owner_phone,
+         c.name          AS country_name,
+         c.currency_code AS currency_code,
+         c.currency_symbol AS currency_symbol,
+         c.monthly_price AS country_monthly_price,
          (SELECT COUNT(*) FROM offers o WHERE o.business_id = b.id AND o.is_active = true)
            AS active_offer_count,
          (SELECT COALESCE(SUM(o.current_redemptions), 0)
@@ -56,6 +60,7 @@ router.get('/me', async (req, res) => {
            AS total_redemptions
        FROM  businesses b
        JOIN  users u ON u.id = b.owner_id
+       LEFT JOIN countries c ON c.code = b.country_code
        WHERE b.id = $1`,
       [req.business.id]
     );

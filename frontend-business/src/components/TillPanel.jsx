@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../hooks/useCurrency';
 import { awardTillPoints } from '../api/business';
 import { connectBusinessSocket, onBusinessEvent } from '../services/businessSocket';
 
@@ -26,6 +27,7 @@ const SUCCESS_DISMISS_MS = 3000;
 export function TillPanel() {
   const { business } = useAuth();
   const { toast } = useToast();
+  const { symbol: ccy, fmt } = useCurrency();
   const [state, setState] = useState('IDLE');         // IDLE | ARRIVED | SUCCESS
   const [customer, setCustomer] = useState(null);
   const [success, setSuccess]   = useState(null);
@@ -149,9 +151,9 @@ export function TillPanel() {
                     {o.discount_percent != null
                       ? `${Number(o.discount_percent).toFixed(0)}% off`
                       : o.offer_price != null && o.original_price != null
-                        ? `£${o.offer_price.toFixed(2)} (was £${o.original_price.toFixed(2)})`
+                        ? `${fmt(o.offer_price)} (was ${fmt(o.original_price)})`
                         : o.offer_price != null
-                          ? `£${o.offer_price.toFixed(2)}`
+                          ? fmt(o.offer_price)
                           : o.offer_type || 'Offer'}
                   </div>
                 </div>
@@ -163,7 +165,7 @@ export function TillPanel() {
           )}
 
           <div className="field" style={{ marginTop: 16 }}>
-            <label className="label">Amount spent (£)</label>
+            <label className="label">Amount spent ({ccy})</label>
             <input
               ref={amountRef}
               className="input"

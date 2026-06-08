@@ -225,7 +225,7 @@ async function registerUser(email, phone, password, firstName, lastName, dateOfB
  */
 async function verifyRegistrationOtp(userId, code) {
   const { rows } = await pool.query(
-    `SELECT id, email, first_name, last_name, avatar_url, role, is_active
+    `SELECT id, email, first_name, last_name, avatar_url, role, country_code, is_active
      FROM users
      WHERE id = $1`,
     [userId]
@@ -253,12 +253,13 @@ async function verifyRegistrationOtp(userId, code) {
     refreshToken,
     expiresIn:    ACCESS_TOKEN_TTL,
     user: {
-      id:        user.id,
-      email:     user.email,
-      firstName: user.first_name,
-      lastName:  user.last_name,
-      avatarUrl: user.avatar_url ?? null,
-      role:      user.role ?? 'user',
+      id:          user.id,
+      email:       user.email,
+      firstName:   user.first_name,
+      lastName:    user.last_name,
+      avatarUrl:   user.avatar_url ?? null,
+      role:        user.role ?? 'user',
+      countryCode: user.country_code ?? 'GB',
     },
   };
 }
@@ -352,7 +353,7 @@ async function verifyLoginOtp(tempToken, otpCode) {
   const userId = payload.sub;
 
   const { rows } = await pool.query(
-    `SELECT id, email, first_name, last_name, avatar_url, is_active, role
+    `SELECT id, email, first_name, last_name, avatar_url, country_code, is_active, role
      FROM users
      WHERE id = $1`,
     [userId]
@@ -376,12 +377,13 @@ async function verifyLoginOtp(tempToken, otpCode) {
     refreshToken,
     expiresIn: ACCESS_TOKEN_TTL,
     user: {
-      id:        user.id,
-      email:     user.email,
-      firstName: user.first_name,
-      lastName:  user.last_name,
-      avatarUrl: user.avatar_url ?? null,
-      role:      user.role ?? 'user',
+      id:          user.id,
+      email:       user.email,
+      firstName:   user.first_name,
+      lastName:    user.last_name,
+      avatarUrl:   user.avatar_url ?? null,
+      role:        user.role ?? 'user',
+      countryCode: user.country_code ?? 'GB',
     },
   };
 }
@@ -428,7 +430,7 @@ async function refreshToken(token) {
   }
 
   const { rows } = await pool.query(
-    'SELECT id, email, is_active, role, first_name, last_name, avatar_url FROM users WHERE id = $1',
+    'SELECT id, email, is_active, role, first_name, last_name, avatar_url, country_code FROM users WHERE id = $1',
     [payload.sub]
   );
 
@@ -445,12 +447,13 @@ async function refreshToken(token) {
     accessToken,
     expiresIn: ACCESS_TOKEN_TTL,
     user: {
-      id:        user.id,
-      email:     user.email,
-      firstName: user.first_name,
-      lastName:  user.last_name,
-      avatarUrl: user.avatar_url ?? null,
-      role:      user.role ?? 'user',
+      id:          user.id,
+      email:       user.email,
+      firstName:   user.first_name,
+      lastName:    user.last_name,
+      avatarUrl:   user.avatar_url ?? null,
+      role:        user.role ?? 'user',
+      countryCode: user.country_code ?? 'GB',
     },
   };
 }
