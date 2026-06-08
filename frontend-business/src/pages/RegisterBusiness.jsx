@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerBusiness, verifySetup2FA, resendOtp } from '../api/auth';
+import { registerBusiness, verifySetup2FA, resendOtp, listCountries } from '../api/auth';
 import { updateProfile } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
@@ -76,6 +76,25 @@ export default function RegisterBusiness() {
   const [otpCode, setOtpCode]   = useState('');
   const [resent, setResent]     = useState(false);
 
+  // Countries — fetched from the public list, default detected from
+  // the browser locale (e.g. en-GB → GB). Falls back to GB if the
+  // detected region isn't an active market.
+  const [countries, setCountries] = useState([]);
+  const [countryCode, setCountryCode] = useState('GB');
+  useEffect(() => {
+    listCountries()
+      .then((r) => {
+        const list = r.countries || [];
+        setCountries(list);
+        const navLang = (typeof navigator !== 'undefined' && navigator.language) || 'en-GB';
+        const region = navLang.split('-')[1]?.toUpperCase() || 'GB';
+        const match = list.find((c) => c.code === region);
+        if (match) setCountryCode(region);
+      })
+      .catch(() => { /* leave default GB; backend column default covers it */ });
+  }, []);
+  const country = countries.find((c) => c.code === countryCode) || null;
+
   function onLogoFile(f)  { setLogoFile(f);  setLogoPreview(URL.createObjectURL(f)); }
   function onCoverFile(f) { setCoverFile(f); setCoverPreview(URL.createObjectURL(f)); }
 
@@ -103,7 +122,7 @@ export default function RegisterBusiness() {
     try {
       const data = await registerBusiness(
         { email, password, firstName, lastName },
-        { name: bizName, category, address, city, website, phone: bizPhone, description, logoFile, coverFile, lat, lng }
+        { name: bizName, category, address, city, website, phone: bizPhone, description, logoFile, coverFile, lat, lng, countryCode }
       );
       setUserId(data.userId);
       setStep(4); // show email OTP entry
@@ -182,6 +201,27 @@ export default function RegisterBusiness() {
               <div className="register-step-sub">This is your owner account — the place you'll manage every offer, track every redemption, and grow your business on Dander.</div>
               <form className="register-form" onSubmit={nextStep1}>
                 {error && <div className="form-error-box">{error}</div>}
+                <div className="field">
+                  <label className="label label-required">Country</label>
+                  <select
+                    className="input"
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    required
+                  >
+                    {countries.length === 0 && <option value="GB">United Kingdom (£20/mo)</option>}
+                    {countries.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name} ({c.currency_symbol}{Number(c.monthly_price).toFixed(0)}/mo)
+                      </option>
+                    ))}
+                  </select>
+                  {country && (
+                    <div style={{ marginTop: 6, padding: '8px 12px', background: 'rgba(132,204,22,0.10)', borderLeft: '3px solid #84cc16', borderRadius: 6, fontSize: '0.86rem' }}>
+                      Early adopter price: <strong>{country.currency_symbol}{Number(country.monthly_price).toFixed(2)}/month</strong>
+                    </div>
+                  )}
+                </div>
                 <div className="form-grid">
                   <div className="field">
                     <label className="label label-required">First name</label>

@@ -22,8 +22,12 @@ export const registerBusiness = (ownerFields, businessFields) => {
   if (businessFields.phone)        formData.append('businessPhone', businessFields.phone);
   if (businessFields.logoFile)     formData.append('logo',          businessFields.logoFile);
   if (businessFields.coverFile)    formData.append('cover',         businessFields.coverFile);
+  if (businessFields.countryCode)  formData.append('countryCode',   businessFields.countryCode);
   return client.post('/api/auth/business/register', formData).then((r) => r.data);
 };
+
+export const listCountries = () =>
+  client.get('/api/countries').then((r) => r.data);
 
 export const verifySetup2FA = (userId, token) =>
   client.post('/api/auth/verify-2fa', { userId, token }).then((r) => r.data);

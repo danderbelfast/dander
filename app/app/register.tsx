@@ -4,7 +4,7 @@
  * returns a userId we hand off to /verify.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,6 +24,23 @@ import { authStyles } from '../src/components/authStyles';
 import { Brand } from '../src/components/Brand';
 import { PasswordInput } from '../src/components/PasswordInput';
 import { colors } from '../src/constants/colors';
+import { Country, listCountries } from '../src/api/auth';
+
+function flagFor(code: string): string {
+  if (!code || code.length !== 2) return '🏳️';
+  const A = 'A'.charCodeAt(0);
+  const points = code.toUpperCase().split('').map((c) => 0x1F1E6 + c.charCodeAt(0) - A);
+  return String.fromCodePoint(...points);
+}
+
+function detectRegion(): string {
+  try {
+    const locale = (Intl as any)?.DateTimeFormat?.().resolvedOptions?.()?.locale || 'en-GB';
+    const region = String(locale).split('-')[1]?.toUpperCase();
+    if (region && /^[A-Z]{2}$/.test(region)) return region;
+  } catch { /* fall through */ }
+  return 'GB';
+}
 
 function validatePassword(p: string): string | null {
   if (p.length < 8)        return 'Password must be at least 8 characters.';
@@ -42,6 +59,18 @@ export default function RegisterScreen() {
   const [confirm, setConfirm]     = useState('');
   const [error, setError]         = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [countries, setCountries]     = useState<Country[]>([]);
+  const [countryCode, setCountryCode] = useState<string>('GB');
+  useEffect(() => {
+    listCountries()
+      .then((r) => {
+        setCountries(r.countries || []);
+        const region = detectRegion();
+        if ((r.countries || []).some((c) => c.code === region)) setCountryCode(region);
+      })
+      .catch(() => { /* keep GB default; backend column default covers it */ });
+  }, []);
 
   const canSubmit = useMemo(() => (
     !submitting
@@ -69,10 +98,11 @@ export default function RegisterScreen() {
     setSubmitting(true);
     try {
       const { userId } = await register({
-        email:     email.trim(),
+        email:       email.trim(),
         password,
-        firstName: firstName.trim(),
-        lastName:  lastName.trim(),
+        firstName:   firstName.trim(),
+        lastName:    lastName.trim(),
+        countryCode,
       });
       router.push({
         pathname: '/verify',
@@ -104,6 +134,45 @@ export default function RegisterScreen() {
             <Text style={authStyles.errorText}>{error}</Text>
           </View>
         ) : null}
+
+        <View style={authStyles.inputWrap}>
+          <Text style={authStyles.fieldLabel}>Country</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 4 }}
+            contentContainerStyle={{ paddingVertical: 4, paddingRight: 4 }}
+          >
+            {countries.map((c) => {
+              const selected = c.code === countryCode;
+              return (
+                <Pressable
+                  key={c.code}
+                  onPress={() => setCountryCode(c.code)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems:    'center',
+                    paddingVertical:   8,
+                    paddingHorizontal: 12,
+                    marginRight: 8,
+                    borderRadius: 999,
+                    backgroundColor: selected ? colors.primary : 'rgba(255,255,255,0.06)',
+                    borderWidth:     1,
+                    borderColor:     selected ? colors.primary : 'rgba(255,255,255,0.12)',
+                  }}
+                >
+                  <Text style={{ fontSize: 18, marginRight: 8 }}>{flagFor(c.code)}</Text>
+                  <Text style={{
+                    color:    selected ? '#fff' : colors.text,
+                    fontWeight: selected ? '700' : '500',
+                  }}>
+                    {c.code} {c.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         <View style={authStyles.inputWrap}>
           <Text style={authStyles.fieldLabel}>First name</Text>

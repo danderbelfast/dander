@@ -14,12 +14,24 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  email:     string;
-  password:  string;
-  firstName: string;
-  lastName:  string;
-  phone?:    string;
+  email:        string;
+  password:     string;
+  firstName:    string;
+  lastName:     string;
+  phone?:       string;
+  countryCode?: string;
 }
+
+export interface Country {
+  code:            string;
+  name:            string;
+  currency_code:   string;
+  currency_symbol: string;
+  monthly_price:   number;
+}
+
+export const listCountries = () =>
+  client.get<{ success: true; countries: Country[] }>('/api/countries').then((r) => r.data);
 
 export interface LoginInitResponse {
   success:     true;
