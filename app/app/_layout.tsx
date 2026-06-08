@@ -14,6 +14,7 @@ import { useWifiScanner } from '../src/hooks/useWifiScanner';
 import useStepCounter from '../src/hooks/useStepCounter';
 import { useBeaconScanner } from '../src/hooks/useBeaconScanner';
 import { useUserSocket } from '../src/hooks/useUserSocket';
+import { useLoginPermissionPrompt } from '../src/hooks/useLoginPermissionPrompt';
 import { usePermissionWalkthrough } from '../src/hooks/usePermissionWalkthrough';
 import { PermissionBanner } from '../src/components/PermissionBanner';
 import { NfcCheckInScreen } from '../src/components/NfcCheckInScreen';
@@ -36,6 +37,10 @@ function SideEffects() {
   // points_awarded pushes into the NfcCheckInScreen coins overlay so
   // the till flow re-uses the existing animation pipeline.
   useUserSocket();
+  // First login after install — show the "Quick setup" Alert then
+  // trigger location / Bluetooth / notifications grants in one pass.
+  // Persistent flag means it doesn't re-prompt on later logins.
+  useLoginPermissionPrompt();
 
   // Foreground deep-link bridge. expo-router handles cold-start URLs
   // (Android opens app → routes to /tap or /till → that route's
