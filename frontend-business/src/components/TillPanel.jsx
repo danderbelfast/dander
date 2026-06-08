@@ -137,6 +137,31 @@ export function TillPanel() {
             </div>
           )}
 
+          {Array.isArray(customer.active_offers) && customer.active_offers.length > 0 && (
+            <div style={activeOffersStyles}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', fontWeight: 600, letterSpacing: 0.5, marginBottom: 6 }}>
+                ACTIVE OFFERS
+              </div>
+              {customer.active_offers.map((o) => (
+                <div key={o.id} style={offerRowStyles}>
+                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{o.title}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>
+                    {o.discount_percent != null
+                      ? `${Number(o.discount_percent).toFixed(0)}% off`
+                      : o.offer_price != null && o.original_price != null
+                        ? `£${o.offer_price.toFixed(2)} (was £${o.original_price.toFixed(2)})`
+                        : o.offer_price != null
+                          ? `£${o.offer_price.toFixed(2)}`
+                          : o.offer_type || 'Offer'}
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: '0.72rem', color: 'var(--c-text-muted)', marginTop: 6, fontStyle: 'italic' }}>
+                Apply by hand, enter the post-discount amount below.
+              </div>
+            </div>
+          )}
+
           <div className="field" style={{ marginTop: 16 }}>
             <label className="label">Amount spent (£)</label>
             <input
@@ -313,6 +338,19 @@ const nextRewardStyles = {
   borderLeft: '3px solid #f5b041',
   borderRadius: 6,
   fontSize: '0.88rem',
+};
+
+const activeOffersStyles = {
+  marginTop: 12,
+  padding: '10px 12px',
+  background: 'rgba(132, 204, 22, 0.10)',
+  borderLeft: '3px solid #84cc16',
+  borderRadius: 6,
+};
+
+const offerRowStyles = {
+  padding: '6px 0',
+  borderBottom: '1px dashed rgba(132, 204, 22, 0.25)',
 };
 
 const successStyles = {

@@ -254,8 +254,6 @@ export const getFootfallHourly = (date) =>
   client.get('/api/analytics/footfall/hourly', { params: date ? { date } : {} }).then((r) => r.data);
 
 // ── QR Redeem ───────────────────────────────────────────────
-export const redeemQR = (qrToken) =>
-  client.post('/api/coupons/redeem-qr', { qr_token: qrToken }).then((r) => r.data);
 
 // ── Inventory ───────────────────────────────────────────────
 export const getInventory = () =>

@@ -448,6 +448,23 @@ router.post('/till-arrive', requireAuth, async (req, res) => {
     );
     const nextReward = rewardRows[0] || null;
 
+    // Active offers for this business — drives the TillPanel "Active
+    // Offers" section. The QR / code redemption path is gone; staff
+    // applies these by hand and enters the post-discount amount.
+    const { rows: offerRows } = await pool.query(
+      `SELECT id, title, description, offer_type,
+              original_price, offer_price, discount_percent, image_url,
+              expires_at
+         FROM offers
+        WHERE business_id = $1
+          AND is_active   = TRUE
+          AND (starts_at  IS NULL OR starts_at  <= NOW())
+          AND (expires_at IS NULL OR expires_at >  NOW())
+        ORDER BY COALESCE(discount_percent, 0) DESC, created_at DESC
+        LIMIT 12`,
+      [businessId]
+    );
+
     const payload = {
       user_id:        user.id,
       first_name:     user.first_name || 'Customer',
@@ -458,6 +475,17 @@ router.post('/till-arrive', requireAuth, async (req, res) => {
       next_reward_at: nextReward ? nextReward.points_required : null,
       points_to_next: nextReward ? Math.max(0, nextReward.points_required - lp.points) : null,
       next_reward_name: nextReward ? nextReward.name : null,
+      active_offers:  offerRows.map((o) => ({
+        id:               o.id,
+        title:            o.title,
+        description:      o.description,
+        offer_type:       o.offer_type,
+        original_price:   o.original_price ? Number(o.original_price) : null,
+        offer_price:      o.offer_price    ? Number(o.offer_price)    : null,
+        discount_percent: o.discount_percent ? Number(o.discount_percent) : null,
+        image_url:        o.image_url,
+        expires_at:       o.expires_at,
+      })),
       arrived_at:     new Date().toISOString(),
     };
 

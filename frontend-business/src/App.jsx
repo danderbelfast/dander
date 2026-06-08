@@ -11,7 +11,6 @@ import CreateOffer      from './pages/CreateOffer';
 import EditOffer        from './pages/EditOffer';
 import MyOffers         from './pages/MyOffers';
 import CampaignStats    from './pages/CampaignStats';
-import RedeemCoupon     from './pages/RedeemCoupon';
 import BusinessProfile  from './pages/BusinessProfile';
 import Guide            from './pages/Guide';
 import Reports          from './pages/Reports';
@@ -72,7 +71,6 @@ export default function App() {
           <Route path="/rota"             element={<StaffRota />} />
           <Route path="/api-keys"         element={<ApiKeys />} />
           <Route path="/settings"         element={<Settings />} />
-          <Route path="/redeem"           element={<RedeemCoupon />} />
           <Route path="/profile"          element={<BusinessProfile />} />
           <Route path="/guide"            element={<Guide />} />
         </Route>

@@ -13,7 +13,6 @@ const PAGE_TITLES = {
   '/dashboard':  'Dashboard',
   '/offers':     'My Offers',
   '/offers/new': 'Create Offer',
-  '/redeem':     'Redeem Coupon',
   '/profile':    'Business Profile',
 };
 
