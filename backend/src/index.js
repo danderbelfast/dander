@@ -172,6 +172,7 @@ app.use('/api/alerts',      require('../routes/alerts'));
 app.use('/api/proximity',   require('../routes/proximity'));
 app.use('/api/loyalty',     require('../routes/loyalty'));
 app.use('/api/till',        require('../routes/till'));
+app.use('/api/ads',         require('../routes/ads'));
 app.use('/api/users',       require('../routes/userPreferences'));
 app.use('/api/public',      require('../routes/public'));
 

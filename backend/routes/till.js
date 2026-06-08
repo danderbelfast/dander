@@ -26,6 +26,7 @@ const {
   awardPointsAndAdvance, checkRewardUnlocks, checkCollectableUnlocks,
 } = require('../services/loyaltyMechanics');
 const { pushToUser, pushToBusiness } = require('../lib/wsPush');
+const adAttribution = require('../services/adAttribution');
 
 const router = Router();
 
@@ -101,6 +102,18 @@ router.post('/award-points', requireBusiness, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [req.business.id, userId, amountSpent, pointsAwarded, category, itemDesc, req.user.id]
     );
+
+    // Dander Ads — promote any open 'entry_conversion' rows to
+    // 'qualified_sale' for this (user, business) pair. Fails open.
+    try {
+      await adAttribution.onCustomerPurchased(pool, {
+        userId,
+        businessId: req.business.id,
+        saleAmount: amountSpent,
+      });
+    } catch (e) {
+      console.warn('[ads/qualified-sale] non-fatal:', e.message);
+    }
 
     // Next reward AFTER the award, so the user/business get a fresh
     // "X to go" figure.

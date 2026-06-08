@@ -27,6 +27,7 @@ const {
 } = require('../services/loyaltyMechanics');
 const nodeWs = require('../ws/nodes');
 const { pushToBusiness } = require('../lib/wsPush');
+const adAttribution = require('../services/adAttribution');
 
 /**
  * True iff `dob` (Date or YYYY-MM-DD string) shares its month-day with
@@ -364,6 +365,17 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
         `INSERT INTO node_display_commands (device_id, command) VALUES ($1, $2::jsonb)`,
         [nodeDeviceId, JSON.stringify(command)]
       );
+    }
+
+    // Dander Ads — promote any 'clicked' rows to 'entry_conversion'.
+    // Fails open: a DB error here must not break the check-in path.
+    try {
+      await adAttribution.onCustomerArrived(pool, {
+        userId: req.user.id,
+        businessId: businessId,
+      });
+    } catch (e) {
+      console.warn('[ads/entry-conversion] non-fatal:', e.message);
     }
 
     return res.status(200).json({
