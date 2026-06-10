@@ -49,6 +49,11 @@ const USER_TOKEN     = process.env.SMOKE_USER_TOKEN;
 const USER_ID        = parseInt(process.env.SMOKE_USER_ID || '', 10);
 const BUSINESS_TOKEN = process.env.SMOKE_BUSINESS_TOKEN;
 const BUSINESS_ID    = parseInt(process.env.SMOKE_BUSINESS_ID || '', 10);
+// Optional: expected IANA timezone the test business is configured for.
+// When set, smoke test 6 asserts the rewards endpoint returns it,
+// proving the businesses.timezone column → SELECT → response chain is
+// live end-to-end. Skipped if unset.
+const EXPECTED_TIMEZONE = process.env.SMOKE_BUSINESS_TIMEZONE || null;
 
 // ── Pre-flight ──────────────────────────────────────────────
 
@@ -220,6 +225,18 @@ async function testRewardsThemed() {
   return `name="${body.name}", sector="${body.sector}"`;
 }
 
+async function testBusinessTimezone() {
+  if (!EXPECTED_TIMEZONE) {
+    return 'skipped (SMOKE_BUSINESS_TIMEZONE not set)';
+  }
+  const { status, body } = await request('GET', `/api/business/${BUSINESS_ID}/rewards`);
+  assert(status === 200,                  `expected 200, got ${status}`);
+  assert(typeof body?.timezone === 'string', 'rewards body.timezone missing or not a string');
+  assert(body.timezone === EXPECTED_TIMEZONE,
+    `business-local-day boundary uses the wrong timezone — expected "${EXPECTED_TIMEZONE}", API reported "${body.timezone}"`);
+  return `timezone="${body.timezone}"`;
+}
+
 async function testSocketIo() {
   return new Promise((resolve, reject) => {
     const socket = ioClient(BASE_URL, {
@@ -259,6 +276,7 @@ async function testSocketIo() {
   await run('3. Till arrive + award + transaction row',testTillFlow);
   await run('4. Rewards GET returns themed payload',   testRewardsThemed);
   await run('5. Socket.IO connects (polling-first)',   testSocketIo);
+  await run('6. Business-local-day timezone configured', testBusinessTimezone);
 
   const passed = results.filter((r) => r.passed).length;
   const failed = results.length - passed;

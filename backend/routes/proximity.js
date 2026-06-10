@@ -276,11 +276,18 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
     );
     const settings = settingsRows[0];
 
-    // Already-visited-today gate (UTC).
+    // Already-visited-today gate, in the business's LOCAL day. Joins
+    // businesses so the conversion uses this business's configured
+    // timezone (default 'Europe/London'). Without the join we'd still
+    // be on Etc/UTC which puts the boundary at 1am BST and reads as
+    // "yesterday" for a 12:30am check-in.
     const { rows: todayRows } = await pool.query(
-      `SELECT COUNT(*)::int AS n FROM customer_visits
-        WHERE business_id = $1 AND user_id = $2
-          AND (visited_at AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date`,
+      `SELECT COUNT(*)::int AS n
+         FROM customer_visits cv
+         JOIN businesses b ON b.id = cv.business_id
+        WHERE cv.business_id = $1 AND cv.user_id = $2
+          AND (cv.visited_at AT TIME ZONE b.timezone)::date
+              = (NOW()        AT TIME ZONE b.timezone)::date`,
       [businessId, user.id]
     );
     const sameDay = todayRows[0].n > 0;

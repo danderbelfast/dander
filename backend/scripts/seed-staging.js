@@ -39,6 +39,11 @@ const CUSTOMER_EMAIL           = 'smoke+customer@dander.io';
 const OWNER_EMAIL              = 'smoke+owner@dander.io';
 const PLACEHOLDER_PASSWORD_HASH = '$2b$10$smoke.placeholder.never.used.for.login';
 const SAFETY_USER_LIMIT        = 50;
+// Non-default IANA timezone so smoke test 6 has something to verify
+// end-to-end (column → SELECT → response payload). Pacific/Auckland
+// is far enough from UTC that any silent fall-back to a server
+// default would surface immediately.
+const TEST_BUSINESS_TIMEZONE   = 'Pacific/Auckland';
 
 function bail(msg) { console.error('[seed-staging] FATAL: ' + msg); process.exit(2); }
 
@@ -101,20 +106,21 @@ if (!SECRET) bail('JWT_SECRET env var is required (must match the running backen
           SET status     = 'active',
               is_verified = TRUE,
               sector     = COALESCE(sector, 'retail'),
+              timezone   = $2,
               updated_at = NOW()
         WHERE id = $1`,
-      [businessId]
+      [businessId, TEST_BUSINESS_TIMEZONE]
     );
-    console.log(`[seed-staging] business: reused id=${businessId} (${TEST_BUSINESS_NAME})`);
+    console.log(`[seed-staging] business: reused id=${businessId} (${TEST_BUSINESS_NAME}), tz=${TEST_BUSINESS_TIMEZONE}`);
   } else {
     const { rows } = await c.query(
-      `INSERT INTO businesses (owner_id, name, status, is_verified, is_test_account, sector)
-            VALUES ($1, $2, 'active', TRUE, TRUE, 'retail')
+      `INSERT INTO businesses (owner_id, name, status, is_verified, is_test_account, sector, timezone)
+            VALUES ($1, $2, 'active', TRUE, TRUE, 'retail', $3)
        RETURNING id`,
-      [owner.id, TEST_BUSINESS_NAME]
+      [owner.id, TEST_BUSINESS_NAME, TEST_BUSINESS_TIMEZONE]
     );
     businessId = rows[0].id;
-    console.log(`[seed-staging] business: created id=${businessId} (${TEST_BUSINESS_NAME})`);
+    console.log(`[seed-staging] business: created id=${businessId} (${TEST_BUSINESS_NAME}), tz=${TEST_BUSINESS_TIMEZONE}`);
   }
 
   // ── Upsert loyalty settings ────────────────────────────────
@@ -154,6 +160,7 @@ if (!SECRET) bail('JWT_SECRET env var is required (must match the running backen
   console.log(`SMOKE_USER_ID=${customer.id} \\`);
   console.log(`SMOKE_BUSINESS_TOKEN=${ownerToken} \\`);
   console.log(`SMOKE_BUSINESS_ID=${businessId} \\`);
+  console.log(`SMOKE_BUSINESS_TIMEZONE=${TEST_BUSINESS_TIMEZONE} \\`);
   console.log('npm run smoke -- https://staging-api.dander.io');
   console.log('');
   console.log('Tokens expire 24h from now. Re-run seed-staging to mint fresh ones.');
