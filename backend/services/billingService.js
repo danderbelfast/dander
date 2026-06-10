@@ -1,6 +1,7 @@
 'use strict';
 
 const pool = require('../db/pool');
+const config = require('../src/config');
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
 let _stripe = null;
@@ -124,7 +125,7 @@ async function createPortalSession(business) {
   const customerId = await getOrCreateCustomer(business);
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: process.env.STRIPE_PORTAL_RETURN_URL || 'https://dander.io/dashboard',
+    return_url: config.STRIPE_PORTAL_RETURN_URL,
   });
   return { url: session.url };
 }

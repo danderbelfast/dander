@@ -16,6 +16,7 @@ const { createServer } = require('http');
 const { Server }       = require('socket.io');
 const { WebSocketServer } = require('ws');
 const pool             = require('../db/pool');
+const config           = require('./config');
 
 // ---------------------------------------------------------------------------
 // App + HTTP server
@@ -35,11 +36,8 @@ const httpServer = createServer(app);
 // add session-based socket auth.
 const io         = new Server(httpServer, {
   cors: {
-    origin: (process.env.FRONTEND_URL || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-    methods: ['GET', 'POST'],
+    origin:      config.allowedOrigins,
+    methods:     ['GET', 'POST'],
     credentials: true,
   },
   // Cloudflare's WebSocket proxy mangles permessage-deflate RSV bits,
@@ -65,10 +63,7 @@ app.use(helmet({
   // Allow serving local /uploads images inline
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors({ origin: config.allowedOrigins }));
 app.use(morgan('dev'));
 // Stripe webhook needs raw body — mount before JSON parser
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -499,11 +494,9 @@ schedulePositionLogPrune();         // hourly at :17 — prune bt_position_log r
 // Start
 // ---------------------------------------------------------------------------
 
-const PORT = parseInt(process.env.PORT || '4000', 10);
-
-httpServer.listen(PORT, () => {
-  console.log(`[server] Dander API running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
-  console.log(`[server] Health: http://localhost:${PORT}/health`);
+httpServer.listen(config.PORT, () => {
+  console.log(`[server] Dander API running on port ${config.PORT} (${config.NODE_ENV})`);
+  console.log(`[server] Health: http://localhost:${config.PORT}/health`);
 });
 
 // ---------------------------------------------------------------------------

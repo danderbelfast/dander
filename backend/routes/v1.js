@@ -27,6 +27,7 @@ const { enrichOffer, discountLabel } = require('../services/offerLabels');
 const { generateOgImage } = require('../services/ogImageService');
 const { testUrl, VALID_EVENTS } = require('../services/webhookService');
 const { assessPhoto, getHistory: getSmartHistory } = require('../services/smartSpecialsService');
+const config = require('../src/config');
 const { generateDailyInsights } = require('../services/insightsService');
 const { upload, processImage } = require('../middleware/upload');
 
@@ -92,9 +93,9 @@ router.get(
       const badge = discountLabel(offer) || 'Deal';
       const ogTitle = `${badge} at ${offer.business_name}`;
       const ogDesc  = offer.title || '';
-      const ogImage = `https://dander.io/api/v1/offers/${offer.id}/preview.png`;
-      const ogUrl   = `https://dander.io/o/${offer.id}`;
-      const appUrl  = `https://dander.io/offer/${offer.id}`;
+      const ogImage = `${config.API_PUBLIC_URL}/api/v1/offers/${offer.id}/preview.png`;
+      const ogUrl   = `${config.USER_APP_URL}/o/${offer.id}`;
+      const appUrl  = `${config.USER_APP_URL}/offer/${offer.id}`;
 
       const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 

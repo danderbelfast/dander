@@ -1,7 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BUSINESS_PORTAL_URL, SALES_EMAIL } from '../config';
 
-const BUSINESS_PORTAL_URL = import.meta.env.VITE_BUSINESS_PORTAL_URL || '';
+const MAILTO_DEMO    = `mailto:${SALES_EMAIL}?subject=Demo request`;
+const MAILTO_PRO     = `mailto:${SALES_EMAIL}?subject=Pro demo request`;
 
 const FEATURES = [
   {
@@ -103,7 +105,7 @@ export default function BusinessExplainer() {
             List my business free
           </a>
           <button className="ex-hero-cta" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)' }}
-            onClick={() => window.open('mailto:hello@dander.io?subject=Demo request', '_blank')}>
+            onClick={() => window.open(MAILTO_DEMO, '_blank')}>
             Book a demo
           </button>
         </div>
@@ -177,7 +179,7 @@ export default function BusinessExplainer() {
                     </li>
                   ))}
                 </ul>
-                <a href={t.name === 'Pro' ? 'mailto:hello@dander.io?subject=Pro demo request' : portalRegister}
+                <a href={t.name === 'Pro' ? MAILTO_PRO : portalRegister}
                   target="_blank" rel="noopener noreferrer"
                   style={{ marginTop: 16, textAlign: 'center', display: 'block', textDecoration: 'none', padding: '10px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, background: t.accent ? '#E85D26' : 'transparent', color: t.accent ? '#fff' : '#E85D26', border: t.accent ? 'none' : '1px solid #E85D26' }}>
                   {t.cta}
@@ -222,7 +224,7 @@ export default function BusinessExplainer() {
             style={{ textDecoration: 'none' }}>
             List My Business Free
           </a>
-          <a className="ex-cta-btn" href="mailto:hello@dander.io?subject=Demo request" style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>
+          <a className="ex-cta-btn" href={MAILTO_DEMO} style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>
             Book a Demo
           </a>
         </div>

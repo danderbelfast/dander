@@ -14,8 +14,7 @@
 // ============================================================
 
 import { io as socketIo } from 'socket.io-client';
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import { API_URL as BASE_URL } from '../config';
 
 let socket = null;
 let currentBusinessId = null;

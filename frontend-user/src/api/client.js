@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL as BASE_URL } from '../config';
 
 // Access token lives in memory only — never in localStorage or cookies
 let _accessToken = null;

@@ -6,6 +6,7 @@ import { resolveImageUrl } from '../utils/imageUrl';
 import { submitReview, trackShare } from '../api/offers';
 import { StarInput } from '../components/ui/StarRating';
 import { QRCodeSVG } from 'qrcode.react';
+import { PUBLIC_APP_URL } from '../config';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -301,7 +302,7 @@ function ReviewPrompt({ couponId, businessName, offerId }) {
   }
 
   function handleShareReview() {
-    const url = `https://dander.io/o/${offerId || ''}`;
+    const url = `${PUBLIC_APP_URL}/o/${offerId || ''}`;
     const stars = '⭐'.repeat(rating);
     const text = `I just rated ${businessName} ${stars} on Dander! ${comment ? `"${comment}" ` : ''}Check out their deals:`;
     trackShare(offerId).catch(() => {});

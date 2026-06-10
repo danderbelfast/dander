@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCountdown } from '../hooks/useCountdown';
 import { ExpandableSection } from '../components/ui/ExpandableSection';
 import { Spinner } from '../components/ui/Spinner';
+import { PUBLIC_APP_URL } from '../config';
 import { usePwa } from '../context/PwaInstallContext';
 import { resolveImageUrl } from '../utils/imageUrl';
 
@@ -137,7 +138,7 @@ export default function OfferDetail() {
   }
 
   async function handleShare() {
-    const shareUrl = `https://dander.io/o/${id}`;
+    const shareUrl = `${PUBLIC_APP_URL}/o/${id}`;
     const shareText = `Check out this deal: ${offer.title} at ${offer.business_name}`;
     trackShare(id).catch(() => {});
     if (navigator.share) {
