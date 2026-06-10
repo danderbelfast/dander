@@ -17,6 +17,13 @@ require('dotenv').config();
 
 const PORT      = parseInt(process.env.PORT || '4000', 10);
 const NODE_ENV  = process.env.NODE_ENV || 'development';
+// DEPLOY_ENV is the deploy-time label ("staging" / "production" /
+// "development") that's allowed to differ from NODE_ENV. Node tooling
+// frequently coerces NODE_ENV to 'production' on a built bundle, so
+// the runtime banner can't rely on it for which environment we're in.
+// Set this explicitly on Railway: DEPLOY_ENV=staging on the staging
+// service, DEPLOY_ENV=production on prod, leave unset locally.
+const DEPLOY_ENV = process.env.DEPLOY_ENV || NODE_ENV;
 
 // External URLs the API hands out in payloads, OG images, and outbound
 // notifications. Pick names carefully — these end up in SMS, push and
@@ -52,6 +59,7 @@ function trimTrailingSlash(s) {
 module.exports = {
   PORT,
   NODE_ENV,
+  DEPLOY_ENV,
   USER_APP_URL,
   BUSINESS_APP_URL,
   ADMIN_APP_URL,

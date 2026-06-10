@@ -495,7 +495,7 @@ schedulePositionLogPrune();         // hourly at :17 — prune bt_position_log r
 // ---------------------------------------------------------------------------
 
 httpServer.listen(config.PORT, () => {
-  console.log(`[server] Dander API running on port ${config.PORT} (${config.NODE_ENV})`);
+  console.log(`[server] Dander API running on port ${config.PORT} (${config.DEPLOY_ENV})`);
   console.log(`[server] Health: http://localhost:${config.PORT}/health`);
 });
 

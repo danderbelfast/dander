@@ -34,6 +34,7 @@ Code does not have to change again — every URL is env-var driven now.
    | Variable             | Value                              |
    |----------------------|------------------------------------|
    | `NODE_ENV`           | `staging`                          |
+   | `DEPLOY_ENV`         | `staging` (drives the startup banner) |
    | `DATABASE_URL`       | (the staging Postgres URL)         |
    | `JWT_SECRET`         | a fresh secret (don't reuse prod)  |
    | `ADMIN_SECRET_KEY`   | a fresh secret                     |
