@@ -9,7 +9,8 @@
     "lint": "eslint src/",
     "test": "node --test utils/*.test.js",
     "migrate": "node db/migrate.js",
-    "seed:demo": "node scripts/seedDemoData.js"
+    "seed:demo": "node scripts/seedDemoData.js",
+    "smoke": "node scripts/smoke-test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "eslint": "^8.57.0",
-    "nodemon": "^3.1.3"
+    "nodemon": "^3.1.3",
+    "socket.io-client": "^4.8.3"
   }
 }
