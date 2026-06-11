@@ -35,7 +35,7 @@ import java.net.URL
 class SetupActivity : AppCompatActivity() {
 
     private companion object {
-        const val LOOKUP_BASE = "https://api.dander.io/api/public/business/code/"
+        const val LOOKUP_BASE = "https://api.tapprove.io/api/public/business/code/"
     }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())

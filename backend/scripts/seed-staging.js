@@ -35,8 +35,8 @@ const { Client } = require('pg');
 const jwt        = require('jsonwebtoken');
 
 const TEST_BUSINESS_NAME       = 'SMOKE TEST — Dander QA';
-const CUSTOMER_EMAIL           = 'smoke+customer@dander.io';
-const OWNER_EMAIL              = 'smoke+owner@dander.io';
+const CUSTOMER_EMAIL           = 'smoke+customer@tapprove.io';
+const OWNER_EMAIL              = 'smoke+owner@tapprove.io';
 const PLACEHOLDER_PASSWORD_HASH = '$2b$10$smoke.placeholder.never.used.for.login';
 const SAFETY_USER_LIMIT        = 50;
 // Non-default IANA timezone so smoke test 6 has something to verify
@@ -161,7 +161,7 @@ if (!SECRET) bail('JWT_SECRET env var is required (must match the running backen
   console.log(`SMOKE_BUSINESS_TOKEN=${ownerToken} \\`);
   console.log(`SMOKE_BUSINESS_ID=${businessId} \\`);
   console.log(`SMOKE_BUSINESS_TIMEZONE=${TEST_BUSINESS_TIMEZONE} \\`);
-  console.log('npm run smoke -- https://staging-api.dander.io');
+  console.log('npm run smoke -- https://staging-api.tapprove.io');
   console.log('');
   console.log('Tokens expire 24h from now. Re-run seed-staging to mint fresh ones.');
   console.log('');

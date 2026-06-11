@@ -30,7 +30,7 @@ import java.util.concurrent.Executors
  *   2. Middle: "TODAY'S SPECIAL" + offer title/description, or the
  *              "Download Dander for loyalty points" fallback if no
  *              active offer.
- *   3. Bottom: QR code linking to dander.io + "Scan to download Dander"
+ *   3. Bottom: QR code linking to tapprove.io + "Scan to download Dander"
  *
  * Text sizes target legibility at 1–2 metres. Background is a flat
  * near-black so customer attention lands on the headline content,
@@ -45,8 +45,8 @@ class StrangerDisplayView @JvmOverloads constructor(
 
     private companion object {
         const val REFRESH_MS = 5L * 60L * 1000L
-        const val BASE_URL = "https://api.dander.io"
-        const val APP_URL  = "https://dander.io"
+        const val BASE_URL = "https://api.tapprove.io"
+        const val APP_URL  = "https://tapprove.io"
         const val QR_PX    = 360
     }
 

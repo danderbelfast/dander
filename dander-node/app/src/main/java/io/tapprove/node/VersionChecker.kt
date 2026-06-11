@@ -26,7 +26,7 @@ object VersionChecker {
     fun checkAppVersion(
         prefs: Prefs,
         currentVersion: String,
-        baseUrl: String = "https://api.dander.io",
+        baseUrl: String = "https://api.tapprove.io",
         onResult: ((latest: String, behind: Boolean) -> Unit)? = null,
     ) {
         io.execute {

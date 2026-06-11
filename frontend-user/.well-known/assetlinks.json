@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.tapprove.app",
+      "sha256_cert_fingerprints": [
+        "60:04:12:C3:40:19:90:E3:88:A3:4C:DF:EF:D7:87:96:2F:2C:0B:D4:DD:BC:D5:1E:FF:D0:5D:E5:15:51:BB:68"
+      ]
+    }
+  }
+]

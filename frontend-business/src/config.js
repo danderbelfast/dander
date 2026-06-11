@@ -4,7 +4,7 @@
 //
 //  Every value reads from import.meta.env and falls back to its
 //  production default so a staging Netlify deploy is a pure env-var
-//  operation (set VITE_API_URL=https://staging-api.dander.io etc in
+//  operation (set VITE_API_URL=https://staging-api.tapprove.io etc in
 //  Netlify → Environment variables and redeploy).
 // ============================================================
 

@@ -1,6 +1,6 @@
 /**
- * client.ts — axios instance pointed at api.dander.io with an auth-token
- * interceptor.
+ * client.ts — axios instance pointed at api.tapprove.io with an
+ * auth-token interceptor.
  *
  * Token storage is in-memory plus AsyncStorage for persistence across
  * launches. AuthContext owns the lifecycle (set on login, clear on

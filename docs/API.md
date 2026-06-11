@@ -1,6 +1,6 @@
 # Dander API Reference
 
-Base URL: `http://localhost:4000` (development) · `https://api.dander.io` (production)
+Base URL: `http://localhost:4000` (development) · `https://api.tapprove.io` (production)
 
 All endpoints return JSON. Successful responses include `"success": true`. Errors include `"success": false`, a `"code"` string, and a human-readable `"message"`.
 
@@ -1153,7 +1153,7 @@ Get current platform settings.
 {
   "success":         true,
   "platformName":    "Dander",
-  "supportEmail":    "support@dander.io",
+  "supportEmail":    "support@tapprove.io",
   "maintenanceMode": false,
   "defaultRadius":   500
 }
@@ -1177,7 +1177,7 @@ Update platform settings.
 ```json
 {
   "platformName":    "Dander",
-  "supportEmail":    "support@dander.io",
+  "supportEmail":    "support@tapprove.io",
   "maintenanceMode": false,
   "defaultRadius":   500
 }
@@ -1207,7 +1207,7 @@ Create a new admin account.
 **Request body:**
 ```json
 {
-  "email":     "newadmin@dander.io",
+  "email":     "newadmin@tapprove.io",
   "firstName": "Siobhan",
   "lastName":  "Murphy",
   "password":  "TempPass123!"
@@ -1218,7 +1218,7 @@ Create a new admin account.
 ```json
 {
   "success": true,
-  "user":    { "id": 99, "email": "newadmin@dander.io", "role": "admin" },
+  "user":    { "id": 99, "email": "newadmin@tapprove.io", "role": "admin" },
   "message": "Admin account created."
 }
 ```
@@ -1228,7 +1228,7 @@ Create a new admin account.
 curl -X POST http://localhost:4000/api/admin/users/admin \
   -H "Authorization: Bearer eyJ..." \
   -H "Content-Type: application/json" \
-  -d '{"email":"newadmin@dander.io","firstName":"Siobhan","lastName":"Murphy","password":"TempPass123!"}'
+  -d '{"email":"newadmin@tapprove.io","firstName":"Siobhan","lastName":"Murphy","password":"TempPass123!"}'
 ```
 
 ---

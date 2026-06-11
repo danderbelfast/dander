@@ -1,5 +1,6 @@
 /**
- * tap.tsx — invisible link handler for https://dander.io/tap.
+ * tap.tsx — invisible link handler for https://<host>/tap (tapprove.io
+ * and the legacy dander.io intent-filter host).
  *
  * Expo-router automatically routes deep-link URLs to a matching screen.
  * If we left this file out, every NFC tap landed on "Unmatched Route".
@@ -42,8 +43,10 @@ export default function TapInterceptor() {
     const business = Array.isArray(params.business) ? params.business[0] : params.business;
 
     if (node && business) {
+      // Host here is irrelevant — parseTapUrl is host-agnostic. We use
+      // the canonical tapprove.io for log clarity.
       const url =
-        `https://dander.io/tap?node=${encodeURIComponent(String(node))}` +
+        `https://tapprove.io/tap?node=${encodeURIComponent(String(node))}` +
         `&business=${encodeURIComponent(String(business))}`;
       console.log('[tap] reconstructed URL:', url);
       handleTapUrl(url).finally(() => router.replace('/'));

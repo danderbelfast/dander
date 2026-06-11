@@ -6,7 +6,7 @@
 //
 //  USAGE
 //    npm run smoke -- http://localhost:4000
-//    BASE_URL=https://api.dander.io npm run smoke
+//    BASE_URL=https://api.tapprove.io npm run smoke
 //
 //  REQUIRED ENV  (the script will NOT make up tokens — pre-mint
 //  them once per smoke-target environment and pass them in)
@@ -24,7 +24,7 @@
 //  the brief "node fetch + socket.io-client only")
 //    Create a dedicated test user and a dedicated test business
 //    in the target environment, then mint JWTs for each:
-//      INSERT INTO users (...)  -- email like 'smoke+user@dander.io'
+//      INSERT INTO users (...)  -- email like 'smoke+user@tapprove.io'
 //      INSERT INTO businesses (owner_id=<owner>, name='SMOKE TEST — Dander QA', ...)
 //    A helper for signing JWTs from a user_id is in
 //    services/authService.js (signAccessToken). The simplest way to

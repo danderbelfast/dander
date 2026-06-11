@@ -96,13 +96,13 @@
 <h2 id="auth">Authentication</h2>
 <p>All authenticated endpoints require an API key passed via the <code>X-API-Key</code> header:</p>
 <pre><code>curl -H <span class="str">"X-API-Key: dsk_your_key_here"</span> \
-  https://dander.io/api/v1/stats</code></pre>
+  https://api.tapprove.io/api/v1/stats</code></pre>
 <p>Alternatively, use <code>Authorization: Bearer dsk_...</code> — the key must start with <code>dsk_</code>.</p>
 <p>Keys are scoped. Each endpoint lists its required scope. Your key must include that scope or you'll get a <code>403 insufficient_scope</code> error.</p>
 
 <!-- ─── BASE URL ─── -->
 <h2 id="base-url">Base URL</h2>
-<pre><code>https://dander.io/api/v1</code></pre>
+<pre><code>https://api.tapprove.io/api/v1</code></pre>
 
 <!-- ─── OFFER TYPES ─── -->
 <h2 id="offer-types">Offer Types</h2>
@@ -533,7 +533,7 @@
 <!-- ─── API KEY ─── -->
 <h2 id="api-key">Getting Your API Key</h2>
 <ol>
-  <li>Sign in to the <a href="https://business.dander.io/dashboard">Dander Business Dashboard</a></li>
+  <li>Sign in to the <a href="https://business.tapprove.io/dashboard">Dander Business Dashboard</a></li>
   <li>Navigate to <strong>Settings &rarr; API Keys</strong></li>
   <li>Click <strong>Create API Key</strong></li>
   <li>Choose a label and select the scopes you need</li>

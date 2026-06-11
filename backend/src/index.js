@@ -208,12 +208,14 @@ app.use('/downloads', require('express').static(require('path').resolve(__dirnam
 // ---------------------------------------------------------------------------
 // Android App Links verification
 //
-// Google's verifier fetches https://dander.io/.well-known/assetlinks.json
+// Google's verifier fetches https://<host>/.well-known/assetlinks.json
 // over HTTPS (no redirects allowed) with Content-Type: application/json
 // and checks the SHA256 cert fingerprint(s) against the installed APK.
-// Cloudflare must NOT rewrite the Content-Type or follow any redirects —
-// add a Page Rule that forces this exact path to bypass caching if you
-// see verification fail after rotating the signing key.
+// During the dander.io → tapprove.io rebrand both hosts serve this file
+// so the same APK verifies under either intent-filter host. Cloudflare
+// must NOT rewrite the Content-Type or follow any redirects on either
+// domain — add a Page Rule that forces this exact path to bypass caching
+// if you see verification fail after rotating the signing key.
 // ---------------------------------------------------------------------------
 
 app.get('/.well-known/assetlinks.json', (_req, res) => {

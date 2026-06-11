@@ -9,7 +9,7 @@ import java.nio.ByteOrder
 
 /**
  * HceBroadcaster — emulates a Type 4 NDEF Tag containing a single URI
- * record pointing at https://dander.io/tap?node=<id>&business=<id>.
+ * record pointing at https://tapprove.io/tap?node=<id>&business=<id>.
  *
  * When any phone taps the Node, its OS executes the standard Type 4
  * NDEF read sequence:
@@ -126,7 +126,7 @@ class HceBroadcaster : HostApduService() {
         // MUST be a fully-qualified https:// URL — App Links verification
         // only works for the HTTPS scheme. Apps without a verified link
         // fall through to the browser and hit the /join landing page.
-        val url = "https://dander.io/tap" +
+        val url = "https://tapprove.io/tap" +
                   "?node=" + java.net.URLEncoder.encode(deviceId, "UTF-8") +
                   "&business=" + businessId
         Log.d(TAG, "rebuildNdef url=$url")

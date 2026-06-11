@@ -41,7 +41,7 @@ class WsClient(
 ) {
     private companion object {
         const val TAG = "TapProveWs"
-        const val URL = "wss://api.dander.io/ws/node"
+        const val URL = "wss://api.tapprove.io/ws/node"
         const val PING_INTERVAL_MS = 30_000L
         const val PONG_GRACE_MS    = 10_000L     // give pong 10s before reconnect
         const val INITIAL_BACKOFF  = 5_000L

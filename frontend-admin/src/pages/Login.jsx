@@ -85,7 +85,7 @@ export default function Login() {
                   <label className="label">Email address</label>
                   <input className="input" type="email" value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@dander.io" autoComplete="email" required />
+                    placeholder="admin@tapprove.io" autoComplete="email" required />
                 </div>
                 <div className="field">
                   <label className="label">Password</label>

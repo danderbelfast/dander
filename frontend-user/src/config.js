@@ -19,18 +19,18 @@ function trim(s) {
 export const API_URL = trim(env.VITE_API_URL || '');
 
 // Public origin of this SPA. Used to build share-URLs like
-// https://dander.io/o/<offer-id> that get pasted into native share
+// https://tapprove.io/o/<offer-id> that get pasted into native share
 // sheets and email clients — needs to be a publicly resolvable URL,
 // not just a relative path.
-export const PUBLIC_APP_URL = trim(env.VITE_PUBLIC_APP_URL || 'https://dander.io');
+export const PUBLIC_APP_URL = trim(env.VITE_PUBLIC_APP_URL || 'https://tapprove.io');
 
 // Business portal — surfaced on the "For businesses" explainer CTA
 // and in any other "Get started" link aimed at merchants.
-export const BUSINESS_PORTAL_URL = trim(env.VITE_BUSINESS_PORTAL_URL || 'https://biz.dander.io');
+export const BUSINESS_PORTAL_URL = trim(env.VITE_BUSINESS_PORTAL_URL || 'https://business.tapprove.io');
 
 // Outbound contact addresses for sales / demos / support links.
-export const SALES_EMAIL   = env.VITE_SALES_EMAIL   || 'hello@dander.io';
-export const SUPPORT_EMAIL = env.VITE_SUPPORT_EMAIL || 'support@dander.io';
+export const SALES_EMAIL   = env.VITE_SALES_EMAIL   || 'hello@tapprove.io';
+export const SUPPORT_EMAIL = env.VITE_SUPPORT_EMAIL || 'support@tapprove.io';
 
 export const PLATFORM_NAME = env.VITE_PLATFORM_NAME || 'Dander';
 

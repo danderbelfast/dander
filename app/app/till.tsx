@@ -1,5 +1,6 @@
 /**
- * till.tsx — invisible link handler for https://dander.io/till.
+ * till.tsx — invisible link handler for https://<host>/till (tapprove.io
+ * and the legacy dander.io intent-filter host).
  *
  * Mirror of tap.tsx: the customer taps the till NFC sticker, Android
  * opens this URL via App Links, expo-router routes to this file, we
@@ -32,7 +33,9 @@ export default function TillInterceptor() {
     const business = Array.isArray(params.business) ? params.business[0] : params.business;
 
     if (business) {
-      const url = `https://dander.io/till?business=${encodeURIComponent(String(business))}`;
+      // Host is irrelevant — parseTillUrl is host-agnostic. We use the
+      // canonical tapprove.io for log clarity.
+      const url = `https://tapprove.io/till?business=${encodeURIComponent(String(business))}`;
       console.log('[till] reconstructed URL:', url);
       handleTillUrl(url).finally(() => router.replace('/'));
     } else {

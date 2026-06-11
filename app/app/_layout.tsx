@@ -23,8 +23,9 @@ import { handleTapUrl, handleTillUrl } from '../src/services/nfcHandler';
 function SideEffects() {
   // All hooks gate themselves on isAuth and platform/permissions, so
   // they're safe to mount unconditionally at the root. NFC tap-link URLs
-  // (https://dander.io/tap?...) are handled by app/tap.tsx, which
-  // expo-router routes to automatically when the deep link arrives.
+  // (https://<host>/tap?... — tapprove.io and the legacy dander.io
+  // intent-filter host) are handled by app/tap.tsx, which expo-router
+  // routes to automatically when the deep link arrives.
   //
   // usePermissionWalkthrough runs the first-launch friendly prompts
   // (Notifications → Location → Nearby Devices) once per install.

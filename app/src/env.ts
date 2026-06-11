@@ -6,7 +6,7 @@
  * object instead of touching process.env directly.
  */
 
-const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://api.dander.io')
+const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://api.tapprove.io')
   .replace(/\/+$/, ''); // trim trailing slash
 
 export const env = {
