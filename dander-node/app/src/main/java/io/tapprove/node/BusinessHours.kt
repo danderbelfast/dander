@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import org.json.JSONObject
 import java.time.DayOfWeek

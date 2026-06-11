@@ -94,7 +94,7 @@ export default function NotificationPreferences() {
         if (data.alert_volume !== undefined) setAlertVolume(data.alert_volume);
         
         // Cache in localStorage for instant access
-        localStorage.setItem('dander_sound_prefs', JSON.stringify({
+        localStorage.setItem('tapprove_sound_prefs', JSON.stringify({
           sounds_enabled: data.sounds_enabled ?? true,
           haptics_enabled: data.haptics_enabled ?? true,
           alert_volume: data.alert_volume ?? 0.7,
@@ -131,7 +131,7 @@ export default function NotificationPreferences() {
     const oneHourFromNow = new Date();
     oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
     setMuteUntil(oneHourFromNow);
-    localStorage.setItem('dander_sound_mute_until', oneHourFromNow.toISOString());
+    localStorage.setItem('tapprove_sound_mute_until', oneHourFromNow.toISOString());
     toast({ type: 'success', title: 'Sounds muted for 1 hour' });
   }
 
@@ -189,7 +189,7 @@ export default function NotificationPreferences() {
       });
       
       // Cache in localStorage for instant access
-      localStorage.setItem('dander_sound_prefs', JSON.stringify({
+      localStorage.setItem('tapprove_sound_prefs', JSON.stringify({
         sounds_enabled: soundsEnabled,
         haptics_enabled: hapticsEnabled,
         alert_volume: alertVolume,

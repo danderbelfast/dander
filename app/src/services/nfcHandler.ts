@@ -19,7 +19,7 @@ import { NfcCheckinResponse } from '../api/proximity';
 // AuthContext has restored the in-memory token (the api/client
 // instance's request interceptor reads from in-memory state, which is
 // null at that point).
-const TOKEN_KEY = 'dander_access_token';
+const TOKEN_KEY = 'tapprove_access_token';
 
 type Listener = (result: NfcCheckinResponse) => void;
 type ErrorListener = (err: Error) => void;

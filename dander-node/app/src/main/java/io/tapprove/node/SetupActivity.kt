@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.content.Intent
 import android.os.Bundle

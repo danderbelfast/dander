@@ -17,7 +17,7 @@ export function ToastContainer() {
   const [mutedUntil, setMutedUntil] = React.useState(null);
 
   React.useEffect(() => {
-    const muted = localStorage.getItem('dander_sound_mute_until');
+    const muted = localStorage.getItem('tapprove_sound_mute_until');
     if (muted && new Date(muted) > new Date()) {
       setMutedUntil(new Date(muted));
     }
@@ -38,7 +38,7 @@ export function ToastContainer() {
     const oneHourFromNow = new Date();
     oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
     setMutedUntil(oneHourFromNow);
-    localStorage.setItem('dander_sound_mute_until', oneHourFromNow.toISOString());
+    localStorage.setItem('tapprove_sound_mute_until', oneHourFromNow.toISOString());
   }
 
   return (

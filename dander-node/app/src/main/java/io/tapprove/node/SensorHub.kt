@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.Manifest
 import android.bluetooth.BluetoothManager

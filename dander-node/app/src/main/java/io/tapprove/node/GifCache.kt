@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.content.Context
 import android.util.Log
@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
 class GifCache(private val context: Context) {
 
     private companion object {
-        const val TAG = "DanderGifCache"
+        const val TAG = "TapProveGifCache"
         const val MAX_BYTES_PER_GIF = 5 * 1024 * 1024
         const val MAX_AGE_MS = 24L * 60L * 60L * 1000L
         const val MANIFEST_NAME = "manifest.json"

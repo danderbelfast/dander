@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

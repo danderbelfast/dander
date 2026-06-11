@@ -26,7 +26,7 @@ function getVibrateFunction() {
  */
 function getUserHapticPrefs() {
   try {
-    const prefs = JSON.parse(localStorage.getItem('dander_sound_prefs') || '{}');
+    const prefs = JSON.parse(localStorage.getItem('tapprove_sound_prefs') || '{}');
     return prefs.haptics_enabled !== false;
   } catch {
     return true;

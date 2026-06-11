@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "io.dander.node"
+    namespace = "io.tapprove.node"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "io.dander.node"
+        applicationId = "io.tapprove.node"
         minSdk = 26          // Android 8.0
         targetSdk = 34
         versionCode = 1

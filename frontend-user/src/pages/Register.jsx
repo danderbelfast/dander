@@ -4,7 +4,7 @@ import { register, verifySetup2FA, resendOtp } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
 import danderLogoBlack from '../assets/Dander_Logo_Black.png';
 
-const SESSION_KEY = 'dander_register_otp';
+const SESSION_KEY = 'tapprove_register_otp';
 
 export default function Register() {
   const navigate = useNavigate();

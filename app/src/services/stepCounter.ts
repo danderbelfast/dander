@@ -24,7 +24,7 @@ import { Pedometer } from 'expo-sensors';
 
 import { client } from '../api/client';
 
-const STORAGE_KEY    = 'dander_steps_today';
+const STORAGE_KEY    = 'tapprove_steps_today';
 const POST_INTERVAL  = 5 * 60 * 1000; // 5 minutes
 const ENDPOINT       = '/api/steps';
 

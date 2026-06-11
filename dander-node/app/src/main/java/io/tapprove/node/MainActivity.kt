@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.Manifest
 import android.content.Intent
@@ -25,8 +25,8 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
-import io.dander.node.BuildConfig
-import io.dander.node.databinding.ActivityMainBinding
+import io.tapprove.node.BuildConfig
+import io.tapprove.node.databinding.ActivityMainBinding
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.Date
@@ -538,7 +538,7 @@ class MainActivity : AppCompatActivity() {
      * the device has NFC hardware enabled (`NfcAdapter` non-null and
      * isEnabled). No way to verify a tap happened from MainActivity —
      * tap events fire in the HceBroadcaster service process — but the
-     * service logs every transaction under the "DanderNFC" tag.
+     * service logs every transaction under the "TapProveNFC" tag.
      */
     private fun renderNfcStatusChip() {
         if (!::binding.isInitialized) return
@@ -658,7 +658,7 @@ class MainActivity : AppCompatActivity() {
                 if (json != prefs.openingHoursJson) {
                     prefs.openingHoursJson = json
                     val summary = BusinessHours.summary(prefs).replace("\n", " · ")
-                    Log.i("DanderMain", "Opening hours updated remotely: $summary")
+                    Log.i("TapProveMain", "Opening hours updated remotely: $summary")
                     // Re-derive isOpen and always re-apply state so the
                     // closed-overlay / next-open text refresh immediately,
                     // not at the next 60-second hours-check tick.
@@ -668,7 +668,7 @@ class MainActivity : AppCompatActivity() {
             }
             // Dashboard-triggered GIF cache refresh.
             if (cmd.refreshGifs == true) {
-                Log.i("DanderMain", "Refreshing GIF cache (remote command)")
+                Log.i("TapProveMain", "Refreshing GIF cache (remote command)")
                 gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
             }
         }
@@ -736,7 +736,7 @@ class MainActivity : AppCompatActivity() {
     private fun startCamera() {
         if (cameraBound || pendingCameraStart) return
         pendingCameraStart = true
-        Log.i("DanderCamera", "startCamera() requested")
+        Log.i("TapProveCamera", "startCamera() requested")
         val isRetry = cameraRecoveryInFlight
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
@@ -780,7 +780,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 cameraBound = true
                 val chosen = analysis.resolutionInfo?.resolution
-                Log.i("DanderCamera",
+                Log.i("TapProveCamera",
                     "bindToLifecycle ok — front lens; analysis resolution=$chosen (requested $TARGET_RES)")
                 scheduleCameraHealthCheck(isRetry)
                 scheduleBackgroundJobsOnce()
@@ -788,7 +788,7 @@ class MainActivity : AppCompatActivity() {
                 // Operator can't see the chip behind the stranger display
                 // anyway — log instead, and surface via the operator
                 // panel's "Camera: inactive" chip on the long-press menu.
-                Log.e("DanderCamera", "startCamera failed: ${e.message}", e)
+                Log.e("TapProveCamera", "startCamera failed: ${e.message}", e)
             } finally {
                 pendingCameraStart = false
             }
@@ -826,7 +826,7 @@ class MainActivity : AppCompatActivity() {
         val healthy = last > 0L && (now - last) < 5_000L
         if (healthy) {
             if (isRetry) {
-                Log.i("DanderCamera", "Auto-recovery successful")
+                Log.i("TapProveCamera", "Auto-recovery successful")
                 if (prefs.cameraFailed) {
                     prefs.cameraFailed = false
                     if (binding.operatorPanel.visibility == View.VISIBLE) renderCameraStatusChip()
@@ -835,9 +835,9 @@ class MainActivity : AppCompatActivity() {
             cameraRecoveryInFlight = false
             return
         }
-        Log.w("DanderCamera", "HEALTH CHECK FAILED — camera not producing frames")
+        Log.w("TapProveCamera", "HEALTH CHECK FAILED — camera not producing frames")
         if (isRetry) {
-            Log.e("DanderCamera", "Auto-recovery failed — manual restart needed")
+            Log.e("TapProveCamera", "Auto-recovery failed — manual restart needed")
             prefs.cameraFailed = true
             cameraRecoveryInFlight = false
             if (binding.operatorPanel.visibility == View.VISIBLE) renderCameraStatusChip()

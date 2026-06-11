@@ -5,3 +5,11 @@ build/
 *.local
 .DS_Store
 backend/firebase-service-account.json
+
+# Design sources — large binaries; keep design files outside the repo
+*.psd
+# Photoshop scratch files ("Untitled-N")
+Untitled-*.psd
+
+# User-uploaded content — runtime artifacts, not source
+backend/uploads/

@@ -46,7 +46,7 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
-const USER_KEY = 'dander_auth_user';
+const USER_KEY = 'tapprove_auth_user';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 

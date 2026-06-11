@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -34,7 +34,7 @@ import java.util.UUID
  * be retried.
  *
  * Diagnostic surface: every branch in `start()` emits a logcat line
- * under the "DanderBLE" tag AND propagates a Status into the
+ * under the "TapProveBLE" tag AND propagates a Status into the
  * `onStatus` callback so the on-screen indicator stays accurate
  * without logcat being attached.
  */
@@ -65,7 +65,7 @@ class BleBroadcaster(
     }
 
     companion object {
-        private const val TAG = "DanderBLE"
+        private const val TAG = "TapProveBLE"
 
         val DANDER_SERVICE_UUID: UUID = UUID.fromString("6e646564-616e-6465-7200-000000000001")
         private val PARCEL_UUID = ParcelUuid(DANDER_SERVICE_UUID)

@@ -11,9 +11,9 @@ import { getDeviceFingerprint } from '../utils/fingerprint';
 import { postFingerprint } from '../api/device';
 import { useAuth } from '../context/AuthContext';
 
-const FLAGGED_KEY        = 'dander_device_flagged';
-const FLAG_REASON_KEY    = 'dander_device_flag_reason';
-const LAST_REPORT_AT_KEY = 'dander_fingerprint_last_at';
+const FLAGGED_KEY        = 'tapprove_device_flagged';
+const FLAG_REASON_KEY    = 'tapprove_device_flag_reason';
+const LAST_REPORT_AT_KEY = 'tapprove_fingerprint_last_at';
 
 export function useDeviceFingerprint() {
   const { isAuth, user } = useAuth();

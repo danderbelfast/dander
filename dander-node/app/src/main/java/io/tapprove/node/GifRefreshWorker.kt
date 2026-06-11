@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.content.Context
 import android.util.Log
@@ -49,7 +49,7 @@ class GifRefreshWorker(
     }
 
     companion object {
-        private const val TAG = "DanderGifWorker"
+        private const val TAG = "TapProveGifWorker"
         private const val UNIQUE_NAME = "dander.gif-refresh.daily"
         private const val TARGET_HOUR = 2  // 02:00 local
 

@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.util.Log
 import org.json.JSONObject
@@ -20,7 +20,7 @@ import java.util.concurrent.Executors
  */
 object VersionChecker {
 
-    private const val TAG = "DanderUpdate"
+    private const val TAG = "TapProveUpdate"
     private val io = Executors.newSingleThreadExecutor()
 
     fun checkAppVersion(

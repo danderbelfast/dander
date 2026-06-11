@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
@@ -32,7 +32,7 @@ import java.nio.ByteOrder
 class HceBroadcaster : HostApduService() {
 
     private companion object {
-        const val TAG = "DanderNFC"
+        const val TAG = "TapProveNFC"
 
         // Standard NDEF Tag Application AID.
         private val SELECT_NDEF_APP = hexBytes("00A4040007D2760000850101")

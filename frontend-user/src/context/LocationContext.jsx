@@ -20,7 +20,7 @@ export function LocationProvider({ children }) {
   const [category, setCategory]       = useState('All');
 
   const seenOfferIds    = useRef(new Set(
-    JSON.parse(sessionStorage.getItem('dander_seen_offers') || '[]')
+    JSON.parse(sessionStorage.getItem('tapprove_seen_offers') || '[]')
   ));
   const pollTimer       = useRef(null);
   const watchId         = useRef(null);
@@ -47,7 +47,7 @@ export function LocationProvider({ children }) {
         
         newOffers.forEach((o) => seenOfferIds.current.add(o.id));
         sessionStorage.setItem(
-          'dander_seen_offers',
+          'tapprove_seen_offers',
           JSON.stringify([...seenOfferIds.current])
         );
       }

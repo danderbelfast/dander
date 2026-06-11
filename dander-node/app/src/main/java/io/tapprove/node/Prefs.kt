@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -10,7 +10,7 @@ import android.content.SharedPreferences
  */
 class Prefs(context: Context) {
     private val sp: SharedPreferences =
-        context.applicationContext.getSharedPreferences("dander_node", Context.MODE_PRIVATE)
+        context.applicationContext.getSharedPreferences("tapprove_node", Context.MODE_PRIVATE)
 
     // Per-day weekly opening hours as JSON. See BusinessHours.kt for the
     // schema. The single open/close hour fields used by previous versions

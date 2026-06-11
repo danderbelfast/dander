@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
 import danderLogoBlack from '../assets/Dander_Logo_Black.png';
 
-const SESSION_KEY = 'dander_login_otp';
+const SESSION_KEY = 'tapprove_login_otp';
 
 function decodeJWT(token) {
   try { return JSON.parse(atob(token.split('.')[1])); } catch { return {}; }

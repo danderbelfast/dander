@@ -1,4 +1,4 @@
-package io.dander.node
+package io.tapprove.node
 
 import android.annotation.SuppressLint
 import android.graphics.Rect
@@ -130,7 +130,7 @@ class PeopleAnalyzer(
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
-        Log.v("DanderAnalyzer", "Frame received: ${imageProxy.width}x${imageProxy.height}")
+        Log.v("TapProveAnalyzer", "Frame received: ${imageProxy.width}x${imageProxy.height}")
         // Stamp before anything can short-circuit — even frames we drop
         // (no media image, throttled, etc.) prove the pipeline is alive.
         lastFrameMs = System.currentTimeMillis()
@@ -166,7 +166,7 @@ class PeopleAnalyzer(
         val input = try {
             InputImage.fromMediaImage(media, rotation)
         } catch (e: Exception) {
-            Log.e("DanderML", "Detection failed: ${e.message}")
+            Log.e("TapProveML", "Detection failed: ${e.message}")
             imageProxy.close()
             return
         }
@@ -175,7 +175,7 @@ class PeopleAnalyzer(
             try {
                 detector.process(input)
                     .addOnSuccessListener { objects ->
-                        Log.d("DanderML", "Detection complete: ${objects.size} persons found")
+                        Log.d("TapProveML", "Detection complete: ${objects.size} persons found")
                         val now = System.currentTimeMillis()
                     val norms = ArrayList<RectF>(objects.size)
                     val mode = countingMode
@@ -261,11 +261,11 @@ class PeopleAnalyzer(
                     onDetections(norms)
                 }
                 .addOnFailureListener { e ->
-                    Log.e("DanderML", "Detection failed: ${e.message}")
+                    Log.e("TapProveML", "Detection failed: ${e.message}")
                 }
                 .addOnCompleteListener { onAnyComplete() }
             } catch (e: Exception) {
-                Log.e("DanderML", "Detection failed: ${e.message}")
+                Log.e("TapProveML", "Detection failed: ${e.message}")
                 onAnyComplete()
             }
         } else {

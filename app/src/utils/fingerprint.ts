@@ -15,7 +15,7 @@ import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 
-const INSTALL_ID_KEY = 'dander_install_id';
+const INSTALL_ID_KEY = 'tapprove_install_id';
 
 /**
  * Get the persistent install UUID, creating + storing it on first call.

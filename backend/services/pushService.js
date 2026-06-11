@@ -200,7 +200,7 @@ async function sendProximityAlert(userId, offer, distanceM) {
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
     sound: 'deal_nearby',
-    channelId: 'dander_deals',
+    channelId: 'tapprove_deals',
     data:  { offerId: offer.id, url: `/offer/${offer.id}` },
   });
 }
@@ -214,7 +214,7 @@ async function sendNewOfferNearby(userId, offer) {
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
     sound: 'new_offer',
-    channelId: 'dander_offers',
+    channelId: 'tapprove_offers',
     data:  { offerId: offer.id, url: `/offer/${offer.id}` },
   });
 }
@@ -228,7 +228,7 @@ async function sendExpiringOffer(userId, offer) {
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
     sound: 'deal_expiring',
-    channelId: 'dander_deals',
+    channelId: 'tapprove_deals',
     data:  { offerId: offer.id, url: `/offer/${offer.id}` },
   });
 }
@@ -242,7 +242,7 @@ async function sendCouponReminder(userId, coupon) {
     icon:  '/dander-app-logo.png',
     badge: '/dander-app-logo.png',
     sound: 'deal_expiring',
-    channelId: 'dander_coupons',
+    channelId: 'tapprove_coupons',
     data:  { url: '/coupons' },
   });
 }

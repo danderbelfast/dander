@@ -552,7 +552,7 @@ export default function MySensors() {
 function NodeUpdatesBanner({ nodes }) {
   const outdated = (nodes || []).filter((n) => n.update_available);
   const [dismissed, setDismissed] = React.useState(() => {
-    try { return sessionStorage.getItem('dander_node_updates_dismissed') === '1'; }
+    try { return sessionStorage.getItem('tapprove_node_updates_dismissed') === '1'; }
     catch { return false; }
   });
   if (outdated.length === 0 || dismissed) return null;
@@ -572,7 +572,7 @@ function NodeUpdatesBanner({ nodes }) {
       <button
         type="button"
         onClick={() => {
-          try { sessionStorage.setItem('dander_node_updates_dismissed', '1'); } catch {}
+          try { sessionStorage.setItem('tapprove_node_updates_dismissed', '1'); } catch {}
           setDismissed(true);
         }}
         style={{

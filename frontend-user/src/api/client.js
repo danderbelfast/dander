@@ -31,10 +31,10 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
 
-      const refreshToken = localStorage.getItem('dander_refresh');
+      const refreshToken = localStorage.getItem('tapprove_refresh');
       if (!refreshToken) {
         clearAccessToken();
-        window.dispatchEvent(new Event('dander:logout'));
+        window.dispatchEvent(new Event('tapprove:logout'));
         return Promise.reject(error);
       }
 
@@ -47,9 +47,9 @@ client.interceptors.response.use(
             return data.accessToken;
           })
           .catch((err) => {
-            localStorage.removeItem('dander_refresh');
+            localStorage.removeItem('tapprove_refresh');
             clearAccessToken();
-            window.dispatchEvent(new Event('dander:logout'));
+            window.dispatchEvent(new Event('tapprove:logout'));
             return Promise.reject(err);
           })
           .finally(() => { _refreshPromise = null; });
