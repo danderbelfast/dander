@@ -32,7 +32,7 @@ export const BUSINESS_PORTAL_URL = trim(env.VITE_BUSINESS_PORTAL_URL || 'https:/
 export const SALES_EMAIL   = env.VITE_SALES_EMAIL   || 'hello@tapprove.io';
 export const SUPPORT_EMAIL = env.VITE_SUPPORT_EMAIL || 'support@tapprove.io';
 
-export const PLATFORM_NAME = env.VITE_PLATFORM_NAME || 'Dander';
+export const PLATFORM_NAME = env.VITE_PLATFORM_NAME || 'TapProve';
 
 export default {
   API_URL,

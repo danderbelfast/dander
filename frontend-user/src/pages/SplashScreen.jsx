@@ -15,7 +15,7 @@ export default function SplashScreen() {
         <img className="sp-bg" src={customerImg} alt="" />
         <div className="sp-overlay-dark" />
         <div className="sp-overlay-vignette" />
-        <img className="sp-logo-img sp-logo-left" src={tapproveLogo} alt="Dander" />
+        <img className="sp-logo-img sp-logo-left" src={tapproveLogo} alt="TapProve" />
         <div className="sp-text sp-text-left">
           <div className="sp-label"><span className="sp-label-pill">For Shoppers</span></div>
           <div className="sp-headline">Deals right<br />where you are.</div>

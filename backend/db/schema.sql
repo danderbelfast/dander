@@ -431,8 +431,8 @@ INSERT INTO platform_settings (key, value) VALUES
   ('proximity_radius_default_meters', '500'),
   ('max_coupons_per_user_per_offer',  '1'),
   ('offer_expiry_warning_hours',      '24'),
-  ('platform_name',                   'Dander'),
-  ('support_email',                   'support@dander.app')
+  ('platform_name',                   'TapProve'),
+  ('support_email',                   'support@tapprove.io')
 ON CONFLICT (key) DO NOTHING;
 
 -- =============================================================================

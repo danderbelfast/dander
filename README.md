@@ -1,6 +1,6 @@
-# Dander
+# TapProve
 
-Dander is an npm workspaces monorepo containing a Node.js/Express backend and three React frontends (user, business, admin), plus a shared utilities package.
+TapProve is an npm workspaces monorepo containing a Node.js/Express backend and three React frontends (user, business, admin), plus a shared utilities package.
 
 ---
 

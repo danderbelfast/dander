@@ -88,7 +88,7 @@ async function sendSms(to, message) {
 async function sendTotpSetupSms(phone, code) {
   return sendSms(
     phone,
-    `Dander verification code: ${code}\n\nEnter this in the app to complete 2FA setup. Valid for 30 seconds.`
+    `TapProve verification code: ${code}\n\nEnter this in the app to complete 2FA setup. Valid for 30 seconds.`
   );
 }
 

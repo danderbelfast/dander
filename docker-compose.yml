@@ -1,7 +1,7 @@
 version: '3.9'
 
 # ============================================================
-#  Dander — local development stack
+#  TapProve — local development stack
 #
 #  Usage:
 #    docker-compose up          # start everything

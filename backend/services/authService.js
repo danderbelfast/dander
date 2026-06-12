@@ -28,7 +28,7 @@ const REFRESH_SECRET    = process.env.JWT_SECRET + ':refresh';
 const ACCESS_TOKEN_TTL  = '24h';
 const REFRESH_TOKEN_TTL = '30d';
 const TEMP_TOKEN_TTL    = '10m'; // issued during login while awaiting OTP
-const APP_NAME          = process.env.PLATFORM_NAME || 'Dander';
+const APP_NAME          = process.env.PLATFORM_NAME || 'TapProve';
 const OTP_TTL_MINUTES   = 10;
 
 // ---------------------------------------------------------------------------

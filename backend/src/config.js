@@ -40,7 +40,7 @@ const STRIPE_PORTAL_RETURN_URL =
 
 // Brand strings used in outbound copy. Kept here so a white-label
 // staging environment can rebrand without code edits.
-const PLATFORM_NAME = process.env.PLATFORM_NAME || 'Dander';
+const PLATFORM_NAME = process.env.PLATFORM_NAME || 'TapProve';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@tapprove.io';
 const SALES_EMAIL   = process.env.SALES_EMAIL   || 'hello@tapprove.io';
 

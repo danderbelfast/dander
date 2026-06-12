@@ -11,8 +11,8 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 (async () => {
   const passwordHash = await bcrypt.hash('Password1!', 10);
   const secret = speakeasy.generateSecret({
-    name:   'Dander (owner.test@dander.com)',
-    issuer: 'Dander',
+    name:   'TapProve (owner.test@tapprove.io)',
+    issuer: 'TapProve',
     length: 32,
   });
 

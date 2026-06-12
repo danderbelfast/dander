@@ -150,7 +150,7 @@ export function Sidebar({ onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <img src={tapproveLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
+        <img src={tapproveLogoWhite} alt="TapProve" style={{ width: 140, height: 'auto' }} />
         <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400, fontSize: '0.9rem' }}>Biz</span>
       </div>
 

@@ -76,7 +76,7 @@ async function generateOgImage(offer, badge) {
   <text x="50" y="${HEIGHT - 120}" font-family="sans-serif" font-size="22" font-weight="bold" fill="#ccc">${esc(bizName)}</text>
   <text x="50" y="${HEIGHT - 82}" font-family="sans-serif" font-size="36" font-weight="bold" fill="#fff">${esc(title)}</text>
 
-  <text x="50" y="${HEIGHT - 20}" font-family="sans-serif" font-size="20" font-weight="bold" fill="#fff">tapprove.io  ·  Deals near you</text>
+  <text x="50" y="${HEIGHT - 20}" font-family="sans-serif" font-size="20" font-weight="bold" fill="#fff">tapprove.io  ·  Proven by presence</text>
 
   ${logoDataUri ? `<image href="${logoDataUri}" x="${WIDTH - 170}" y="${HEIGHT - 50}" width="120" height="30" preserveAspectRatio="xMidYMid meet"/>` : ''}
 </svg>`;

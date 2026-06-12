@@ -1,6 +1,6 @@
-# Dander — Deployment Guide
+# TapProve — Deployment Guide
 
-This guide covers deploying Dander to production:
+This guide covers deploying TapProve to production:
 
 - **Backend API** → Railway (Node.js + PostgreSQL)
 - **Frontend apps** → Netlify (3 separate sites)
@@ -116,8 +116,8 @@ Set all of these on the Railway **API service**. Never commit `.env` files.
 | `CLOUDINARY_URL` | `cloudinary://key:secret@cloud` | From Cloudinary dashboard |
 | `PORT` | `4000` | Railway sets this automatically |
 | `NODE_ENV` | `production` | Set to `production` |
-| `FRONTEND_URL` | `https://dander.netlify.app` | User app URL (for CORS) |
-| `PLATFORM_NAME` | `Dander` | Shown in SMS messages |
+| `FRONTEND_URL` | `https://tapprove.io` | User app URL (for CORS) |
+| `PLATFORM_NAME` | `TapProve` | Shown in SMS messages |
 
 Generate secrets:
 

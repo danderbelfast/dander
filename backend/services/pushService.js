@@ -175,7 +175,7 @@ async function sendPushToUser(userId, payload) {
 
   // Also try FCM
   const fcmResult = await fcmService.sendFcmToUser(userId, {
-    title: payload.title || 'Dander',
+    title: payload.title || 'TapProve',
     body:  payload.body || '',
     data:  payload.data || {},
     sound: payload.sound,

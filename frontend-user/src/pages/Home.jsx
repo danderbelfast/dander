@@ -148,7 +148,7 @@ export default function Home() {
       {/* Header */}
       <header className="home-header">
         <div>
-          <img src={tapproveLogoBlack} alt="Dander" className="home-logo" />
+          <img src={tapproveLogoBlack} alt="TapProve" className="home-logo" />
           {location && (
             <div className="home-greeting">
               {user?.firstName ? `Hi ${user.firstName} 👋` : 'Deals near you'}

@@ -83,10 +83,10 @@ export function Sidebar({ collapsed, onToggle, onNavigate }) {
     <aside className="sidebar">
       <div className="sidebar-logo">
         {collapsed
-          ? <img src={tapproveLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
+          ? <img src={tapproveLogoWhite} alt="TapProve" style={{ width: 140, height: 'auto' }} />
           : (
             <>
-              <img src={tapproveLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
+              <img src={tapproveLogoWhite} alt="TapProve" style={{ width: 140, height: 'auto' }} />
               <span className="sidebar-logo-text" style={{ opacity: 0.4, fontWeight: 400 }}>Admin</span>
             </>
           )

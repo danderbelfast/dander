@@ -1,7 +1,7 @@
 {
   "name": "@dander/frontend-user",
   "version": "1.0.0",
-  "description": "Dander user-facing React app (mobile-first)",
+  "description": "TapProve user-facing React app (mobile-first)",
   "private": true,
   "scripts": {
     "dev": "vite",

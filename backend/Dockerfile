@@ -1,5 +1,5 @@
 # ============================================================
-#  Dander API — Dockerfile
+#  TapProve API — Dockerfile
 #  Multi-stage: builder installs deps, runner is lean image.
 # ============================================================
 

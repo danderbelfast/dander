@@ -1,6 +1,6 @@
 {
-  "name": "Dander",
-  "short_name": "Dander",
+  "name": "TapProve",
+  "short_name": "TapProve",
   "description": "Premium deals near you in Belfast",
   "start_url": "/",
   "display": "standalone",

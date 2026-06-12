@@ -17,7 +17,7 @@ self.addEventListener('push', (event) => {
   try { data = event.data?.json() ?? {}; } catch { /* ignore */ }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Dander', {
+    self.registration.showNotification(data.title || 'TapProve', {
       body:     data.body  || 'A deal is nearby.',
       icon:     data.icon  || '/icons/icon-192.png',
       badge:    data.badge || '/icons/icon-192.png',

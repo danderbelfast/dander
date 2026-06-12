@@ -12,7 +12,7 @@ const SECTIONS = [
       },
       {
         heading: 'Wait for approval',
-        body: 'Once registered, your account is reviewed by the Dander team. You\'ll receive an email when you\'re approved and can start posting offers. This usually takes less than 24 hours.',
+        body: 'Once registered, your account is reviewed by the TapProve team. You\'ll receive an email when you\'re approved and can start posting offers. This usually takes less than 24 hours.',
       },
       {
         heading: 'Complete your business profile',
@@ -58,7 +58,7 @@ const SECTIONS = [
     steps: [
       {
         heading: 'Ask the customer to show their coupon',
-        body: 'When a customer arrives with an offer, they\'ll show you their coupon code on the Dander app. Each coupon has a unique code that can only be used once.',
+        body: 'When a customer arrives with an offer, they\'ll show you their coupon code on the TapProve app. Each coupon has a unique code that can only be used once.',
       },
       {
         heading: 'Go to Redeem Coupon',
@@ -70,7 +70,7 @@ const SECTIONS = [
       },
       {
         heading: 'Invalid or already used',
-        body: 'If a code is invalid or has already been redeemed, you\'ll see an error message. Do not honour the discount in this case — ask the customer to check the Dander app for a valid coupon.',
+        body: 'If a code is invalid or has already been redeemed, you\'ll see an error message. Do not honour the discount in this case — ask the customer to check the TapProve app for a valid coupon.',
       },
     ],
   },
@@ -190,7 +190,7 @@ export default function Guide() {
 
       <div className="page-header">
         <div>
-          <div className="page-title">How to use Dander</div>
+          <div className="page-title">How to use TapProve</div>
           <div className="page-sub">Everything you need to know to get started and make the most of your offers</div>
         </div>
       </div>

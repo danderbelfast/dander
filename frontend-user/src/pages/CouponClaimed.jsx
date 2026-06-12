@@ -304,7 +304,7 @@ function ReviewPrompt({ couponId, businessName, offerId }) {
   function handleShareReview() {
     const url = `${PUBLIC_APP_URL}/o/${offerId || ''}`;
     const stars = '⭐'.repeat(rating);
-    const text = `I just rated ${businessName} ${stars} on Dander! ${comment ? `"${comment}" ` : ''}Check out their deals:`;
+    const text = `I just rated ${businessName} ${stars} on TapProve! ${comment ? `"${comment}" ` : ''}Check out their deals:`;
     trackShare(offerId).catch(() => {});
     if (navigator.share) {
       navigator.share({ title: `${businessName} — ${stars}`, text, url }).catch(() => {});

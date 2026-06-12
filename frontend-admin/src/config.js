@@ -10,6 +10,6 @@ function trim(s) {
 }
 
 export const API_URL = trim(env.VITE_API_URL || 'http://localhost:4000');
-export const PLATFORM_NAME = env.VITE_PLATFORM_NAME || 'Dander';
+export const PLATFORM_NAME = env.VITE_PLATFORM_NAME || 'TapProve';
 
 export default { API_URL, PLATFORM_NAME };

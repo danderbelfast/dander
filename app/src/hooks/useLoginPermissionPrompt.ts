@@ -63,7 +63,7 @@ async function requestPermissions(): Promise<void> {
 function showPromptAndRequest(): void {
   Alert.alert(
     'Quick setup',
-    'Dander needs a few permissions to recognise you at local businesses and send you offers nearby.',
+    'TapProve needs a few permissions to recognise you at local businesses and send you offers nearby.',
     [{
       text: "OK let's go",
       onPress: async () => {

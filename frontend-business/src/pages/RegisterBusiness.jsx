@@ -157,7 +157,7 @@ export default function RegisterBusiness() {
     return (
       <div className="register-wrap">
         <header className="register-header">
-          <div className="register-brand"><img src={tapproveLogoBlack} alt="Dander" style={{ width: 140, height: 'auto' }} /></div>
+          <div className="register-brand"><img src={tapproveLogoBlack} alt="TapProve" style={{ width: 140, height: 'auto' }} /></div>
         </header>
         <div className="register-body">
           <div className="register-card">
@@ -187,7 +187,7 @@ export default function RegisterBusiness() {
   return (
     <div className="register-wrap">
       <header className="register-header">
-        <div className="register-brand"><img src={tapproveLogoBlack} alt="Dander" style={{ width: 140, height: 'auto', verticalAlign: 'middle', marginRight: 6 }} /> Dander for Business</div>
+        <div className="register-brand"><img src={tapproveLogoBlack} alt="TapProve" style={{ width: 140, height: 'auto', verticalAlign: 'middle', marginRight: 6 }} /> TapProve for Business</div>
         <StepIndicator current={Math.min(step, 4)} />
       </header>
 
@@ -198,7 +198,7 @@ export default function RegisterBusiness() {
           {step === 1 && (
             <>
               <div className="register-step-title">Let's get you on the map.</div>
-              <div className="register-step-sub">This is your owner account — the place you'll manage every offer, track every redemption, and grow your business on Dander.</div>
+              <div className="register-step-sub">This is your owner account — the place you'll manage every offer, track every redemption, and grow your business on TapProve.</div>
               <form className="register-form" onSubmit={nextStep1}>
                 {error && <div className="form-error-box">{error}</div>}
                 <div className="field">
@@ -262,7 +262,7 @@ export default function RegisterBusiness() {
           {step === 2 && (
             <>
               <div className="register-step-title">Tell us about your business</div>
-              <div className="register-step-sub">This information will appear on your public listing in the Dander app.</div>
+              <div className="register-step-sub">This information will appear on your public listing in the TapProve app.</div>
               <form className="register-form" onSubmit={nextStep2}>
                 {error && <div className="form-error-box">{error}</div>}
                 <div className="field">
@@ -331,7 +331,7 @@ export default function RegisterBusiness() {
           {step === 3 && (
             <>
               <div className="register-step-title">Upload your images</div>
-              <div className="register-step-sub">These will appear on your Dander listing. You can update them anytime from your profile.</div>
+              <div className="register-step-sub">These will appear on your TapProve listing. You can update them anytime from your profile.</div>
               <div className="register-form">
                 <div className="field">
                   <label className="label">Business logo</label>

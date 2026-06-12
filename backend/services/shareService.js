@@ -71,7 +71,7 @@ async function generateShareImage(offer) {
   <text x="60" y="${HEIGHT - 175}" font-family="sans-serif" font-size="26" font-weight="bold" fill="#ccc">${esc(bizName)}</text>
   <text x="60" y="${HEIGHT - 130}" font-family="sans-serif" font-size="44" font-weight="bold" fill="#fff">${esc(title)}</text>
 
-  <text x="${WIDTH / 2}" y="${HEIGHT - 35}" font-family="sans-serif" font-size="24" font-weight="bold" fill="#fff" text-anchor="middle">Find this deal on Dander</text>
+  <text x="${WIDTH / 2}" y="${HEIGHT - 35}" font-family="sans-serif" font-size="24" font-weight="bold" fill="#fff" text-anchor="middle">Find this deal on TapProve</text>
 
   ${logoDataUri ? `<image href="${logoDataUri}" x="${WIDTH - 180}" y="30" width="140" height="35" preserveAspectRatio="xMidYMid meet"/>` : ''}
 </svg>`;

@@ -202,7 +202,7 @@ export default function Login() {
 
   return (
     <div className="auth-page page-full">
-      <img src={tapproveLogoBlack} alt="Dander" className="auth-logo" />
+      <img src={tapproveLogoBlack} alt="TapProve" className="auth-logo" />
 
       {/* ── Login: step 1 — credentials ── */}
       {mode === 'login' && step === 1 && (

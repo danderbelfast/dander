@@ -30,7 +30,7 @@ import java.util.concurrent.Executors
  *   2. Middle: "TODAY'S SPECIAL" + offer title/description, or the
  *              "Download Dander for loyalty points" fallback if no
  *              active offer.
- *   3. Bottom: QR code linking to tapprove.io + "Scan to download Dander"
+ *   3. Bottom: QR code linking to tapprove.io + "Scan to download TapProve"
  *
  * Text sizes target legibility at 1–2 metres. Background is a flat
  * near-black so customer attention lands on the headline content,
@@ -163,7 +163,7 @@ class StrangerDisplayView @JvmOverloads constructor(
             setTextColor(Color.parseColor("#BDBDBD"))
             gravity = Gravity.CENTER
             setPadding(0, 18, 0, 0)
-            text = "Scan to download Dander"
+            text = "Scan to download TapProve"
         }
         section3.addView(qrView)
         section3.addView(qrCaption)
@@ -226,7 +226,7 @@ class StrangerDisplayView @JvmOverloads constructor(
             // Fallback when no active offer — the QR section still does
             // the heavy lift of getting them to install the app.
             txtSpecialLabel.text = ""
-            txtOfferTitle.text   = "Download Dander for loyalty points"
+            txtOfferTitle.text   = "Download TapProve for loyalty points"
             txtOfferDesc.text    = ""
             txtOfferDesc.visibility = View.GONE
         }
@@ -266,7 +266,7 @@ class StrangerDisplayView @JvmOverloads constructor(
     }
 
     private fun buildHeadline(name: String, visitors: Int): String {
-        val safeName = if (name.isBlank()) "Dander" else name
+        val safeName = if (name.isBlank()) "TapProve" else name
         val visitorPart = when (visitors) {
             0 -> ""
             1 -> "  ·  1 visitor today"

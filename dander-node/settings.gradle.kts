@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DanderNode"
+rootProject.name = "TapProveNode"
 include(":app")

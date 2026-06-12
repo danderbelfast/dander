@@ -74,7 +74,7 @@ export default function Login() {
     <div className="auth-wrap">
       <div className="auth-left">
         <div className="auth-brand">
-          <img src={tapproveLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
+          <img src={tapproveLogoWhite} alt="TapProve" style={{ width: 140, height: 'auto' }} />
         </div>
         <h1>Turn your quiet hours into your busiest ones.</h1>
         <p style={{ marginTop: 20 }}>

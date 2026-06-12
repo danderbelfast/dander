@@ -35,7 +35,7 @@ export default function MySensors() {
   const [ffLive, setFfLive]       = useState({});   // serial -> latest_reading | null
   const [ffLiveBusy, setFfLiveBusy] = useState(null); // serial currently loading
 
-  // ── Dander Node state ─────────────────────────────────────
+  // ── TapProve Node state ─────────────────────────────────────
   const [nodes, setNodes]               = useState([]);
   const [nodesLoading, setNodesLoading] = useState(true);
   const [nodeBusy, setNodeBusy]         = useState(null);  // device_id currently being toggled
@@ -45,7 +45,7 @@ export default function MySensors() {
   function loadNodes() {
     return getNodes()
       .then((d) => setNodes(d.nodes || []))
-      .catch(() => toast({ message: 'Failed to load Dander Node phones.', type: 'error' }))
+      .catch(() => toast({ message: 'Failed to load TapProve Node phones.', type: 'error' }))
       .finally(() => setNodesLoading(false));
   }
 
@@ -365,11 +365,11 @@ export default function MySensors() {
         </div>
       </div>
 
-      {/* ── Dander Nodes (phone-counter PoC) ───────────────── */}
+      {/* ── TapProve Nodes (phone-counter PoC) ───────────────── */}
       <div>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0 0' }}>Dander Nodes</h2>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0 0' }}>TapProve Nodes</h2>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
-          Repurposed Android phones running the Dander Node app — counting people, scanning Bluetooth, listening to room noise.
+          Repurposed Android phones running the TapProve Node app — counting people, scanning Bluetooth, listening to room noise.
           Toggle each node on or off from here; changes reach the phone on its next 60-second upload.
         </p>
       </div>
@@ -383,7 +383,7 @@ export default function MySensors() {
           ) : nodes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 48, color: 'var(--c-text-muted)', fontSize: '0.88rem' }}>
               <div style={{ fontSize: '2rem', marginBottom: 12, opacity: 0.3 }}>📱</div>
-              No Dander Node phones paired yet. Download the app and enter your business code.
+              No TapProve Node phones paired yet. Download the app and enter your business code.
             </div>
           ) : (
             <div className="table-wrap">
@@ -543,7 +543,7 @@ export default function MySensors() {
 }
 
 // ---------------------------------------------------------------------------
-// Yellow "X Dander Nodes need updating" banner. Counts the rows where
+// Yellow "X TapProve Nodes need updating" banner. Counts the rows where
 // update_available is true and lets the operator dismiss for the session
 // (sessionStorage so re-opening the page after a fresh upload shows it
 // again if applicable).

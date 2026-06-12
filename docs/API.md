@@ -1,4 +1,4 @@
-# Dander API Reference
+# TapProve API Reference
 
 Base URL: `http://localhost:4000` (development) · `https://api.tapprove.io` (production)
 
@@ -1152,7 +1152,7 @@ Get current platform settings.
 ```json
 {
   "success":         true,
-  "platformName":    "Dander",
+  "platformName":    "TapProve",
   "supportEmail":    "support@tapprove.io",
   "maintenanceMode": false,
   "defaultRadius":   500
@@ -1176,7 +1176,7 @@ Update platform settings.
 **Request body:**
 ```json
 {
-  "platformName":    "Dander",
+  "platformName":    "TapProve",
   "supportEmail":    "support@tapprove.io",
   "maintenanceMode": false,
   "defaultRadius":   500

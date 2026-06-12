@@ -7,7 +7,7 @@ export function InstallBanner({ isIos, onInstall, onDismiss }) {
       <img src={tapproveLogo} alt="" className="install-banner-logo" />
       <div className="install-banner-text">
         <div className="install-banner-title">
-          {isIos ? 'Install Dander for the best experience' : 'Add Dander to your home screen'}
+          {isIos ? 'Install TapProve for the best experience' : 'Add TapProve to your home screen'}
         </div>
         <div className="install-banner-sub">
           {isIos

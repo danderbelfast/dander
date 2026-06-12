@@ -104,7 +104,7 @@ export default function Register() {
           <polyline points="12 19 5 12 12 5"/>
         </svg>
       </button>
-      <img src={tapproveLogoBlack} alt="Dander" className="auth-logo" />
+      <img src={tapproveLogoBlack} alt="TapProve" className="auth-logo" />
 
       {step === 1 && (
         <>

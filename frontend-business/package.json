@@ -1,7 +1,7 @@
 {
   "name": "@dander/frontend-business",
   "version": "1.0.0",
-  "description": "Dander business-owner React app",
+  "description": "TapProve business-owner React app",
   "private": true,
   "scripts": {
     "dev": "vite",

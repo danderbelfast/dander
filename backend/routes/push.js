@@ -51,7 +51,7 @@ router.post('/test', requireAuth, async (req, res) => {
   try {
     const result = await sendPushToUser(req.user.id, {
       type:  'test',
-      title: 'Dander test notification',
+      title: 'TapProve test notification',
       body:  'Push notifications are working!',
       icon:  '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

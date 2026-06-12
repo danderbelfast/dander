@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dander API Documentation</title>
+<title>TapProve API Documentation</title>
 <style>
   :root { --orange: #E85D26; --bg: #FAFAF9; --surface: #fff; --text: #1A1A19; --muted: #6B7280; --border: #E5E5E4; --code-bg: #F3F4F6; --mono: 'SF Mono', 'Fira Mono', 'Consolas', monospace; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,10 +67,10 @@
 <div class="wrap">
 
 <div class="header">
-  <h1>Dander API</h1>
+  <h1>TapProve API</h1>
   <span class="header-badge">v1</span>
 </div>
-<p class="subtitle">Programmatic access to offers, stats, and webhook integrations for Dander businesses.</p>
+<p class="subtitle">Programmatic access to offers, stats, and webhook integrations for Tapproved businesses.</p>
 
 <div class="toc">
   <div class="toc-title">Contents</div>
@@ -177,7 +177,7 @@
 
 <!-- ─── IOT ─── -->
 <h2 id="iot">Kilo IoT Integration</h2>
-<p>Dander supports IoT sensor integration for automatic footfall tracking and offer triggering. All Kilo endpoints require business session auth (<code>/api/kilo/*</code>).</p>
+<p>TapProve supports IoT sensor integration for automatic footfall tracking and offer triggering. All Kilo endpoints require business session auth (<code>/api/kilo/*</code>).</p>
 
 <h3>Device Management</h3>
 
@@ -284,7 +284,7 @@
 
 <!-- ─── WEBHOOKS ─── -->
 <h2 id="webhooks">Webhook Events</h2>
-<p>Dander sends a POST to each registered webhook URL when events occur. The payload is signed with HMAC-SHA256 using your shared secret, sent in the <code>X-Dander-Signature</code> header.</p>
+<p>TapProve sends a POST to each registered webhook URL when events occur. The payload is signed with HMAC-SHA256 using your shared secret, sent in the <code>X-Dander-Signature</code> header.</p>
 
 <table>
   <thead><tr><th>Event</th><th>Triggered when</th></tr></thead>
@@ -431,7 +431,7 @@
       },
       {
         <span class="str">"type"</span>: <span class="str">"offer_impact"</span>,
-        <span class="str">"description"</span>: <span class="str">"Your Dander offer at 14:00 drove an estimated 4.2 extra visitors"</span>,
+        <span class="str">"description"</span>: <span class="str">"Your TapProve offer at 14:00 drove an estimated 4.2 extra visitors"</span>,
         <span class="str">"confidence"</span>: <span class="str">"high"</span>
       }
     ]
@@ -507,7 +507,7 @@
 
 <!-- ─── BILLING ─── -->
 <h2 id="billing">Billing &amp; Subscriptions</h2>
-<p>Subscription management endpoints for Dander business plans and hardware leasing. All endpoints require business session auth.</p>
+<p>Subscription management endpoints for TapProve business plans and hardware leasing. All endpoints require business session auth.</p>
 
 <h3><span class="method method-post">POST</span> <span class="endpoint">/api/billing/subscribe</span> <span class="header-badge">coming soon</span></h3>
 <p>Create a new subscription for this business.</p>
@@ -533,7 +533,7 @@
 <!-- ─── API KEY ─── -->
 <h2 id="api-key">Getting Your API Key</h2>
 <ol>
-  <li>Sign in to the <a href="https://business.tapprove.io/dashboard">Dander Business Dashboard</a></li>
+  <li>Sign in to the <a href="https://business.tapprove.io/dashboard">TapProve Business Dashboard</a></li>
   <li>Navigate to <strong>Settings &rarr; API Keys</strong></li>
   <li>Click <strong>Create API Key</strong></li>
   <li>Choose a label and select the scopes you need</li>
@@ -544,7 +544,7 @@
 </div>
 
 <hr style="margin: 48px 0 24px; border: none; border-top: 1px solid var(--border);">
-<p style="color: var(--muted); font-size: 0.8rem; text-align: center;">&copy; Dander 2026 &mdash; Belfast, NI</p>
+<p style="color: var(--muted); font-size: 0.8rem; text-align: center;">&copy; TapProve 2026 &mdash; Belfast, NI</p>
 
 </div>
 </body>

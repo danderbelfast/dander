@@ -25,7 +25,7 @@
 //    Create a dedicated test user and a dedicated test business
 //    in the target environment, then mint JWTs for each:
 //      INSERT INTO users (...)  -- email like 'smoke+user@tapprove.io'
-//      INSERT INTO businesses (owner_id=<owner>, name='SMOKE TEST — Dander QA', ...)
+//      INSERT INTO businesses (owner_id=<owner>, name='SMOKE TEST — TapProve QA', ...)
 //    A helper for signing JWTs from a user_id is in
 //    services/authService.js (signAccessToken). The simplest way to
 //    mint smoke tokens locally is to log in once via the normal OTP

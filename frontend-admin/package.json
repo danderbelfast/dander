@@ -1,7 +1,7 @@
 {
   "name": "@dander/frontend-admin",
   "version": "1.0.0",
-  "description": "Dander platform admin React app",
+  "description": "TapProve platform admin React app",
   "private": true,
   "scripts": {
     "dev": "vite",

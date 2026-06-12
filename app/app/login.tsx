@@ -65,7 +65,7 @@ export default function LoginScreen() {
         <Brand tagline="Welcome back" />
 
         <Text style={authStyles.title}>Sign in</Text>
-        <Text style={authStyles.subtitle}>Use your Dander account email.</Text>
+        <Text style={authStyles.subtitle}>Use your TapProve account email.</Text>
 
         {error ? (
           <View style={authStyles.errorBox}>

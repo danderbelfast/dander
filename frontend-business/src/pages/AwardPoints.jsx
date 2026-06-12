@@ -77,7 +77,7 @@ export default function AwardPoints() {
         <div className="card-header"><span className="card-title">Award via NFC</span></div>
         <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ color: 'var(--c-text-muted)', fontSize: '0.86rem', margin: 0 }}>
-            Hold this tablet's back near the customer's Dander phone. The points transfer over NFC and the
+            Hold this tablet's back near the customer's TapProve phone. The points transfer over NFC and the
             customer sees the same coins-flying animation as a regular check-in.
           </p>
           <button
@@ -94,7 +94,7 @@ export default function AwardPoints() {
         <div className="card-header"><span className="card-title">Award manually</span></div>
         <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ color: 'var(--c-text-muted)', fontSize: '0.86rem', margin: 0 }}>
-            Don't have the NFC tablet yet? Look up the customer by their Dander member ID (from a recent visit).
+            Don't have the NFC tablet yet? Look up the customer by their TapProve member ID (from a recent visit).
           </p>
           <div className="field">
             <label className="label">Customer ID</label>

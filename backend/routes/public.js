@@ -314,7 +314,7 @@ function esc(s) {
 }
 
 function renderJoinHtml({ business, offer, visitorCount }) {
-  const bizName = esc(business?.name || 'Dander');
+  const bizName = esc(business?.name || 'TapProve');
   const offerHtml = offer
     ? `<div class="offer">
          <div class="offer-label">Today's offer</div>

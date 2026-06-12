@@ -1,7 +1,7 @@
 {
   "name": "@dander/backend",
   "version": "1.0.0",
-  "description": "Dander backend API — Node.js + Express",
+  "description": "TapProve backend API — Node.js + Express",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

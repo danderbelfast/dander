@@ -58,7 +58,7 @@ async function sendNewBusinessAlert({ businessName, ownerName, ownerEmail }) {
   const adminEmail = await getSetting('admin_notification_email', '');
   if (!adminEmail) return;
 
-  const platformName = await getSetting('platform_name', 'Dander');
+  const platformName = await getSetting('platform_name', 'TapProve');
 
   await sendMail({
     to:      adminEmail,
@@ -81,7 +81,7 @@ async function sendNewBusinessAlert({ businessName, ownerName, ownerEmail }) {
 
 // ── Welcome email: business approved ────────────────────────
 async function sendBusinessApprovedEmail({ ownerEmail, ownerName, businessName }) {
-  const platformName   = await getSetting('platform_name',        'Dander');
+  const platformName   = await getSetting('platform_name',        'TapProve');
   const subject        = await getSetting('welcome_email_subject', `Welcome to ${platformName}! Your business is approved 🎉`);
   const customBody     = await getSetting('welcome_email_body',    '');
 
@@ -135,7 +135,7 @@ async function sendBusinessApprovedEmail({ ownerEmail, ownerName, businessName }
 }
 
 // ── OTP email ────────────────────────────────────────────────
-async function sendOtpEmail({ to, code, purpose, appName = 'Dander' }) {
+async function sendOtpEmail({ to, code, purpose, appName = 'TapProve' }) {
   // In dev (no Resend key), print the code so login is still possible locally
   if (!process.env.RESEND_API_KEY) {
     console.log(`\n[email:dev] OTP for ${to} (${purpose}): ${code}\n`);

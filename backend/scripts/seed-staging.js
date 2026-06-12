@@ -34,7 +34,7 @@
 const { Client } = require('pg');
 const jwt        = require('jsonwebtoken');
 
-const TEST_BUSINESS_NAME       = 'SMOKE TEST — Dander QA';
+const TEST_BUSINESS_NAME       = 'SMOKE TEST — TapProve QA';
 const CUSTOMER_EMAIL           = 'smoke+customer@tapprove.io';
 const OWNER_EMAIL              = 'smoke+owner@tapprove.io';
 const PLACEHOLDER_PASSWORD_HASH = '$2b$10$smoke.placeholder.never.used.for.login';

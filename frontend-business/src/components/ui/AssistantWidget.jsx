@@ -13,7 +13,7 @@ function pageFromPath(pathname) {
 }
 
 const GREETING =
-  "Hi! I'm your Dander assistant. Ask me anything about your footfall, "
+  "Hi! I'm your Tapprove Assistant. Ask me anything about your footfall, "
   + 'offers, or what to focus on next — I look at your real numbers to answer.';
 
 function Bubble({ role, children }) {
@@ -157,7 +157,7 @@ export function AssistantWidget() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: '1.2rem' }}>✨</span>
-            <span style={{ fontWeight: 700, fontSize: '0.98rem' }}>Dander Assistant</span>
+            <span style={{ fontWeight: 700, fontSize: '0.98rem' }}>Tapprove Assistant</span>
           </div>
           <button
             type="button" aria-label="Close" onClick={() => setOpen(false)}

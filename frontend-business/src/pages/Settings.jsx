@@ -91,7 +91,7 @@ export default function Settings() {
           <div className="card-header"><span className="card-title">Business code</span></div>
           <div className="card-body">
             <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 0 }}>
-              Give this 4-digit code to staff installing a Dander Node phone. They&apos;ll enter it on
+              Give this 4-digit code to staff installing a TapProve Node phone. They&apos;ll enter it on
               first launch to link the phone to your business.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -346,7 +346,7 @@ function QueueAlertSettings() {
 
 // ---------------------------------------------------------------------------
 // Opening Hours — per-day weekly schedule editor. Saves to
-// businesses.opening_hours AND pushes to every paired Dander Node via the
+// businesses.opening_hours AND pushes to every paired TapProve Node via the
 // existing remote-command channel.
 // ---------------------------------------------------------------------------
 
@@ -418,7 +418,7 @@ function OpeningHoursEditor() {
       toast({
         message: n === 0
           ? 'Opening hours saved.'
-          : `Hours saved and pushed to ${n} Dander Node${n === 1 ? '' : 's'}.`,
+          : `Hours saved and pushed to ${n} TapProve Node${n === 1 ? '' : 's'}.`,
         type: 'success',
       });
     } catch (err) {
@@ -432,7 +432,7 @@ function OpeningHoursEditor() {
       <div className="card-header"><span className="card-title">Opening Hours</span></div>
       <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.86rem', marginTop: 0 }}>
-          The schedule below applies to every Dander Node paired to your business — saved here, pushed out on the next 60-second upload.
+          The schedule below applies to every TapProve Node paired to your business — saved here, pushed out on the next 60-second upload.
         </p>
 
         {loading ? (
