@@ -173,10 +173,10 @@ function apiRateLimiter(req, res, next) {
 // ---------------------------------------------------------------------------
 
 function verifyWebhookSignature(req, res, next) {
-  const signature = req.headers['x-dander-signature'];
+  const signature = req.headers['x-tapprove-signature'];
   if (!signature) {
     return apiError(res, 401, 'missing_signature',
-      'X-Dander-Signature header is required.');
+      'X-TapProve-Signature header is required.');
   }
 
   if (!req.apiKey?.id) {

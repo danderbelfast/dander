@@ -284,7 +284,7 @@
 
 <!-- ─── WEBHOOKS ─── -->
 <h2 id="webhooks">Webhook Events</h2>
-<p>TapProve sends a POST to each registered webhook URL when events occur. The payload is signed with HMAC-SHA256 using your shared secret, sent in the <code>X-Dander-Signature</code> header.</p>
+<p>TapProve sends a POST to each registered webhook URL when events occur. The payload is signed with HMAC-SHA256 using your shared secret, sent in the <code>X-TapProve-Signature</code> header. The event type is in the companion <code>X-TapProve-Event</code> header.</p>
 
 <table>
   <thead><tr><th>Event</th><th>Triggered when</th></tr></thead>
@@ -499,7 +499,7 @@
     <tr><td><code>not_found</code></td><td>404</td><td>Resource doesn't exist</td></tr>
     <tr><td><code>url_unreachable</code></td><td>422</td><td>Webhook URL failed reachability test</td></tr>
     <tr><td><code>rate_limited</code></td><td>429</td><td>Too many requests — check Retry-After</td></tr>
-    <tr><td><code>missing_signature</code></td><td>401</td><td>Webhook call missing X-Dander-Signature</td></tr>
+    <tr><td><code>missing_signature</code></td><td>401</td><td>Webhook call missing X-TapProve-Signature</td></tr>
     <tr><td><code>invalid_signature</code></td><td>401</td><td>HMAC signature doesn't match</td></tr>
     <tr><td><code>server_error</code></td><td>500</td><td>Something went wrong on our end</td></tr>
   </tbody>
