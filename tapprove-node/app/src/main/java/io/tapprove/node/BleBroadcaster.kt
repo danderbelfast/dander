@@ -25,7 +25,7 @@ import java.util.UUID
  * only the 8-char device_id prefix; the user app resolves business_id
  * from its locally-cached /api/nodes/known map keyed by that prefix.
  *
- *   service UUID  : DANDER_SERVICE_UUID
+ *   service UUID  : TAPPROVE_SERVICE_UUID
  *   service data  : device_id prefix (8B ASCII)
  *
  * BLE peripheral mode requires API 21+ and a chipset that supports
@@ -67,8 +67,8 @@ class BleBroadcaster(
     companion object {
         private const val TAG = "TapProveBLE"
 
-        val DANDER_SERVICE_UUID: UUID = UUID.fromString("6e646564-616e-6465-7200-000000000001")
-        private val PARCEL_UUID = ParcelUuid(DANDER_SERVICE_UUID)
+        val TAPPROVE_SERVICE_UUID: UUID = UUID.fromString("6e646564-616e-6465-7200-000000000001")
+        private val PARCEL_UUID = ParcelUuid(TAPPROVE_SERVICE_UUID)
         // 8 bytes — the maximum that fits alongside a 128-bit service-data
         // UUID inside the 31-byte legacy adv budget. Changing this requires
         // a matching update in app/src/services/beaconScanner.ts.
@@ -194,7 +194,7 @@ class BleBroadcaster(
             .build()
 
         Log.i(TAG, "  startAdvertising → settings(mode=${settings.mode}, txPower=${settings.txPowerLevel}, " +
-            "connectable=${settings.isConnectable}); data(uuid=$DANDER_SERVICE_UUID, " +
+            "connectable=${settings.isConnectable}); data(uuid=$TAPPROVE_SERVICE_UUID, " +
             "serviceDataBytes=${payload.size}, includeName=${data.includeDeviceName})")
 
         try {

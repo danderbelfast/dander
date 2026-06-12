@@ -76,7 +76,7 @@ class SensorHub(
     }
 
     // Schedulers run on their own thread so we never tie up the main looper.
-    private val scheduler = HandlerThread("dander-node-scheduler")
+    private val scheduler = HandlerThread("tapprove-node-scheduler")
         .also { it.start() }
         .let { Handler(it.looper) }
 

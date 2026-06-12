@@ -1,5 +1,5 @@
 {
-  "name": "@dander/frontend-business",
+  "name": "@tapprove/frontend-business",
   "version": "1.0.0",
   "description": "TapProve business-owner React app",
   "private": true,
@@ -10,7 +10,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@dander/shared": "*",
+    "@tapprove/shared": "*",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "leaflet": "^1.9.4",

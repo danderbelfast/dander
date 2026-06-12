@@ -264,7 +264,7 @@ app.get('/update/node', (_req, res) => {
     <li>Install the APK when downloaded.</li>
     <li>Reopen the Dander Node app.</li>
   </ol>
-  <a class="cta" href="/downloads/dander-node-latest.apk">Download Latest APK</a>
+  <a class="cta" href="/downloads/tapprove-node-latest.apk">Download Latest APK</a>
   <div class="hint">Or grab it from the GitHub Releases page if /downloads isn't populated yet.</div>
 </body></html>`);
 });

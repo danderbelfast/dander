@@ -1,5 +1,5 @@
 {
-  "name": "@dander/shared",
+  "name": "@tapprove/shared",
   "version": "1.0.0",
   "description": "TapProve shared constants, types, and utility functions",
   "main": "src/index.js",

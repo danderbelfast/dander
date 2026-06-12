@@ -54,7 +54,7 @@ class WsClient(
         .pingInterval(0, TimeUnit.SECONDS)       // we manage pings ourselves
         .build()
 
-    private val scheduler = HandlerThread("dander-node-ws")
+    private val scheduler = HandlerThread("tapprove-node-ws")
         .also { it.start() }
         .let { Handler(it.looper) }
 

@@ -1,5 +1,5 @@
 {
-  "name": "@dander/backend",
+  "name": "@tapprove/backend",
   "version": "1.0.0",
   "description": "TapProve backend API — Node.js + Express",
   "main": "src/index.js",

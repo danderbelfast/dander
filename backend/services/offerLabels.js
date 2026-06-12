@@ -1,10 +1,7 @@
 'use strict';
 
-// USER_APP_URL is the consolidated env var; DANDER_BASE_URL stays
-// honoured for now so any external tooling that exports it doesn't
-// break — wins precedence when both are set.
 const config = require('../src/config');
-const BASE_URL = process.env.DANDER_BASE_URL || config.USER_APP_URL;
+const BASE_URL = config.USER_APP_URL;
 
 function discountLabel(offer) {
   switch (offer.offer_type) {
