@@ -855,8 +855,10 @@ router.delete(
 
 router.get('/inventory', async (req, res) => {
   try {
+    // 2026-06-10: sort_order was removed from inventory_items in prod out of band;
+    // endpoint patched to match (ORDER BY name only).
     const { rows } = await pool.query(
-      `SELECT * FROM inventory_items WHERE business_id = $1 AND is_active = true ORDER BY sort_order, name`,
+      `SELECT * FROM inventory_items WHERE business_id = $1 AND is_active = true ORDER BY name`,
       [req.business.id]
     );
     const totalCount = rows.length;
@@ -904,12 +906,14 @@ router.post(
         imageUrl = await processImage(req.file.buffer, 'offer', req.file.originalname);
       }
 
+      // 2026-06-10: category was removed from inventory_items in prod out of band;
+      // endpoint patched to drop it from the INSERT column list and value tuple.
       const { rows } = await pool.query(
         `INSERT INTO inventory_items
-           (business_id, name, category, is_perishable, sku, barcode, price, cost_price, stock_level, low_stock_threshold, image_url, description)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+           (business_id, name, is_perishable, sku, barcode, price, cost_price, stock_level, low_stock_threshold, image_url, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
         [
-          req.business.id, req.body.name, req.body.category || null,
+          req.business.id, req.body.name,
           req.body.is_perishable === 'true' || req.body.is_perishable === true,
           req.body.sku || null, req.body.barcode || null,
           req.body.price || null, req.body.cost_price || null,
@@ -938,13 +942,15 @@ router.put(
   async (req, res) => {
     if (!validate(req, res)) return;
     try {
-      const allowed = ['name', 'category', 'is_perishable', 'sku', 'barcode', 'price', 'cost_price', 'stock_level', 'low_stock_threshold', 'description', 'sort_order'];
+      // 2026-06-10: category + sort_order were removed from inventory_items in prod
+      // out of band; endpoint patched to drop them from the allowed-update list.
+      const allowed = ['name', 'is_perishable', 'sku', 'barcode', 'price', 'cost_price', 'stock_level', 'low_stock_threshold', 'description'];
       const updates = {};
       for (const key of allowed) {
         if (req.body[key] !== undefined) {
           if (key === 'is_perishable') updates[key] = req.body[key] === 'true' || req.body[key] === true;
           else if (['price', 'cost_price'].includes(key)) updates[key] = parseFloat(req.body[key]);
-          else if (['stock_level', 'low_stock_threshold', 'sort_order'].includes(key)) updates[key] = parseInt(req.body[key], 10);
+          else if (['stock_level', 'low_stock_threshold'].includes(key)) updates[key] = parseInt(req.body[key], 10);
           else updates[key] = req.body[key];
         }
       }

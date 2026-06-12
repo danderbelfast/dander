@@ -40,7 +40,9 @@ router.get('/:id/rewards', async (req, res) => {
   try {
     // ---- 1. Business name + sector (always needed) ----
     const bizQ = await client.query(
-      `SELECT name, COALESCE(sector, 'retail') AS sector
+      `SELECT name,
+              COALESCE(sector, 'retail') AS sector,
+              COALESCE(timezone, 'Europe/London') AS timezone
          FROM businesses
         WHERE id = $1`,
       [businessId]
@@ -48,7 +50,7 @@ router.get('/:id/rewards', async (req, res) => {
     if (bizQ.rowCount === 0) {
       return res.status(404).json({ error: 'business_not_found' });
     }
-    const { name, sector } = bizQ.rows[0];
+    const { name, sector, timezone } = bizQ.rows[0];
 
     // ---- 2. Loyalty dials for this business (with fallback) ----
     // business_loyalty_settings has points_per_visit but not points_per_level,
@@ -65,7 +67,7 @@ router.get('/:id/rewards', async (req, res) => {
     // ---- 3a. Display-only: no customer => zeroed jar ----
     if (!customerParam) {
       return res.json({
-        name, sector,
+        name, sector, timezone,
         fill: 0, level: 1, add: 0,
         leveledUp: false, firstVisit: false, displayOnly: true
       });
@@ -79,23 +81,28 @@ router.get('/:id/rewards', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Same-day guard runs SERVER-SIDE via CURRENT_DATE so the comparison
-    // happens in the DB's session timezone (Railway = Etc/UTC). Doing it
-    // in JS with `.toISOString().slice(0,10)` would skew on any non-UTC
-    // client because node-postgres deserialises DATE at midnight LOCAL,
-    // not midnight UTC — that's the bug the first round of testing hit.
+    // Same-day guard in the BUSINESS's local timezone. last_visit_date
+    // is a bare DATE column so the comparison computes today-local on
+    // the fly from businesses.timezone (default 'Europe/London') and
+    // writes the same expression back into last_visit_date on award.
+    // We join businesses in the same query so the SELECT and the
+    // subsequent INSERT see a consistent "today" for this transaction.
     const ptsQ = await client.query(
-      `SELECT points AS total_points,
-              (last_visit_date = CURRENT_DATE) AS already_today
-         FROM business_loyalty_points
-        WHERE user_id = $1 AND business_id = $2
-        FOR UPDATE`,
+      `SELECT blp.points AS total_points,
+              (blp.last_visit_date = (NOW() AT TIME ZONE b.timezone)::date) AS already_today,
+              (NOW() AT TIME ZONE b.timezone)::date AS today_local
+         FROM businesses b
+    LEFT JOIN business_loyalty_points blp
+           ON blp.business_id = b.id AND blp.user_id = $1
+        WHERE b.id = $2
+        FOR UPDATE OF blp`,
       [userId, businessId]
     );
 
-    const existing = ptsQ.rows[0];
-    const previousTotal = existing ? existing.total_points : 0;
-    const alreadyToday = !!existing?.already_today;
+    const row = ptsQ.rows[0];
+    const previousTotal = row?.total_points ?? 0;
+    const alreadyToday  = !!row?.already_today;
+    const todayLocal    = row?.today_local;     // 'YYYY-MM-DD' in business TZ
 
     let added = 0;
     let newTotal = previousTotal;
@@ -106,13 +113,13 @@ router.get('/:id/rewards', async (req, res) => {
       await client.query(
         `INSERT INTO business_loyalty_points
               (user_id, business_id, points, total_visits, last_visit_date, last_visit_at)
-              VALUES ($1, $2, $3, 1, CURRENT_DATE, now())
+              VALUES ($1, $2, $3, 1, $4::date, NOW())
          ON CONFLICT (business_id, user_id)
          DO UPDATE SET points          = $3,
                        total_visits    = business_loyalty_points.total_visits + 1,
-                       last_visit_date = CURRENT_DATE,
-                       last_visit_at   = now()`,
-        [userId, businessId, newTotal]
+                       last_visit_date = $4::date,
+                       last_visit_at   = NOW()`,
+        [userId, businessId, newTotal, todayLocal]
       );
     }
 
@@ -124,6 +131,7 @@ router.get('/:id/rewards', async (req, res) => {
     return res.json({
       name,
       sector,
+      timezone,
       fill: jar.previousFill,                 // page animates FROM here...
       add: jar.newFill - jar.previousFill,    // ...by this much (0 if repeat today)
       level: jar.level,

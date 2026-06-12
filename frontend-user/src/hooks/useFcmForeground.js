@@ -17,7 +17,7 @@ export function useFcmForeground() {
 
       toast({
         type:    data.offerId ? 'proximity' : 'info',
-        title:   title || 'Dander',
+        title:   title || 'TapProve',
         message: body || '',
         offerId: data.offerId ? parseInt(data.offerId, 10) : undefined,
         duration: 6000,

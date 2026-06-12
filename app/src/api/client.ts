@@ -1,6 +1,6 @@
 /**
- * client.ts — axios instance pointed at api.dander.io with an auth-token
- * interceptor.
+ * client.ts — axios instance pointed at api.tapprove.io with an
+ * auth-token interceptor.
  *
  * Token storage is in-memory plus AsyncStorage for persistence across
  * launches. AuthContext owns the lifecycle (set on login, clear on
@@ -22,8 +22,8 @@ import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { env } from '../env';
 
-const TOKEN_KEY = 'dander_access_token';
-const USER_KEY  = 'dander_auth_user';   // mirrors AuthContext.USER_KEY
+const TOKEN_KEY = 'tapprove_access_token';
+const USER_KEY  = 'tapprove_auth_user';   // mirrors AuthContext.USER_KEY
 
 let _accessToken: string | null = null;
 

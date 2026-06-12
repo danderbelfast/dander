@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
 
-const NOTIF_KEY = 'dander_biz_notif_prefs';
+const NOTIF_KEY = 'tapprove_biz_notif_prefs';
 const DEFAULT_PREFS = { coupon_redeemed: true, daily_summary: true, footfall_alert: true };
 
 export default function Settings() {
@@ -46,10 +46,10 @@ export default function Settings() {
       })
       .finally(() => setLoading(false));
 
-    const pending = localStorage.getItem('dander_reg_staff_cost');
+    const pending = localStorage.getItem('tapprove_reg_staff_cost');
     if (pending) {
       setStaffCost(pending);
-      localStorage.removeItem('dander_reg_staff_cost');
+      localStorage.removeItem('tapprove_reg_staff_cost');
     }
   }, []);
 
@@ -91,7 +91,7 @@ export default function Settings() {
           <div className="card-header"><span className="card-title">Business code</span></div>
           <div className="card-body">
             <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 0 }}>
-              Give this 4-digit code to staff installing a Dander Node phone. They&apos;ll enter it on
+              Give this 4-digit code to staff installing a TapProve Node phone. They&apos;ll enter it on
               first launch to link the phone to your business.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -293,7 +293,7 @@ function SmartSpecialsSection() {
 
 function QueueAlertSettings() {
   const [threshold, setThreshold] = React.useState(() => {
-    const v = parseInt(window.localStorage.getItem('dander_queue_threshold_default') || '', 10);
+    const v = parseInt(window.localStorage.getItem('tapprove_queue_threshold_default') || '', 10);
     return Number.isFinite(v) && v > 0 ? v : 3;
   });
   const [emailOn, setEmailOn] = React.useState(false);
@@ -302,7 +302,7 @@ function QueueAlertSettings() {
   function persistThreshold(v) {
     const n = Math.max(1, Math.min(99, parseInt(v, 10) || 3));
     setThreshold(n);
-    try { window.localStorage.setItem('dander_queue_threshold_default', String(n)); } catch {}
+    try { window.localStorage.setItem('tapprove_queue_threshold_default', String(n)); } catch {}
   }
 
   return (
@@ -346,7 +346,7 @@ function QueueAlertSettings() {
 
 // ---------------------------------------------------------------------------
 // Opening Hours — per-day weekly schedule editor. Saves to
-// businesses.opening_hours AND pushes to every paired Dander Node via the
+// businesses.opening_hours AND pushes to every paired TapProve Node via the
 // existing remote-command channel.
 // ---------------------------------------------------------------------------
 
@@ -418,7 +418,7 @@ function OpeningHoursEditor() {
       toast({
         message: n === 0
           ? 'Opening hours saved.'
-          : `Hours saved and pushed to ${n} Dander Node${n === 1 ? '' : 's'}.`,
+          : `Hours saved and pushed to ${n} TapProve Node${n === 1 ? '' : 's'}.`,
         type: 'success',
       });
     } catch (err) {
@@ -432,7 +432,7 @@ function OpeningHoursEditor() {
       <div className="card-header"><span className="card-title">Opening Hours</span></div>
       <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.86rem', marginTop: 0 }}>
-          The schedule below applies to every Dander Node paired to your business — saved here, pushed out on the next 60-second upload.
+          The schedule below applies to every TapProve Node paired to your business — saved here, pushed out on the next 60-second upload.
         </p>
 
         {loading ? (

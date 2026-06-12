@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useCurrency } from '../hooks/useCurrency';
 
 /**
- * Conversions — the data that will make advertisers pay for Dander Ads.
+ * Conversions — the data that will make advertisers pay for TapProve Ads.
  *
  * Funnel per ad:
  *   Clicks  →  Entry conversions (visited within 7 days of click)

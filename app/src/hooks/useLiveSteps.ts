@@ -26,9 +26,9 @@ import { Pedometer } from 'expo-sensors';
 
 import { watchLiveSteps } from '../services/stepCounter';
 
-const SERVICE_BASELINE_KEY = 'dander_steps_today';   // shared with services/stepCounter.ts
-const DISPLAY_VALUE_KEY    = 'dander_live_steps_display';
-const DISPLAY_DATE_KEY     = 'dander_steps_date';
+const SERVICE_BASELINE_KEY = 'tapprove_steps_today';   // shared with services/stepCounter.ts
+const DISPLAY_VALUE_KEY    = 'tapprove_live_steps_display';
+const DISPLAY_DATE_KEY     = 'tapprove_steps_date';
 
 function utcDate(): string {
   return new Date().toISOString().slice(0, 10);

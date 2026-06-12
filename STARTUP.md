@@ -1,4 +1,4 @@
-# Dander — Startup Guide
+# TapProve — Startup Guide
 
 ## Requirements
 - PC must be **on and running**

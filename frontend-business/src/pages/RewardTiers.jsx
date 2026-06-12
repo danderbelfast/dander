@@ -7,7 +7,7 @@ import { LoadingBlock } from '../components/ui/Spinner';
  * RewardTiers — the dopamine system.
  *
  * Business sets a monthly budget for bronze/silver/gold prizes;
- * Dander draws weighted-randomly on every nfc-checkin. Customer never
+ * TapProve draws weighted-randomly on every nfc-checkin. Customer never
  * sees the remaining counts — only the surprise. The standard award
  * (10–50 points) is the always-on baseline.
  *

@@ -36,7 +36,7 @@ export default function LoyaltyScreen() {
       ) : rows.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.emptyEmoji}>🪙</Text>
-          <Text style={styles.emptyText}>Tap your phone at a Dander Node to start collecting.</Text>
+          <Text style={styles.emptyText}>Tap your phone at a TapProve Node to start collecting.</Text>
         </View>
       ) : (
         <FlatList

@@ -1,8 +1,8 @@
 {
-  "name": "dander",
+  "name": "tapprove",
   "version": "1.0.0",
   "private": true,
-  "description": "Dander monorepo — backend API, user/business/admin frontends, and shared utilities",
+  "description": "TapProve monorepo — backend API, user/business/admin frontends, and shared utilities",
   "workspaces": [
     "backend",
     "frontend-user",

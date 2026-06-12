@@ -1,6 +1,6 @@
-# Dander
+# TapProve
 
-Dander is an npm workspaces monorepo containing a Node.js/Express backend and three React frontends (user, business, admin), plus a shared utilities package.
+TapProve is an npm workspaces monorepo containing a Node.js/Express backend and three React frontends (user, business, admin), plus a shared utilities package.
 
 ---
 
@@ -40,11 +40,11 @@ dander/
 
 | Package | Name | Dev port |
 |---|---|---|
-| `backend` | `@dander/backend` | 4000 |
-| `frontend-user` | `@dander/frontend-user` | 3000 |
-| `frontend-business` | `@dander/frontend-business` | 3001 |
-| `frontend-admin` | `@dander/frontend-admin` | 3002 |
-| `shared` | `@dander/shared` | — |
+| `backend` | `@tapprove/backend` | 4000 |
+| `frontend-user` | `@tapprove/frontend-user` | 3000 |
+| `frontend-business` | `@tapprove/frontend-business` | 3001 |
+| `frontend-admin` | `@tapprove/frontend-admin` | 3002 |
+| `shared` | `@tapprove/shared` | — |
 
 ---
 
@@ -119,7 +119,7 @@ npm run dev:all
 
 ---
 
-## Shared package (`@dander/shared`)
+## Shared package (`@tapprove/shared`)
 
 Exposes constants and utilities consumed by all workspaces:
 

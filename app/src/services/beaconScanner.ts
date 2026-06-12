@@ -24,8 +24,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { fetchKnownNodes, notifyDetected, KnownNode } from '../api/proximity';
 
-// Fixed Dander service UUID — must match BleBroadcaster.kt in dander-node.
-export const DANDER_SERVICE_UUID = '6e646564-616e-6465-7200-000000000001';
+// Fixed TapProve BLE service UUID — must match BleBroadcaster.kt in
+// tapprove-node. Value is a stable wire-protocol identifier and does
+// NOT change with the rebrand; only the constant name does.
+export const TAPPROVE_SERVICE_UUID = '6e646564-616e-6465-7200-000000000001';
 
 // Match the SAME threshold as the spec ("strong RSSI > -70 dBm").
 const RSSI_THRESHOLD = -70;
@@ -188,7 +190,7 @@ export async function startBeaconScanner(
     // street. legacyScan: false enables extended advertising on supported
     // chipsets; harmless fallback otherwise.
     state.subscription = state.manager.startDeviceScan(
-      [DANDER_SERVICE_UUID],
+      [TAPPROVE_SERVICE_UUID],
       { allowDuplicates: true },
       async (err: any, device: any) => {
         if (err) {
@@ -199,7 +201,7 @@ export async function startBeaconScanner(
         const rssi = typeof device.rssi === 'number' ? device.rssi : null;
         if (rssi == null || rssi < RSSI_THRESHOLD) return;
 
-        const sd = device.serviceData?.[DANDER_SERVICE_UUID];
+        const sd = device.serviceData?.[TAPPROVE_SERVICE_UUID];
         if (!sd) return;
         const prefix = decodePrefix(sd);
         if (!prefix) return;

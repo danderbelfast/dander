@@ -8,7 +8,7 @@ are wired into the root layout and run after login.
 
 ```sh
 cd app
-cp .env.example .env       # leave EXPO_PUBLIC_API_URL=https://api.dander.io
+cp .env.example .env       # leave EXPO_PUBLIC_API_URL=https://api.tapprove.io
 npm install
 ```
 
@@ -67,11 +67,12 @@ src/
 ## Anti-fraud notes (read me before adding the points UI)
 
 - `useDeviceFingerprint` writes the backend's response to AsyncStorage —
-  `dander_device_flagged` (`'1'` or `'0'`) and `dander_device_flag_reason`.
-  The points/rewards UI should call `isFlagged()` from
-  `src/hooks/useDeviceFingerprint.ts` and silently suppress reward accrual
-  when it returns `true`. **Do not surface the flag to the user.**
-- The install UUID at `dander_install_id` is set on first launch and
+  `tapprove_device_flagged` (`'1'` or `'0'`) and
+  `tapprove_device_flag_reason`. The points/rewards UI should call
+  `isFlagged()` from `src/hooks/useDeviceFingerprint.ts` and silently
+  suppress reward accrual when it returns `true`. **Do not surface the
+  flag to the user.**
+- The install UUID at `tapprove_install_id` is set on first launch and
   **never rotates** — not on logout, not on re-install (it does reset on
   app uninstall, which is fine). The backend relies on this to detect
   "multiple accounts on the same install".

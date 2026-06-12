@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const LS_KEY = 'dander_pwa_install';
+const LS_KEY = 'tapprove_pwa_install';
 const DISMISS_DAYS = 7;
 
 function getStore() {

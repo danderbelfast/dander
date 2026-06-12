@@ -16,6 +16,7 @@ const { createServer } = require('http');
 const { Server }       = require('socket.io');
 const { WebSocketServer } = require('ws');
 const pool             = require('../db/pool');
+const config           = require('./config');
 
 // ---------------------------------------------------------------------------
 // App + HTTP server
@@ -35,11 +36,8 @@ const httpServer = createServer(app);
 // add session-based socket auth.
 const io         = new Server(httpServer, {
   cors: {
-    origin: (process.env.FRONTEND_URL || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-    methods: ['GET', 'POST'],
+    origin:      config.allowedOrigins,
+    methods:     ['GET', 'POST'],
     credentials: true,
   },
   // Cloudflare's WebSocket proxy mangles permessage-deflate RSV bits,
@@ -65,10 +63,7 @@ app.use(helmet({
   // Allow serving local /uploads images inline
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors({ origin: config.allowedOrigins }));
 app.use(morgan('dev'));
 // Stripe webhook needs raw body — mount before JSON parser
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -213,12 +208,14 @@ app.use('/downloads', require('express').static(require('path').resolve(__dirnam
 // ---------------------------------------------------------------------------
 // Android App Links verification
 //
-// Google's verifier fetches https://dander.io/.well-known/assetlinks.json
+// Google's verifier fetches https://<host>/.well-known/assetlinks.json
 // over HTTPS (no redirects allowed) with Content-Type: application/json
 // and checks the SHA256 cert fingerprint(s) against the installed APK.
-// Cloudflare must NOT rewrite the Content-Type or follow any redirects —
-// add a Page Rule that forces this exact path to bypass caching if you
-// see verification fail after rotating the signing key.
+// During the dander.io → tapprove.io rebrand both hosts serve this file
+// so the same APK verifies under either intent-filter host. Cloudflare
+// must NOT rewrite the Content-Type or follow any redirects on either
+// domain — add a Page Rule that forces this exact path to bypass caching
+// if you see verification fail after rotating the signing key.
 // ---------------------------------------------------------------------------
 
 app.get('/.well-known/assetlinks.json', (_req, res) => {
@@ -267,7 +264,7 @@ app.get('/update/node', (_req, res) => {
     <li>Install the APK when downloaded.</li>
     <li>Reopen the Dander Node app.</li>
   </ol>
-  <a class="cta" href="/downloads/dander-node-latest.apk">Download Latest APK</a>
+  <a class="cta" href="/downloads/tapprove-node-latest.apk">Download Latest APK</a>
   <div class="hint">Or grab it from the GitHub Releases page if /downloads isn't populated yet.</div>
 </body></html>`);
 });
@@ -499,11 +496,9 @@ schedulePositionLogPrune();         // hourly at :17 — prune bt_position_log r
 // Start
 // ---------------------------------------------------------------------------
 
-const PORT = parseInt(process.env.PORT || '4000', 10);
-
-httpServer.listen(PORT, () => {
-  console.log(`[server] Dander API running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
-  console.log(`[server] Health: http://localhost:${PORT}/health`);
+httpServer.listen(config.PORT, () => {
+  console.log(`[server] TapProve API running on port ${config.PORT} (${config.DEPLOY_ENV})`);
+  console.log(`[server] Health: http://localhost:${config.PORT}/health`);
 });
 
 // ---------------------------------------------------------------------------

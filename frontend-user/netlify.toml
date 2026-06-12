@@ -3,23 +3,25 @@
   publish   = "dist"
 
 # Android App Links verification — Google fetches
-#   https://dander.io/.well-known/assetlinks.json
-# over HTTPS with no redirects. Netlify serves static files before
-# evaluating redirects so the SPA catch-all below won't shadow this
-# path, but we set the Content-Type explicitly so a stricter verifier
-# can't complain.
+#   https://<host>/.well-known/assetlinks.json
+# over HTTPS with no redirects. Both tapprove.io (current) and
+# dander.io (legacy 301-source) front this Netlify site so both
+# hosts must return the file unredirected. Netlify serves static
+# files before evaluating redirects so the SPA catch-all below
+# won't shadow this path, but we set the Content-Type explicitly
+# so a stricter verifier can't complain.
 [[headers]]
   for = "/.well-known/assetlinks.json"
   [headers.values]
     Content-Type  = "application/json"
     Cache-Control = "public, max-age=300"
 
-# Till NFC URL — https://dander.io/till?business=<id>. Each business has
-# their own sticker programmed with their business id. Android's App
-# Links intent filter intercepts before the SPA renders; the no-cache
-# header is here so that on browsers / desktops (where the SPA does
-# render) we always pick up the latest deep-link fallback rather than
-# a stale cached one.
+# Till NFC URL — https://<host>/till?business=<id> (tapprove.io or
+# legacy dander.io). Each business has their own sticker programmed
+# with their business id. Android's App Links intent filter intercepts
+# before the SPA renders; the no-cache header is here so that on
+# browsers / desktops (where the SPA does render) we always pick up
+# the latest deep-link fallback rather than a stale cached one.
 [[headers]]
   for = "/till"
   [headers.values]

@@ -66,7 +66,7 @@ export function usePermissionWalkthrough() {
         if (cancelled) return;
         const locAsked = await ask(
           'Find nearby businesses',
-          'Dander uses your location to find nearby businesses and award loyalty points.',
+          'TapProve uses your location to find nearby businesses and award loyalty points.',
         );
         if (cancelled) return;
         if (locAsked) {
@@ -81,7 +81,7 @@ export function usePermissionWalkthrough() {
           if (sdk >= 31 && !cancelled) {
             const btAsked = await ask(
               'Tap to check in',
-              'Dander uses Bluetooth to recognise you at local businesses and award loyalty points automatically.',
+              'TapProve uses Bluetooth to recognise you at local businesses and award loyalty points automatically.',
             );
             if (cancelled) return;
             if (btAsked) {

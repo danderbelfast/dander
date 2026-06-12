@@ -27,7 +27,7 @@ async function requestActivityPermission(): Promise<boolean> {
       PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
       {
         title:          'Activity Permission',
-        message:        'Dander needs access to your physical activity to count your steps and reward you for exploring.',
+        message:        'TapProve needs access to your physical activity to count your steps and reward you for exploring.',
         buttonPositive: 'Allow',
         buttonNegative: 'Not now',
       },

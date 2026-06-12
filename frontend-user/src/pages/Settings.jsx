@@ -166,7 +166,7 @@ export default function Settings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span className="settings-row-label">{installed ? 'App installed' : 'Install app'}</span>
                 <span className="settings-row-value">
-                  {installed ? "You're using the installed app" : 'Add Dander to your home screen'}
+                  {installed ? "You're using the installed app" : 'Add TapProve to your home screen'}
                 </span>
               </div>
             </div>
@@ -181,7 +181,7 @@ export default function Settings() {
             </div>
             <span className="settings-row-value">1.0.0</span>
           </div>
-          <div className="settings-row" onClick={() => window.open('mailto:support@dander.app')}>
+          <div className="settings-row" onClick={() => window.open('mailto:support@tapprove.io')}>
             <div className="settings-row-left">
               <div className="settings-row-icon">✉️</div>
               <span className="settings-row-label">Contact support</span>
@@ -214,7 +214,7 @@ export default function Settings() {
           }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: '2rem', marginBottom: 12 }}>📲</div>
             <div style={{ fontFamily: 'var(--f-head)', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>
-              Install Dander
+              Install TapProve
             </div>
             <div style={{ fontSize: '0.88rem', color: 'var(--c-text-muted)', lineHeight: 1.6, marginBottom: 20 }}>
               Tap the <strong>share button</strong> <span style={{ fontSize: '1.1em' }}>⎋</span> at the bottom of Safari, then tap <strong>"Add to Home Screen"</strong>

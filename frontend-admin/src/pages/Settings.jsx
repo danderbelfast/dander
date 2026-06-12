@@ -42,7 +42,7 @@ export default function Settings() {
   useEffect(() => {
     getSettings()
       .then((s) => {
-        setPlatformName(s.platformName || 'Dander');
+        setPlatformName(s.platformName || 'TapProve');
         setSupportEmail(s.supportEmail || '');
         setMaintenance(s.maintenanceMode || false);
         setDefaultRadius(s.defaultRadius || 500);
@@ -160,7 +160,7 @@ export default function Settings() {
                 className="input"
                 value={welcomeEmailSubject}
                 onChange={(e) => setWelcomeEmailSubject(e.target.value)}
-                placeholder="Welcome to Dander! Your business is approved 🎉"
+                placeholder="Welcome to TapProve! Your business is approved 🎉"
               />
               <div className="field-hint">Sent to business owners when you approve their application. Leave blank to use the default.</div>
             </div>

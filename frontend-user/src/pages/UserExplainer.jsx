@@ -6,11 +6,11 @@ import { usePwa } from '../context/PwaInstallContext';
 const STEPS = [
   {
     title: 'Just open the app',
-    body: "No searching, no scrolling through irrelevant results. Dander knows where you are and shows you what's live right now within walking distance. The deal comes to you.",
+    body: "No searching, no scrolling through irrelevant results. TapProve knows where you are and shows you what's live right now within walking distance. The deal comes to you.",
   },
   {
     title: "See what's on around you",
-    body: "Restaurants, cafés, bars, shops, salons — whatever's nearby has something on. Filter by distance, category or what's ending soonest. Or just let Dander surprise you.",
+    body: "Restaurants, cafés, bars, shops, salons — whatever's nearby has something on. Filter by distance, category or what's ending soonest. Or just let TapProve surprise you.",
   },
   {
     title: 'Claim it in one tap',
@@ -68,7 +68,7 @@ export default function UserExplainer() {
           Real offers from real businesses, surfaced the moment you're close enough to use them.
         </div>
         <button className="ex-hero-cta" onClick={handleInstall}>
-          {installed ? 'Open Dander' : 'Get the app free'}
+          {installed ? 'Open TapProve' : 'Get the app free'}
         </button>
       </div>
 
@@ -118,7 +118,7 @@ export default function UserExplainer() {
           COMING 2026
         </div>
         <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff', marginBottom: 6 }}>
-          Dander Analytics &bull; Dander Ads &bull; Dander Merchant Center
+          TapProve Analytics &bull; TapProve Ads &bull; TapProve Merchant Center
         </div>
         <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', maxWidth: 480, margin: '0 auto 16px', lineHeight: 1.55 }}>
           The complete analytics suite for physical retail. Understand your footfall. Drive verified visits. Match shoppers to your inventory.
@@ -127,7 +127,7 @@ export default function UserExplainer() {
           style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#E85D26', padding: '8px 20px', borderRadius: 'var(--r-full)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
           onClick={() => navigate('/for-business')}
         >
-          Learn More About Dander for Business &rarr;
+          Learn More About TapProve for Business &rarr;
         </button>
       </div>
 
@@ -136,7 +136,7 @@ export default function UserExplainer() {
         <div className="ex-final-cta-heading">Ready to start saving?</div>
         <div className="ex-final-cta-sub">Free to download. No catches.</div>
         <button className="ex-cta-btn ex-cta-btn-user" onClick={handleInstall}>
-          {installed ? 'Open Dander' : 'Download Dander'}
+          {installed ? 'Open TapProve' : 'Download TapProve'}
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>

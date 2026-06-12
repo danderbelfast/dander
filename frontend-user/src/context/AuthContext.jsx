@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
   // Restore session from refresh token in localStorage on app mount
   useEffect(() => {
     const restore = async () => {
-      const stored = localStorage.getItem('dander_refresh');
+      const stored = localStorage.getItem('tapprove_refresh');
       if (!stored) { setLoading(false); return; }
 
       try {
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
           avatarUrl: data.user?.avatarUrl ?? null,
         });
       } catch {
-        localStorage.removeItem('dander_refresh');
+        localStorage.removeItem('tapprove_refresh');
       } finally {
         setLoading(false);
       }
@@ -46,20 +46,20 @@ export function AuthProvider({ children }) {
 
     // Handle forced logout from the axios interceptor
     const onLogout = () => logout();
-    window.addEventListener('dander:logout', onLogout);
-    return () => window.removeEventListener('dander:logout', onLogout);
+    window.addEventListener('tapprove:logout', onLogout);
+    return () => window.removeEventListener('tapprove:logout', onLogout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = useCallback((accessToken, refreshToken, userData) => {
     setAccessToken(accessToken);
-    localStorage.setItem('dander_refresh', refreshToken);
+    localStorage.setItem('tapprove_refresh', refreshToken);
     setUser(userData);
   }, []);
 
   const logout = useCallback(() => {
     clearAccessToken();
-    localStorage.removeItem('dander_refresh');
+    localStorage.removeItem('tapprove_refresh');
     setUser(null);
   }, []);
 

@@ -68,7 +68,7 @@ export default function Zones() {
       <div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Live Zones</h2>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
-          Real-time activity from your Dander Node phone counters. Refreshes every 30 seconds.
+          Real-time activity from your TapProve Node phone counters. Refreshes every 30 seconds.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default function Zones() {
               No active zones
             </h3>
             <p style={{ fontSize: '0.9rem', maxWidth: 420, margin: '0 auto' }}>
-              Install Dander Node phones at your entrance / display / till and configure each zone
+              Install TapProve Node phones at your entrance / display / till and configure each zone
               from the phone&apos;s setup screen.
             </p>
           </div>

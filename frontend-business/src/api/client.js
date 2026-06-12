@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import { API_URL as BASE_URL } from '../config';
 
 let _accessToken  = null;
 let _refreshPromise = null;

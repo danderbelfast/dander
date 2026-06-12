@@ -241,7 +241,7 @@ export default function CreateOffer() {
             </div>
 
             <div style={{ background: 'var(--c-bg-muted)', border: '1px solid var(--c-border)', borderRadius: 'var(--r-md)', padding: '12px 16px', fontSize: '0.85rem', color: 'var(--c-text-muted)', lineHeight: 1.6 }}>
-              💡 When a customer claims this offer in the Dander app, the system automatically generates a unique coupon code for them. They show that code at your counter and a staff member enters it — along with their PIN — on the Redeem Coupon page to mark it as used.
+              💡 When a customer claims this offer in the TapProve app, the system automatically generates a unique coupon code for them. They show that code at your counter and a staff member enters it — along with their PIN — on the Redeem Coupon page to mark it as used.
             </div>
 
             <div className="field">
@@ -367,7 +367,7 @@ export default function CreateOffer() {
           <div className="label" style={{ marginBottom: 12, fontWeight: 600 }}>Live preview</div>
           <OfferPreviewCard offer={previewOffer} businessName={business?.name} imagePreview={imagePreview} />
           <p className="field-hint" style={{ marginTop: 10, textAlign: 'center' }}>
-            This is how your offer will appear to customers in the Dander app.
+            This is how your offer will appear to customers in the TapProve app.
           </p>
         </div>
       </div>

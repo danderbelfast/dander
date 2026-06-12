@@ -92,7 +92,7 @@ export default function GifLibrary() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
           ) : current.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 32, color: 'var(--c-text-muted)' }}>
-              No custom GIFs — using Dander defaults.
+              No custom GIFs — using TapProve defaults.
             </div>
           ) : (
             <div style={{

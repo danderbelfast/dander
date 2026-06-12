@@ -94,7 +94,7 @@ export default function NotificationPreferences() {
         if (data.alert_volume !== undefined) setAlertVolume(data.alert_volume);
         
         // Cache in localStorage for instant access
-        localStorage.setItem('dander_sound_prefs', JSON.stringify({
+        localStorage.setItem('tapprove_sound_prefs', JSON.stringify({
           sounds_enabled: data.sounds_enabled ?? true,
           haptics_enabled: data.haptics_enabled ?? true,
           alert_volume: data.alert_volume ?? 0.7,
@@ -131,7 +131,7 @@ export default function NotificationPreferences() {
     const oneHourFromNow = new Date();
     oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
     setMuteUntil(oneHourFromNow);
-    localStorage.setItem('dander_sound_mute_until', oneHourFromNow.toISOString());
+    localStorage.setItem('tapprove_sound_mute_until', oneHourFromNow.toISOString());
     toast({ type: 'success', title: 'Sounds muted for 1 hour' });
   }
 
@@ -189,7 +189,7 @@ export default function NotificationPreferences() {
       });
       
       // Cache in localStorage for instant access
-      localStorage.setItem('dander_sound_prefs', JSON.stringify({
+      localStorage.setItem('tapprove_sound_prefs', JSON.stringify({
         sounds_enabled: soundsEnabled,
         haptics_enabled: hapticsEnabled,
         alert_volume: alertVolume,
@@ -315,7 +315,7 @@ export default function NotificationPreferences() {
         <div className="settings-row" style={{ cursor: 'default', marginTop: 8, opacity: 0.5, pointerEvents: 'none' }}>
           <div className="settings-row-left" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
             <span className="settings-row-label">Alert style</span>
-            <span className="settings-row-value">Dander Classic — More coming soon</span>
+            <span className="settings-row-value">TapProve Classic — More coming soon</span>
           </div>
         </div>
 
@@ -340,7 +340,7 @@ export default function NotificationPreferences() {
         </div>
         {denied && (
           <div style={{ padding: '10px 16px 0', fontSize: '0.78rem', color: 'var(--c-text-muted)', lineHeight: 1.5 }}>
-            Notifications are blocked for this site. Open your browser settings and allow notifications for Dander, then reload.
+            Notifications are blocked for this site. Open your browser settings and allow notifications for TapProve, then reload.
           </div>
         )}
       </div>

@@ -16,6 +16,7 @@ const pool = require('../db/pool');
 const { pickGifUrl } = require('../services/loyaltyGreeting');
 const nodeWs = require('../ws/nodes');
 const appVersion = require('../config/appVersion');
+const config = require('../src/config');
 
 const router = Router();
 
@@ -106,7 +107,7 @@ router.get('/business/:id/stranger-display', async (req, res) => {
       success: true,
       business_name: business.name,
       todays_offer: offer,
-      app_download_url: 'https://dander.io',
+      app_download_url: config.USER_APP_URL,
       visitor_count_today: visitorCountToday,
       custom_message: 'Scan to get loyalty points',
     });
@@ -202,7 +203,7 @@ router.get('/tap', async (req, res) => {
   const businessId   = parseInt(req.query.business, 10);
 
   if (!nodeDeviceId || !Number.isFinite(businessId)) {
-    return res.redirect('https://dander.io');
+    return res.redirect(config.USER_APP_URL);
   }
 
   // Fire the stranger display command — best-effort, never blocks redirect.
@@ -226,7 +227,7 @@ router.post('/nfc-stranger', async (req, res) => {
   await fireStrangerDisplay({ nodeDeviceId, businessId });
   return res.status(200).json({
     success: true,
-    join_url: `https://dander.io/join?business=${encodeURIComponent(businessId)}&node=${encodeURIComponent(nodeDeviceId)}`,
+    join_url: `${config.USER_APP_URL}/join?business=${encodeURIComponent(businessId)}&node=${encodeURIComponent(nodeDeviceId)}`,
   });
 });
 
@@ -313,7 +314,7 @@ function esc(s) {
 }
 
 function renderJoinHtml({ business, offer, visitorCount }) {
-  const bizName = esc(business?.name || 'Dander');
+  const bizName = esc(business?.name || 'TapProve');
   const offerHtml = offer
     ? `<div class="offer">
          <div class="offer-label">Today's offer</div>

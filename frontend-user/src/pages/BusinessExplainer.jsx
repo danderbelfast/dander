@@ -1,7 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BUSINESS_PORTAL_URL, SALES_EMAIL } from '../config';
 
-const BUSINESS_PORTAL_URL = import.meta.env.VITE_BUSINESS_PORTAL_URL || '';
+const MAILTO_DEMO    = `mailto:${SALES_EMAIL}?subject=Demo request`;
+const MAILTO_PRO     = `mailto:${SALES_EMAIL}?subject=Pro demo request`;
 
 const FEATURES = [
   {
@@ -103,7 +105,7 @@ export default function BusinessExplainer() {
             List my business free
           </a>
           <button className="ex-hero-cta" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)' }}
-            onClick={() => window.open('mailto:hello@dander.io?subject=Demo request', '_blank')}>
+            onClick={() => window.open(MAILTO_DEMO, '_blank')}>
             Book a demo
           </button>
         </div>
@@ -126,7 +128,7 @@ export default function BusinessExplainer() {
         <div style={{ textAlign: 'center', maxWidth: 580, margin: '0 auto 16px' }}>
           <div className="ex-section-title" style={{ fontSize: '1.3rem' }}>Stop guessing. Start measuring.</div>
           <p style={{ fontSize: '0.9rem', color: 'var(--c-text-muted)', lineHeight: 1.65 }}>
-            Every high street business makes decisions based on gut feel. Dander gives you the data to make them with confidence.
+            Every high street business makes decisions based on gut feel. TapProve gives you the data to make them with confidence.
           </p>
         </div>
 
@@ -144,9 +146,9 @@ export default function BusinessExplainer() {
         {/* Positioning statement */}
         <div style={{ textAlign: 'center', padding: '40px 20px', margin: '32px 0' }}>
           <div style={{ fontSize: '1.15rem', fontWeight: 700, maxWidth: 520, margin: '0 auto', lineHeight: 1.5 }}>
-            "We built Dander because every shop deserves the same data advantage that online stores have had for 20 years."
+            "We built TapProve because every shop deserves the same data advantage that online stores have had for 20 years."
           </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginTop: 8 }}>— Dander team</div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginTop: 8 }}>— TapProve team</div>
         </div>
 
         {/* Pricing */}
@@ -177,7 +179,7 @@ export default function BusinessExplainer() {
                     </li>
                   ))}
                 </ul>
-                <a href={t.name === 'Pro' ? 'mailto:hello@dander.io?subject=Pro demo request' : portalRegister}
+                <a href={t.name === 'Pro' ? MAILTO_PRO : portalRegister}
                   target="_blank" rel="noopener noreferrer"
                   style={{ marginTop: 16, textAlign: 'center', display: 'block', textDecoration: 'none', padding: '10px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, background: t.accent ? '#E85D26' : 'transparent', color: t.accent ? '#fff' : '#E85D26', border: t.accent ? 'none' : '1px solid #E85D26' }}>
                   {t.cta}
@@ -191,7 +193,7 @@ export default function BusinessExplainer() {
         <div style={{ marginTop: 40 }}>
           <div className="ex-section-title" style={{ textAlign: 'center', fontSize: '1.1rem' }}>Built for business intelligence</div>
           <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--c-text-muted)', maxWidth: 520, margin: '0 auto 20px', lineHeight: 1.6 }}>
-            Cafés, restaurants, bars, salons, retail shops, gyms — any business with a physical location and customers who walk through a door. Join the growing number of businesses using Dander to understand their footfall and drive more traffic.
+            Cafés, restaurants, bars, salons, retail shops, gyms — any business with a physical location and customers who walk through a door. Join the growing number of businesses using TapProve to understand their footfall and drive more traffic.
           </p>
         </div>
 
@@ -222,12 +224,12 @@ export default function BusinessExplainer() {
             style={{ textDecoration: 'none' }}>
             List My Business Free
           </a>
-          <a className="ex-cta-btn" href="mailto:hello@dander.io?subject=Demo request" style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>
+          <a className="ex-cta-btn" href={MAILTO_DEMO} style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>
             Book a Demo
           </a>
         </div>
         <div className="ex-cta-note" style={{ marginTop: 14 }}>
-          Dander Ads and Merchant Center launching Q3–Q4 2026. Analytics available now with Growth tier.
+          TapProve Ads and Merchant Center launching Q3–Q4 2026. Analytics available now with Growth tier.
         </div>
       </div>
 

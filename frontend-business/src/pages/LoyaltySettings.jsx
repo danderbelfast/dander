@@ -109,7 +109,7 @@ export default function LoyaltySettings() {
       <div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Loyalty Settings</h2>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
-          Configure how the Dander Node greets your customers and rewards repeat visits.
+          Configure how the TapProve Node greets your customers and rewards repeat visits.
         </p>
       </div>
 

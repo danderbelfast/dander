@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { claimDailyLogin } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 
-const STORAGE_KEY = 'dander_last_login_bonus';
+const STORAGE_KEY = 'tapprove_last_login_bonus';
 
 function utcDate(): string {
   return new Date().toISOString().slice(0, 10);

@@ -1,0 +1,72 @@
+'use strict';
+
+// ============================================================
+//  config.js — single source of truth for every URL / origin /
+//  brand string the backend emits.
+//
+//  Every value falls back to its current production default, so
+//  flipping prod → staging is exclusively an env-var operation
+//  (set USER_APP_URL=https://staging.tapprove.io etc on Railway and
+//  restart — zero code edits required).
+//
+//  Imported by routes/public.js, routes/v1.js, services/billingService,
+//  services/notificationService, services/offerLabels.
+// ============================================================
+
+require('dotenv').config();
+
+const PORT      = parseInt(process.env.PORT || '4000', 10);
+const NODE_ENV  = process.env.NODE_ENV || 'development';
+// DEPLOY_ENV is the deploy-time label ("staging" / "production" /
+// "development") that's allowed to differ from NODE_ENV. Node tooling
+// frequently coerces NODE_ENV to 'production' on a built bundle, so
+// the runtime banner can't rely on it for which environment we're in.
+// Set this explicitly on Railway: DEPLOY_ENV=staging on the staging
+// service, DEPLOY_ENV=production on prod, leave unset locally.
+const DEPLOY_ENV = process.env.DEPLOY_ENV || NODE_ENV;
+
+// External URLs the API hands out in payloads, OG images, and outbound
+// notifications. Pick names carefully — these end up in SMS, push and
+// email so the wrong one in staging would still be visible to users.
+const USER_APP_URL     = trimTrailingSlash(process.env.USER_APP_URL     || 'https://tapprove.io');
+const BUSINESS_APP_URL = trimTrailingSlash(process.env.BUSINESS_APP_URL || 'https://business.tapprove.io');
+const ADMIN_APP_URL    = trimTrailingSlash(process.env.ADMIN_APP_URL    || 'https://admin.tapprove.io');
+const API_PUBLIC_URL   = trimTrailingSlash(process.env.API_PUBLIC_URL   || 'https://api.tapprove.io');
+
+// Stripe billing portal return — special-case because Stripe sometimes
+// appends its own query params; we never trim it post-hoc.
+const STRIPE_PORTAL_RETURN_URL =
+  process.env.STRIPE_PORTAL_RETURN_URL || `${USER_APP_URL}/dashboard`;
+
+// Brand strings used in outbound copy. Kept here so a white-label
+// staging environment can rebrand without code edits.
+const PLATFORM_NAME = process.env.PLATFORM_NAME || 'TapProve';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@tapprove.io';
+const SALES_EMAIL   = process.env.SALES_EMAIL   || 'hello@tapprove.io';
+
+// Socket.IO / Express CORS allow-list. FRONTEND_URL has been a
+// comma-split list since the multi-frontend split — we honour that
+// shape and only fall back to localhost dev origins when unset.
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim()).filter(Boolean)
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
+
+// Helpers callers shouldn't need to repeat.
+function trimTrailingSlash(s) {
+  return typeof s === 'string' ? s.replace(/\/+$/, '') : s;
+}
+
+module.exports = {
+  PORT,
+  NODE_ENV,
+  DEPLOY_ENV,
+  USER_APP_URL,
+  BUSINESS_APP_URL,
+  ADMIN_APP_URL,
+  API_PUBLIC_URL,
+  STRIPE_PORTAL_RETURN_URL,
+  PLATFORM_NAME,
+  SUPPORT_EMAIL,
+  SALES_EMAIL,
+  allowedOrigins,
+};

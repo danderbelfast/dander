@@ -1,5 +1,5 @@
 -- =============================================================================
--- Dander Platform — Seed Data
+-- TapProve Platform — Seed Data
 -- Belfast, Northern Ireland sample data
 --
 -- Passwords below are bcrypt hashes of the plaintext shown in the comment.

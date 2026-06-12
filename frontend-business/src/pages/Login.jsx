@@ -5,7 +5,7 @@ import { getProfile } from '../api/business';
 import { useAuth } from '../context/AuthContext';
 import { clearAccessToken, setAccessToken } from '../api/client';
 import { Spinner } from '../components/ui/Spinner';
-import danderLogoWhite from '../assets/Dander_Logo_White.png';
+import tapproveLogoWhite from '../assets/TapProve_Logo_White.png';
 
 function decodeJWT(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return {}; } }
 
@@ -74,7 +74,7 @@ export default function Login() {
     <div className="auth-wrap">
       <div className="auth-left">
         <div className="auth-brand">
-          <img src={danderLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
+          <img src={tapproveLogoWhite} alt="TapProve" style={{ width: 140, height: 'auto' }} />
         </div>
         <h1>Turn your quiet hours into your busiest ones.</h1>
         <p style={{ marginTop: 20 }}>

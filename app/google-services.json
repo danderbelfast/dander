@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265341821648",
+    "project_id": "dander-cc9a7",
+    "storage_bucket": "dander-cc9a7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265341821648:android:2505aebc92774dc62ef4d5",
+        "android_client_info": {
+          "package_name": "io.tapprove.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwWPaE0BpMfLeb-zIssGC2UbKPZ8S7rDs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

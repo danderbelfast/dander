@@ -5,6 +5,7 @@ import { resolveImageUrl } from '../../utils/imageUrl';
 import { saveOffer, unsaveOffer, trackShare } from '../../api/offers';
 import { StoryOverlay } from '../ui/StoryOverlay';
 import { StarDisplay, NewBadge } from '../ui/StarRating';
+import { PUBLIC_APP_URL } from '../../config';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -216,7 +217,7 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
 
             <button className="offer-card-share-btn" onClick={(e) => {
               e.stopPropagation();
-              const url = `https://dander.io/o/${offer.id}`;
+              const url = `${PUBLIC_APP_URL}/o/${offer.id}`;
               const text = `Check out this deal: ${offer.title} at ${offer.business_name}`;
               trackShare(offer.id).catch(() => {});
               if (navigator.share) {

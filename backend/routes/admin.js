@@ -889,7 +889,7 @@ router.get('/settings', async (req, res) => {
       catch { settings[r.key] = r.value; }
     });
     return ok(res, {
-      platformName:          settings.platform_name             || 'Dander',
+      platformName:          settings.platform_name             || 'TapProve',
       supportEmail:          settings.support_email             || '',
       maintenanceMode:       settings.maintenance_mode          || false,
       defaultRadius:         settings.default_radius            || 500,

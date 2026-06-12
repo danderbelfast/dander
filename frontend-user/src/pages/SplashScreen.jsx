@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import danderLogo   from '../assets/Dander_Logo_White.png';
-import customerImg  from '../assets/Dander_customer.webp';
-import vendorImg    from '../assets/Dander_vendor.webp';
+import tapproveLogo from '../assets/TapProve_Logo_White.png';
+import customerImg  from '../assets/TapProve_customer.webp';
+import vendorImg    from '../assets/TapProve_vendor.webp';
 
 export default function SplashScreen() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export default function SplashScreen() {
         <img className="sp-bg" src={customerImg} alt="" />
         <div className="sp-overlay-dark" />
         <div className="sp-overlay-vignette" />
-        <img className="sp-logo-img sp-logo-left" src={danderLogo} alt="Dander" />
+        <img className="sp-logo-img sp-logo-left" src={tapproveLogo} alt="TapProve" />
         <div className="sp-text sp-text-left">
           <div className="sp-label"><span className="sp-label-pill">For Shoppers</span></div>
           <div className="sp-headline">Deals right<br />where you are.</div>

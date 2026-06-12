@@ -1,6 +1,7 @@
 'use strict';
 
-const BASE_URL = process.env.DANDER_BASE_URL || 'https://dander.io';
+const config = require('../src/config');
+const BASE_URL = config.USER_APP_URL;
 
 function discountLabel(offer) {
   switch (offer.offer_type) {

@@ -10,7 +10,7 @@ function verifyKiloSignature(req, res, next) {
   const secret = process.env.KILO_API_KEY;
   if (!secret) return next();
 
-  const signature = req.headers['x-kilo-signature'] || req.headers['x-dander-signature'];
+  const signature = req.headers['x-kilo-signature'] || req.headers['x-tapprove-signature'];
   if (!signature) return next();
 
   const expected = crypto.createHmac('sha256', secret).update(req._rawBody || '').digest('hex');

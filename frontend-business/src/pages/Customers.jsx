@@ -40,7 +40,7 @@ export default function Customers() {
       <div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Customer Visits</h2>
         <p style={{ color: 'var(--c-text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
-          Recent loyalty visits captured by Dander Node proximity detection.
+          Recent loyalty visits captured by TapProve Node proximity detection.
         </p>
       </div>
 
@@ -60,7 +60,7 @@ export default function Customers() {
           {visits.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 48, color: 'var(--c-text-muted)', fontSize: '0.88rem' }}>
               <div style={{ fontSize: '2rem', marginBottom: 12, opacity: 0.3 }}>👋</div>
-              No recognised customers yet — they'll appear here as soon as the Dander Node spots a paired phone.
+              No recognised customers yet — they'll appear here as soon as the TapProve Node spots a paired phone.
             </div>
           ) : (
             <div className="table-wrap">

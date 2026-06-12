@@ -18,6 +18,8 @@
 // Lazy Twilio client
 // ---------------------------------------------------------------------------
 
+const config = require('../src/config');
+
 let _client = null;
 
 function getTwilio() {
@@ -86,7 +88,7 @@ async function sendSms(to, message) {
 async function sendTotpSetupSms(phone, code) {
   return sendSms(
     phone,
-    `Dander verification code: ${code}\n\nEnter this in the app to complete 2FA setup. Valid for 30 seconds.`
+    `TapProve verification code: ${code}\n\nEnter this in the app to complete 2FA setup. Valid for 30 seconds.`
   );
 }
 
@@ -129,7 +131,7 @@ async function sendWelcomeSms(phone, firstName) {
 async function sendBusinessApprovedSms(phone, businessName) {
   return sendSms(
     phone,
-    `Great news! "${businessName}" has been approved on Dander. Sign in to your dashboard to create your first offer: https://biz.dander.io`
+    `Great news! "${businessName}" has been approved on ${config.PLATFORM_NAME}. Sign in to your dashboard to create your first offer: ${config.BUSINESS_APP_URL}`
   );
 }
 
@@ -142,7 +144,7 @@ async function sendBusinessApprovedSms(phone, businessName) {
 async function sendBusinessSuspendedSms(phone, businessName) {
   return sendSms(
     phone,
-    `Your Dander business account "${businessName}" has been suspended. Please contact support@dander.io for details.`
+    `Your ${config.PLATFORM_NAME} business account "${businessName}" has been suspended. Please contact ${config.SUPPORT_EMAIL} for details.`
   );
 }
 
@@ -155,7 +157,7 @@ async function sendBusinessSuspendedSms(phone, businessName) {
 async function sendSecurityAlertSms(phone, action) {
   return sendSms(
     phone,
-    `Dander security alert: your ${action}. If this wasn't you, contact support@dander.io immediately.`
+    `${config.PLATFORM_NAME} security alert: your ${action}. If this wasn't you, contact ${config.SUPPORT_EMAIL} immediately.`
   );
 }
 

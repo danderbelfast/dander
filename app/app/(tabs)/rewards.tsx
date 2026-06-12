@@ -111,7 +111,7 @@ export default function RewardsScreen() {
       <View style={styles.valueBanner}>
         <Text style={styles.valueBannerHead}>500 points = {ccy}10 in-store credit</Text>
         <Text style={styles.valueBannerBody}>
-          Use at any Dander business — high street only.
+          Use at any Tapproved business — high street only.
         </Text>
       </View>
 
@@ -128,7 +128,7 @@ export default function RewardsScreen() {
                 <Text style={styles.bestBadgeText}>BEST VALUE</Text>
               </View>
             </View>
-            <Text style={styles.cardSub}>Valid at any Dander business</Text>
+            <Text style={styles.cardSub}>Valid at any Tapproved business</Text>
             <Text style={styles.cardSub}>High street only — no online use</Text>
           </View>
         </View>
@@ -166,7 +166,7 @@ export default function RewardsScreen() {
                 <Text style={styles.soonBadgeText}>COMING SOON</Text>
               </View>
             </View>
-            <Text style={styles.cardSub}>Exclusive vouchers from Dander partners</Text>
+            <Text style={styles.cardSub}>Exclusive vouchers from TapProve partners</Text>
             <Text style={styles.cardSub}>More partners joining soon</Text>
           </View>
         </View>

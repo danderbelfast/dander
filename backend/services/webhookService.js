@@ -59,8 +59,8 @@ async function deliver(hook, eventType, body, attempt = 1) {
     const resp = await axios.post(hook.url, body, {
       headers: {
         'Content-Type': 'application/json',
-        'X-Dander-Signature': signature,
-        'X-Dander-Event': eventType,
+        'X-TapProve-Signature': signature,
+        'X-TapProve-Event': eventType,
       },
       timeout: TIMEOUT_MS,
       validateStatus: () => true,

@@ -21,7 +21,7 @@
  *   required after any version change to this dep.
  *
  *   When a POST awards points, the backend response's `points_earned`
- *   is added to AsyncStorage('dander_pending_points') (cumulative) so a
+ *   is added to AsyncStorage('tapprove_pending_points') (cumulative) so a
  *   later "+N points!" UI can pop and clear it.
  */
 
@@ -35,7 +35,7 @@ import { hapticLight } from './haptics';
 const SCAN_INTERVAL_MS  = 30_000;
 const MAX_BATCH         = 50;
 const MAX_RETRIES       = 3;
-const PENDING_POINTS_KEY = 'dander_pending_points';
+const PENDING_POINTS_KEY = 'tapprove_pending_points';
 
 // ── Native module: dynamic require so iOS / Expo Go don't crash ────────────
 type WifiLib = typeof import('react-native-wifi-reborn').default;

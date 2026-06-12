@@ -1,13 +1,13 @@
 import React from 'react';
-import danderLogo from '../../assets/dander-app-logo.png';
+import tapproveLogo from '../../assets/tapprove-app-logo.png';
 
 export function InstallBanner({ isIos, onInstall, onDismiss }) {
   return (
     <div className="install-banner">
-      <img src={danderLogo} alt="" className="install-banner-logo" />
+      <img src={tapproveLogo} alt="" className="install-banner-logo" />
       <div className="install-banner-text">
         <div className="install-banner-title">
-          {isIos ? 'Install Dander for the best experience' : 'Add Dander to your home screen'}
+          {isIos ? 'Install TapProve for the best experience' : 'Add TapProve to your home screen'}
         </div>
         <div className="install-banner-sub">
           {isIos

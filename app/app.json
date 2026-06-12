@@ -1,25 +1,26 @@
 {
   "expo": {
-    "name": "Dander",
-    "slug": "dander",
-    "scheme": "dander",
+    "name": "TapProve",
+    "slug": "tapprove",
+    "scheme": "tapprove",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "io.dander.app",
+      "bundleIdentifier": "io.tapprove.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Dander uses your location to discover nearby offers and improve coverage.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Dander uses your location in the background to suggest offers as you move around.",
-        "NSMotionUsageDescription": "Dander counts your steps to reward you for exploring the high street.",
-        "NSBluetoothAlwaysUsageDescription": "Dander uses Bluetooth to recognise you at local businesses and award loyalty points automatically.",
-        "NSBluetoothPeripheralUsageDescription": "Dander uses Bluetooth to recognise you at local businesses and award loyalty points automatically."
+        "NSLocationWhenInUseUsageDescription": "TapProve uses your location to discover nearby offers and improve coverage.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TapProve uses your location in the background to suggest offers as you move around.",
+        "NSMotionUsageDescription": "TapProve counts your steps to reward you for exploring the high street.",
+        "NSBluetoothAlwaysUsageDescription": "TapProve uses Bluetooth to recognise you at local businesses and award loyalty points automatically.",
+        "NSBluetoothPeripheralUsageDescription": "TapProve uses Bluetooth to recognise you at local businesses and award loyalty points automatically."
       }
     },
     "android": {
-      "package": "io.dander.app",
+      "package": "io.tapprove.app",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -39,31 +40,19 @@
         {
           "action": "VIEW",
           "data": [
-            {
-              "scheme": "https",
-              "host": "dander.io",
-              "pathPrefix": "/tap"
-            }
+            { "scheme": "https", "host": "tapprove.io", "pathPrefix": "/tap" },
+            { "scheme": "https", "host": "dander.io",   "pathPrefix": "/tap" }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ],
+          "category": ["BROWSABLE", "DEFAULT"],
           "autoVerify": true
         },
         {
           "action": "VIEW",
           "data": [
-            {
-              "scheme": "https",
-              "host": "dander.io",
-              "pathPrefix": "/till"
-            }
+            { "scheme": "https", "host": "tapprove.io", "pathPrefix": "/till" },
+            { "scheme": "https", "host": "dander.io",   "pathPrefix": "/till" }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ],
+          "category": ["BROWSABLE", "DEFAULT"],
           "autoVerify": true
         }
       ]
@@ -96,7 +85,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "49294972-e974-4b31-8c3d-ee640e9adf41"
+        "projectId": "67057ff5-deb7-4b01-8c2d-5c69ec5f2399"
       }
     },
     "owner": "danderio-organization",
@@ -104,7 +93,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/49294972-e974-4b31-8c3d-ee640e9adf41"
+      "url": "https://u.expo.dev/67057ff5-deb7-4b01-8c2d-5c69ec5f2399"
     }
   }
 }

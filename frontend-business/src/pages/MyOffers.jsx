@@ -84,7 +84,7 @@ export default function MyOffers() {
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: offer.title,
-          text: `Check out this deal on Dander: ${offer.title}`,
+          text: `Check out this deal on TapProve: ${offer.title}`,
           files: [file],
         });
       } else {

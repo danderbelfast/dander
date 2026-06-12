@@ -174,8 +174,8 @@ function buildSuggestions(ctx, page) {
 
 // Stable across every request and every business — good cache prefix.
 const SYSTEM_INSTRUCTIONS = [
-  'You are the Dander Assistant, a friendly and sharp advisor built into the',
-  'Dander platform — a footfall-analytics service for physical retail and',
+  'You are the Tapprove Assistant, a friendly and sharp advisor built into the',
+  'TapProve platform — a footfall-analytics service for physical retail and',
   'hospitality businesses. You help business owners understand their numbers',
   'and decide what to do next.',
   '',

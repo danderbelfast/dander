@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import danderLogoWhite from '../../assets/Dander_Logo_White.png';
+import tapproveLogoWhite from '../../assets/TapProve_Logo_White.png';
 
 const NAV = [
   {
@@ -150,7 +150,7 @@ export function Sidebar({ onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <img src={danderLogoWhite} alt="Dander" style={{ width: 140, height: 'auto' }} />
+        <img src={tapproveLogoWhite} alt="TapProve" style={{ width: 140, height: 'auto' }} />
         <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400, fontSize: '0.9rem' }}>Biz</span>
       </div>
 

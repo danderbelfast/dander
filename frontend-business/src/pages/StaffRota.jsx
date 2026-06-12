@@ -5,7 +5,7 @@ import { Spinner } from '../components/ui/Spinner';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const ROTA_KEY = 'dander_biz_rota';
+const ROTA_KEY = 'tapprove_biz_rota';
 
 export default function StaffRota() {
   const { toast } = useToast();

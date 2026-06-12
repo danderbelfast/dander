@@ -1,6 +1,6 @@
 {
-  "name": "Dander",
-  "short_name": "Dander",
+  "name": "TapProve",
+  "short_name": "TapProve",
   "description": "Premium deals near you in Belfast",
   "start_url": "/",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "background_color": "#0F0E0C",
   "theme_color": "#E85D26",
   "icons": [
-    { "src": "/dander-app-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/tapprove-app-logo.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" }
   ],
   "categories": ["lifestyle", "shopping"],
   "screenshots": []

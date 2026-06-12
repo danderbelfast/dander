@@ -1,7 +1,7 @@
 {
-  "name": "@dander/frontend-admin",
+  "name": "@tapprove/frontend-admin",
   "version": "1.0.0",
-  "description": "Dander platform admin React app",
+  "description": "TapProve platform admin React app",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@dander/shared": "*",
+    "@tapprove/shared": "*",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "leaflet": "^1.9.4",

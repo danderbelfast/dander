@@ -14,10 +14,10 @@ self.addEventListener('message', (event) => {
       const { title, body } = payload.notification || {};
       const data = payload.data || {};
 
-      self.registration.showNotification(title || 'Dander', {
+      self.registration.showNotification(title || 'TapProve', {
         body: body || 'A deal is nearby.',
-        icon: '/dander-app-logo.png',
-        badge: '/dander-app-logo.png',
+        icon: '/tapprove-app-logo.png',
+        badge: '/tapprove-app-logo.png',
         data: data,
         tag: data.offerId ? `dander-${data.offerId}` : `dander-${Date.now()}`,
       });

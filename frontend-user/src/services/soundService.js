@@ -15,7 +15,7 @@ import * as soundGenerator from './soundGenerator';
  */
 function getUserSoundPrefs() {
   try {
-    const prefs = JSON.parse(localStorage.getItem('dander_sound_prefs') || '{}');
+    const prefs = JSON.parse(localStorage.getItem('tapprove_sound_prefs') || '{}');
     return {
       soundEnabled: prefs.sounds_enabled !== false,
       volume: prefs.alert_volume ?? 0.7,
@@ -37,7 +37,7 @@ function shouldPlaySound() {
   }
   
   // Check if sounds are muted until a certain time
-  const muteUntil = localStorage.getItem('dander_sound_mute_until');
+  const muteUntil = localStorage.getItem('tapprove_sound_mute_until');
   if (muteUntil && new Date(muteUntil) > new Date()) {
     return false;
   }

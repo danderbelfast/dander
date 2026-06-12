@@ -2,10 +2,13 @@
  * nfcHandler.ts — central handler for incoming NFC App Link URLs.
  *
  * The Dander Node phone emulates an NDEF tag whose URL is
- * https://dander.io/tap?node=<id>&business=<id>. When this app is the
- * default handler for that URL (App Links / Universal Links), Expo
- * Router delivers the URL to us here via Linking. We parse the params,
- * fire POST /api/proximity/nfc-checkin, and emit the result to whichever
+ * https://<host>/tap?node=<id>&business=<id>, where <host> is either
+ * tapprove.io (current) or dander.io (legacy — kept verifying during
+ * the rebrand because deployed NTAG stickers still encode it). When
+ * this app is the default handler for that URL (App Links / Universal
+ * Links), Expo Router delivers the URL to us here via Linking. We
+ * parse the params (host-agnostic — only the pathname matters), fire
+ * POST /api/proximity/nfc-checkin, and emit the result to whichever
  * screen wants to render the coins animation.
  */
 
@@ -19,7 +22,7 @@ import { NfcCheckinResponse } from '../api/proximity';
 // AuthContext has restored the in-memory token (the api/client
 // instance's request interceptor reads from in-memory state, which is
 // null at that point).
-const TOKEN_KEY = 'dander_access_token';
+const TOKEN_KEY = 'tapprove_access_token';
 
 type Listener = (result: NfcCheckinResponse) => void;
 type ErrorListener = (err: Error) => void;
@@ -51,8 +54,10 @@ function emitError(err: Error) {
 
 /**
  * Parse a Dander tap URL and extract the (node, business) pair.
- *   https://dander.io/tap?node=<id>&business=<id>
- * Returns null if the URL doesn't match the expected shape.
+ *   https://<host>/tap?node=<id>&business=<id>
+ * Host is intentionally ignored — both tapprove.io and the legacy
+ * dander.io stickers must parse. Returns null if the path or params
+ * don't match.
  */
 export function parseTapUrl(url: string | null | undefined): { node: string; business: number } | null {
   if (!url) return null;
@@ -87,8 +92,9 @@ export function triggerCheckInOverlay(result: NfcCheckinResponse): void {
 
 /**
  * Parse a Dander till URL.
- *   https://dander.io/till?business=<id>
- * Returns null if it doesn't match.
+ *   https://<host>/till?business=<id>
+ * Host is intentionally ignored — tapprove.io and dander.io both
+ * resolve. Returns null if it doesn't match.
  */
 export function parseTillUrl(url: string | null | undefined): { business: number } | null {
   if (!url) return null;
