@@ -13,3 +13,8 @@ Untitled-*.psd
 
 # User-uploaded content — runtime artifacts, not source
 backend/uploads/
+
+# Brand-asset inbox — source PNGs/SVG for the TapProve rebrand. The
+# processed/ outputs are copied into the apps' src/assets and public/
+# folders; the inbox itself stays local.
+_inbox/

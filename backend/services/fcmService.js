@@ -78,8 +78,8 @@ async function sendFcmToUser(userId, { title, body, data = {}, sound = null, cha
         notification: {
           title,
           body,
-          icon: '/dander-app-logo.png',
-          badge: '/dander-app-logo.png',
+          icon: '/tapprove-app-logo.png',
+          badge: '/tapprove-app-logo.png',
         },
         fcmOptions: {
           link: data.url || '/',

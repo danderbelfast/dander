@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { login, verifyLogin2FA, forgotPassword, resetPassword, resendOtp } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
-import danderLogoBlack from '../assets/Dander_Logo_Black.png';
+import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
 
 const SESSION_KEY = 'tapprove_login_otp';
 
@@ -202,7 +202,7 @@ export default function Login() {
 
   return (
     <div className="auth-page page-full">
-      <img src={danderLogoBlack} alt="Dander" className="auth-logo" />
+      <img src={tapproveLogoBlack} alt="Dander" className="auth-logo" />
 
       {/* ── Login: step 1 — credentials ── */}
       {mode === 'login' && step === 1 && (

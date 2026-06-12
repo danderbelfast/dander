@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register, verifySetup2FA, resendOtp } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
-import danderLogoBlack from '../assets/Dander_Logo_Black.png';
+import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
 
 const SESSION_KEY = 'tapprove_register_otp';
 
@@ -104,7 +104,7 @@ export default function Register() {
           <polyline points="12 19 5 12 12 5"/>
         </svg>
       </button>
-      <img src={danderLogoBlack} alt="Dander" className="auth-logo" />
+      <img src={tapproveLogoBlack} alt="Dander" className="auth-logo" />
 
       {step === 1 && (
         <>

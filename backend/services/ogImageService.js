@@ -6,7 +6,7 @@ const sharp = require('sharp');
 const axios = require('axios');
 const { Resvg } = require('@resvg/resvg-js');
 
-const LOGO_PATH = path.resolve(__dirname, '..', 'assets', 'Dander_Logo_White.png');
+const LOGO_PATH = path.resolve(__dirname, '..', 'assets', 'TapProve_Logo_White.png');
 const CACHE_DIR = path.resolve(process.env.OG_IMAGE_CACHE_DIR || path.join(__dirname, '..', 'public', 'og'));
 const WIDTH  = 1200;
 const HEIGHT = 630;

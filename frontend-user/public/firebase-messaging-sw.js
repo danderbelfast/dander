@@ -16,8 +16,8 @@ self.addEventListener('message', (event) => {
 
       self.registration.showNotification(title || 'Dander', {
         body: body || 'A deal is nearby.',
-        icon: '/dander-app-logo.png',
-        badge: '/dander-app-logo.png',
+        icon: '/tapprove-app-logo.png',
+        badge: '/tapprove-app-logo.png',
         data: data,
         tag: data.offerId ? `dander-${data.offerId}` : `dander-${Date.now()}`,
       });

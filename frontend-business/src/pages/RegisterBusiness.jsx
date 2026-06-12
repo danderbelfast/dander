@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { FileDropzone } from '../components/ui/FileDropzone';
 import { LocationPicker } from '../components/ui/LocationPicker';
 import { Spinner } from '../components/ui/Spinner';
-import danderLogoBlack from '../assets/Dander_Logo_Black.png';
+import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
 
 const CATEGORIES = ['Food & Drink', 'Beauty & Wellness', 'Health & Fitness', 'Entertainment', 'Retail & Shopping', 'Services', 'Experiences & Leisure', 'Other'];
 const TOTAL_STEPS = 4;
@@ -157,7 +157,7 @@ export default function RegisterBusiness() {
     return (
       <div className="register-wrap">
         <header className="register-header">
-          <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ width: 140, height: 'auto' }} /></div>
+          <div className="register-brand"><img src={tapproveLogoBlack} alt="Dander" style={{ width: 140, height: 'auto' }} /></div>
         </header>
         <div className="register-body">
           <div className="register-card">
@@ -187,7 +187,7 @@ export default function RegisterBusiness() {
   return (
     <div className="register-wrap">
       <header className="register-header">
-        <div className="register-brand"><img src={danderLogoBlack} alt="Dander" style={{ width: 140, height: 'auto', verticalAlign: 'middle', marginRight: 6 }} /> Dander for Business</div>
+        <div className="register-brand"><img src={tapproveLogoBlack} alt="Dander" style={{ width: 140, height: 'auto', verticalAlign: 'middle', marginRight: 6 }} /> Dander for Business</div>
         <StepIndicator current={Math.min(step, 4)} />
       </header>
 
