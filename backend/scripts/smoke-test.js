@@ -19,6 +19,13 @@
 //    SMOKE_NODE_DEVICE_ID   defaults to 'smoke-test-node'
 //    SMOKE_AMOUNT           till spend amount; default 12.34
 //    SMOKE_TIMEOUT_MS       per-request timeout; default 15000
+//    SMOKE_BYPASS_TOKEN     shared secret that slips through the
+//                           backend's MAINTENANCE_MODE gate. Must
+//                           equal SMOKE_BYPASS_TOKEN set on the target
+//                           environment's Railway service. Required
+//                           only when probing an environment that is
+//                           currently in maintenance mode (eg. prod
+//                           pre-launch); ignored everywhere else.
 //
 //  SEEDING (one-time, manual — keeps this script dep-light per
 //  the brief "node fetch + socket.io-client only")
@@ -49,6 +56,11 @@ const USER_TOKEN     = process.env.SMOKE_USER_TOKEN;
 const USER_ID        = parseInt(process.env.SMOKE_USER_ID || '', 10);
 const BUSINESS_TOKEN = process.env.SMOKE_BUSINESS_TOKEN;
 const BUSINESS_ID    = parseInt(process.env.SMOKE_BUSINESS_ID || '', 10);
+// Optional: shared secret that slips through the backend's maintenance
+// gate. Must match SMOKE_BYPASS_TOKEN set on the target environment's
+// Railway service. Unset locally → header omitted → identical to old
+// behaviour against any environment with MAINTENANCE_MODE=false.
+const BYPASS_TOKEN   = process.env.SMOKE_BYPASS_TOKEN || null;
 // Optional: expected IANA timezone the test business is configured for.
 // When set, smoke test 6 asserts the rewards endpoint returns it,
 // proving the businesses.timezone column → SELECT → response chain is
@@ -84,7 +96,8 @@ async function request(method, path, { token, body, query } = {}) {
       method,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token        ? { Authorization:    `Bearer ${token}` } : {}),
+        ...(BYPASS_TOKEN ? { 'X-Smoke-Bypass': BYPASS_TOKEN }      : {}),
       },
       body: body == null ? undefined : JSON.stringify(body),
       signal: controller.signal,

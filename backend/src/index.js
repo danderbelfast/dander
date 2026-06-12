@@ -12,6 +12,7 @@ const cors    = require('cors');
 const helmet  = require('helmet');
 const morgan  = require('morgan');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 const { createServer } = require('http');
 const { Server }       = require('socket.io');
 const { WebSocketServer } = require('ws');
@@ -137,16 +138,39 @@ app.use('/api/auth', authLimiter);
 // Maintenance kill switch.
 //
 // Set MAINTENANCE_MODE=true on the Railway env to drop every API call
-// (including the Stripe webhook and the WebSocket-handshake polling
-// transport) with a 503. Only /health stays open so the platform
-// health probe still resolves and the operator can detect the gate is
-// on. This is the ONLY thing standing between maintenance-mode and
-// the rest of the stack — flip the env var, redeploy is not needed.
+// with a 503. Only /health stays open so the platform health probe
+// still resolves and the operator can detect the gate is on. Flip the
+// env var, no redeploy needed.
+//
+// Note: Socket.IO intercepts /socket.io/* on the raw HTTP server
+// before Express middleware runs, so /socket.io traffic is invisible
+// to this gate by construction. If you ever want the socket transport
+// gated too, that's a check inside Server({ allowRequest }) — not
+// here. The smoke test's socket-connect probe exercises this path
+// and will keep working through maintenance windows.
+//
+// SMOKE BYPASS
+// Set SMOKE_BYPASS_TOKEN to a high-entropy value on the same Railway
+// env. Any request carrying an X-Smoke-Bypass header equal to that
+// value slips through the gate; everyone else still gets the 503.
+// Constant-time compare so the token never leaks via response timing.
+// Token unset → header ignored → original gate behaviour preserved.
 // ---------------------------------------------------------------------------
+
+function isSmokeBypass(req) {
+  const expected  = process.env.SMOKE_BYPASS_TOKEN;
+  const presented = req.headers['x-smoke-bypass'];
+  if (!expected || typeof presented !== 'string') return false;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(presented);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
 
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
   if (process.env.MAINTENANCE_MODE === 'true') {
+    if (isSmokeBypass(req)) return next();
     return res.status(503).json({
       error:   'maintenance',
       message: 'Coming soon',
