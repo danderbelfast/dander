@@ -16,7 +16,7 @@ import ReactDOM from 'react-dom/client';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV || import.meta.env.VITE_UNLOCK_APP === 'true') {
   Promise.all([
     import('./styles/global.css').catch(() => null),
     import('leaflet/dist/leaflet.css').catch(() => null),
