@@ -15,6 +15,7 @@
 
 const { Resend } = require('resend');
 const pool       = require('../db/pool');
+const config     = require('../src/config');
 
 let _resend = null;
 
@@ -44,7 +45,7 @@ async function sendMail({ to, subject, html, text }) {
     console.log(`[email] Resend not configured — skipping email to ${to}: "${subject}"`);
     return;
   }
-  const from = process.env.SMTP_FROM || 'noreply@dander.app';
+  const from = process.env.SMTP_FROM || 'noreply@tapprove.io';
   try {
     await resend.emails.send({ from, to, subject, html, text });
     console.log(`[email] Sent "${subject}" to ${to}`);
@@ -119,7 +120,7 @@ async function sendBusinessApprovedEmail({ ownerEmail, ownerName, businessName }
         <div style="background:#fff;padding:32px;border:1px solid #eee;border-radius:0 0 8px 8px">
           ${bodyHtml}
           <div style="margin-top:24px">
-            <a href="http://localhost:3001/login"
+            <a href="${config.BUSINESS_APP_URL}/login"
                style="background:#E85D26;color:#fff;padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:600;display:inline-block">
               Sign in to your dashboard →
             </a>
@@ -130,7 +131,7 @@ async function sendBusinessApprovedEmail({ ownerEmail, ownerName, businessName }
         </div>
       </div>
     `,
-    text: `Hi ${ownerName},\n\n${businessName} has been approved on ${platformName}!\n\nSign in at http://localhost:3001/login to get started.\n\nWelcome aboard!`,
+    text: `Hi ${ownerName},\n\n${businessName} has been approved on ${platformName}!\n\nSign in at ${config.BUSINESS_APP_URL}/login to get started.\n\nWelcome aboard!`,
   });
 }
 
