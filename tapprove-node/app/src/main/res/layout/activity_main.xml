@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <io.dander.node.OverlayView
+    <io.tapprove.node.OverlayView
         android:id="@+id/overlayView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -206,7 +206,7 @@
          facing view; the camera preview is permanently hidden behind it.
          MainActivity flips this GONE only while the loyalty-greeting
          overlay (DisplayMode) or a state overlay (closed / paused) is up. -->
-    <io.dander.node.StrangerDisplayView
+    <io.tapprove.node.StrangerDisplayView
         android:id="@+id/strangerDisplay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -309,7 +309,7 @@
     </FrameLayout>
 
     <!-- Loyalty greeting overlay — full-screen GIF + customer name. -->
-    <io.dander.node.DisplayModeView
+    <io.tapprove.node.DisplayModeView
         android:id="@+id/displayMode"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
