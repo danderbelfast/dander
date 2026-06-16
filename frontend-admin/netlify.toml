@@ -3,8 +3,10 @@
   command   = "npm run build"
   publish   = "dist"
 
-[build.environment]
-  VITE_API_URL = "https://api.tapprove.io"
+# VITE_API_URL intentionally NOT set here. See the matching note
+# in frontend-business/netlify.toml — toml [build.environment]
+# was overriding the Netlify UI's per-site env vars, so the URL
+# now lives only in each Netlify site's UI configuration.
 
 [[redirects]]
   from   = "/*"
