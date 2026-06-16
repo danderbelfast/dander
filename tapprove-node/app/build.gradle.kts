@@ -15,6 +15,40 @@ android {
         versionName = "1.0.0"
     }
 
+    // Build flavours pick the target environment at build time. Pick
+    // the active variant in Android Studio → View → Tool Windows →
+    // Build Variants (e.g. stagingDebug, productionDebug). The
+    // BuildConfig.{API_BASE_URL, APP_BASE_URL, WS_BASE_URL} constants
+    // generated below are the single source of truth — every Kotlin
+    // call site reads from them, no URL literals scattered through
+    // the source.
+    //
+    // The staging flavour suffixes applicationId so a staging APK
+    // installs alongside production on the same device (package id
+    // becomes io.tapprove.node.staging) and Settings → About reports
+    // the version as "1.0.0-staging". App Links verification keys on
+    // the package name, so staging will NOT auto-handle tapprove.io
+    // intents — fine, since staging emits staging.tapprove.io URLs
+    // anyway.
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("production") {
+            dimension = "environment"
+            buildConfigField("String", "API_BASE_URL", "\"https://api.tapprove.io\"")
+            buildConfigField("String", "APP_BASE_URL", "\"https://tapprove.io\"")
+            buildConfigField("String", "WS_BASE_URL",  "\"wss://api.tapprove.io\"")
+        }
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix   = "-staging"
+            buildConfigField("String", "API_BASE_URL", "\"https://staging-api.tapprove.io\"")
+            buildConfigField("String", "APP_BASE_URL", "\"https://staging.tapprove.io\"")
+            buildConfigField("String", "WS_BASE_URL",  "\"wss://staging-api.tapprove.io\"")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

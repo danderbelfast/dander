@@ -45,8 +45,8 @@ class StrangerDisplayView @JvmOverloads constructor(
 
     private companion object {
         const val REFRESH_MS = 5L * 60L * 1000L
-        const val BASE_URL = "https://api.tapprove.io"
-        const val APP_URL  = "https://tapprove.io"
+        val BASE_URL = BuildConfig.API_BASE_URL
+        val APP_URL  = BuildConfig.APP_BASE_URL
         const val QR_PX    = 360
     }
 

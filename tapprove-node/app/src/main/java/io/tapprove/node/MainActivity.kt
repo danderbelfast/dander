@@ -36,7 +36,7 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity() {
 
     private companion object {
-        const val ENDPOINT = "https://api.tapprove.io/api/webhooks/phone-counter"
+        val ENDPOINT = "${BuildConfig.API_BASE_URL}/api/webhooks/phone-counter"
         const val OPEN_INTERVAL_MS      = 60_000L
         const val HEARTBEAT_INTERVAL_MS = 10 * 60_000L
         const val HOURS_CHECK_MS        = 60_000L
@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity() {
         binding.opUpdate.setOnClickListener {
             hideOperatorPanel()
             // Open the update instructions in the kiosk browser.
-            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tapprove.io/update/node")))
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("${BuildConfig.APP_BASE_URL}/update/node")))
         }
 
         // Invert IN / OUT. No camera rebind — analyzer reads
@@ -412,7 +412,7 @@ class MainActivity : AppCompatActivity() {
             var message = fallbackMsg
             var conn: java.net.HttpURLConnection? = null
             try {
-                val url = java.net.URL("https://api.tapprove.io/api/public/stranger-milestone")
+                val url = java.net.URL("${BuildConfig.API_BASE_URL}/api/public/stranger-milestone")
                 conn = (url.openConnection() as java.net.HttpURLConnection).apply {
                     requestMethod = "POST"
                     doOutput = true

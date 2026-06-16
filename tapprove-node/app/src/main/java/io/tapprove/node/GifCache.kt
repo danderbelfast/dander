@@ -72,7 +72,7 @@ class GifCache(private val context: Context) {
      * Kick off a refresh on the IO thread. Safe to call from main —
      * returns immediately. Caller logs the result via the same TAG.
      */
-    fun triggerCacheRefresh(deviceId: String, baseUrl: String = "https://api.tapprove.io") {
+    fun triggerCacheRefresh(deviceId: String, baseUrl: String = BuildConfig.API_BASE_URL) {
         io.execute {
             try {
                 Log.i(TAG, "refresh starting for $deviceId")
