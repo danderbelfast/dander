@@ -12,6 +12,14 @@
       "channel": "preview",
       "android": { "buildType": "apk" }
     },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://staging-api.tapprove.io"
+      }
+    },
     "production": {
       "channel": "production",
       "android": { "buildType": "app-bundle" }

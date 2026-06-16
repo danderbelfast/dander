@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
     "build:preview": "eas build --platform android --profile preview --non-interactive",
+    "build:staging": "eas build --platform android --profile staging --non-interactive",
     "build:dev": "eas build --platform android --profile development --non-interactive",
     "lint": "expo lint"
   },
