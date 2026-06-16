@@ -90,6 +90,16 @@ export default function BusinessProfile() {
   function onLogoFile(f)  { setLogoFile(f);  setLogoPreview(URL.createObjectURL(f)); }
   function onCoverFile(f) { setCoverFile(f); setCoverPreview(URL.createObjectURL(f)); }
 
+  // Populate the address + city fields from a Nominatim search pick.
+  // Only fills empty fields — never clobbers a value the user has
+  // typed. (City field can be partially user-edited; we don't want to
+  // overwrite "Belfast city centre" with just "Belfast" because they
+  // clicked a search result.)
+  function handleAddressFound({ address: a, city: c }) {
+    if (a && !address.trim()) setAddress(a);
+    if (c && !city.trim())    setCity(c);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(''); setLoading(true);
@@ -111,7 +121,20 @@ export default function BusinessProfile() {
       setBusiness(updated);
       toast({ message: 'Profile updated!', type: 'success' });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save changes.');
+      const message = err.response?.data?.message || 'Failed to save changes.';
+      setError(message);
+      toast({ message, type: 'error' });
+      // Surface the full backend response in the dev console so
+      // diagnosing a 400 doesn't require Network-tab spelunking.
+      console.error('[BusinessProfile] save failed:', {
+        status: err.response?.status,
+        code:   err.response?.data?.code,
+        body:   err.response?.data,
+      });
+      // The form-error-box renders at the very top of the form, but
+      // the Save button is at the bottom — without scrolling the user
+      // never sees the error message after a failed save.
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally { setLoading(false); }
   }
 
@@ -280,6 +303,7 @@ export default function BusinessProfile() {
               lat={lat}
               lng={lng}
               onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }}
+              onAddressFound={handleAddressFound}
             />
           </div>
         </div>

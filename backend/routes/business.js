@@ -85,16 +85,22 @@ router.put(
   '/me',
   profileUpload,
   [
-    body('name').optional().trim().notEmpty().withMessage('name must not be empty.'),
-    body('description').optional().trim(),
-    body('category').optional().trim(),
-    body('address').optional().trim(),
-    body('city').optional().trim(),
-    body('lat').optional().isFloat({ min: -90,  max: 90  }).withMessage('Invalid latitude.'),
-    body('lng').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.'),
-    body('website').optional().isURL().withMessage('website must be a valid URL.'),
-    body('phone').optional().trim().isLength({ max: 30 }).withMessage('Invalid phone number.'),
-    body('avg_hourly_staff_cost_gbp').optional().isFloat({ min: 0 }).withMessage('Staff cost must be a positive number.'),
+    // checkFalsy: true → treat empty string the same as "not provided".
+    // The default optional() only skips undefined, so an empty website
+    // field (sent as "" by multipart FormData) would fail isURL("") and
+    // reject the entire request — which historically masked the
+    // location-save bug: users saving a pin with an empty website got
+    // a "website must be a valid URL" 400 they couldn't see.
+    body('name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('name must not be empty.'),
+    body('description').optional({ checkFalsy: true }).trim(),
+    body('category').optional({ checkFalsy: true }).trim(),
+    body('address').optional({ checkFalsy: true }).trim(),
+    body('city').optional({ checkFalsy: true }).trim(),
+    body('lat').optional({ checkFalsy: true }).isFloat({ min: -90,  max: 90  }).withMessage('Invalid latitude.'),
+    body('lng').optional({ checkFalsy: true }).isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.'),
+    body('website').optional({ checkFalsy: true }).isURL().withMessage('website must be a valid URL.'),
+    body('phone').optional({ checkFalsy: true }).trim().isLength({ max: 30 }).withMessage('Invalid phone number.'),
+    body('avg_hourly_staff_cost_gbp').optional({ checkFalsy: true }).isFloat({ min: 0 }).withMessage('Staff cost must be a positive number.'),
   ],
   async (req, res) => {
     if (!validate(req, res)) return;
