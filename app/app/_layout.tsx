@@ -65,10 +65,27 @@ function SideEffects() {
 }
 
 export default function RootLayout() {
-  // Platform lockdown — maintenance mode. The entire shell (auth,
-  // side-effects, deep-link bridge, NFC overlay, route stack) is
-  // bypassed and the app renders a single blank white surface on
-  // launch. All underlying code is intact on disk; reverting this
-  // function body restores the app.
-  return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
+  // Platform lockdown — maintenance mode. Production APKs render a
+  // blank white surface; dev-client builds (__DEV__ = true under
+  // `expo start`) and staging APKs (EXPO_PUBLIC_UNLOCK_APP=true,
+  // injected per-profile in eas.json) mount the full shell — auth,
+  // side-effects, deep-link bridge, NFC overlay, route stack.
+  //
+  // Mirrors the VITE_UNLOCK_APP gate in frontend-user/src/main.jsx
+  // and frontend-business/src/main.jsx. Reverting both branches to
+  // the unconditional white View restores the all-environments
+  // lockdown.
+  if (!__DEV__ && process.env.EXPO_PUBLIC_UNLOCK_APP !== 'true') {
+    return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
+  }
+  return (
+    <AuthProvider>
+      <SideEffects />
+      <View style={{ flex: 1 }}>
+        <PermissionBanner />
+        <Stack screenOptions={{ headerShown: false }} />
+        <NfcCheckInScreen />
+      </View>
+    </AuthProvider>
+  );
 }
