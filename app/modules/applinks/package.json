@@ -1,0 +1,7 @@
+{
+  "name": "applinks",
+  "version": "0.1.0",
+  "description": "Local module: read DomainVerificationManager state on Android 12+",
+  "main": "src/index.ts",
+  "private": true
+}

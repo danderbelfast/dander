@@ -17,6 +17,7 @@ import { useUserSocket } from '../src/hooks/useUserSocket';
 import { useLoginPermissionPrompt } from '../src/hooks/useLoginPermissionPrompt';
 import { usePermissionWalkthrough } from '../src/hooks/usePermissionWalkthrough';
 import { PermissionBanner } from '../src/components/PermissionBanner';
+import { AppLinksBanner } from '../src/components/AppLinksBanner';
 import { NfcCheckInScreen } from '../src/components/NfcCheckInScreen';
 import { handleTapUrl, handleTillUrl } from '../src/services/nfcHandler';
 
@@ -83,6 +84,7 @@ export default function RootLayout() {
       <SideEffects />
       <View style={{ flex: 1 }}>
         <PermissionBanner />
+        <AppLinksBanner />
         <Stack screenOptions={{ headerShown: false }} />
         <NfcCheckInScreen />
       </View>

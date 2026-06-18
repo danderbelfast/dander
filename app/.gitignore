@@ -14,9 +14,14 @@ web-build/
 # Metro / Bundler
 .metro-health-check*
 
-# Build artefacts
+# Build artefacts — expo prebuild output. Local Expo modules under
+# modules/*/android/ are intentional and tracked.
 android/
+!modules/*/android/
+!modules/*/android/**
 ios/
+!modules/*/ios/
+!modules/*/ios/**
 
 # IDE
 .vscode/

@@ -40,9 +40,8 @@
         {
           "action": "VIEW",
           "data": [
-            { "scheme": "https", "host": "tapprove.io",         "pathPrefix": "/tap" },
-            { "scheme": "https", "host": "staging.tapprove.io", "pathPrefix": "/tap" },
-            { "scheme": "https", "host": "dander.io",           "pathPrefix": "/tap" }
+            { "scheme": "https", "host": "tapprove.io", "pathPrefix": "/tap" },
+            { "scheme": "https", "host": "tapprove.io", "pathPrefix": "/till" }
           ],
           "category": ["BROWSABLE", "DEFAULT"],
           "autoVerify": true
@@ -50,9 +49,8 @@
         {
           "action": "VIEW",
           "data": [
-            { "scheme": "https", "host": "tapprove.io",         "pathPrefix": "/till" },
-            { "scheme": "https", "host": "staging.tapprove.io", "pathPrefix": "/till" },
-            { "scheme": "https", "host": "dander.io",           "pathPrefix": "/till" }
+            { "scheme": "https", "host": "staging.tapprove.io", "pathPrefix": "/tap" },
+            { "scheme": "https", "host": "staging.tapprove.io", "pathPrefix": "/till" }
           ],
           "category": ["BROWSABLE", "DEFAULT"],
           "autoVerify": true
