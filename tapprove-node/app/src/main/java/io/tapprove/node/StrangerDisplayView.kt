@@ -30,7 +30,16 @@ import java.util.concurrent.Executors
  *   2. Middle: "TODAY'S SPECIAL" + offer title/description, or the
  *              "Download Dander for loyalty points" fallback if no
  *              active offer.
- *   3. Bottom: QR code linking to tapprove.io + "Scan to download TapProve"
+ *   3. Bottom: QR code with the same /tap?node=…&business=… URL the
+ *              HCE broadcaster writes into its NDEF payload, plus a
+ *              "Scan or tap to collect points" caption. Scanning the
+ *              QR resolves through the customer app's App-Links
+ *              intent filter exactly like an NFC tap — same
+ *              destination, just a different input device. Useful
+ *              when the customer's phone is NFC-less or NFC is off.
+ *              The init-time QR is a placeholder pointing at the
+ *              brand homepage and gets replaced in start(businessId)
+ *              once the kiosk knows which business it's paired to.
  *
  * Text sizes target legibility at 1–2 metres. Background is a flat
  * near-black so customer attention lands on the headline content,
@@ -45,8 +54,8 @@ class StrangerDisplayView @JvmOverloads constructor(
 
     private companion object {
         const val REFRESH_MS = 5L * 60L * 1000L
-        const val BASE_URL = "https://api.tapprove.io"
-        const val APP_URL  = "https://tapprove.io"
+        val BASE_URL = BuildConfig.API_BASE_URL
+        val APP_URL  = BuildConfig.APP_BASE_URL
         const val QR_PX    = 360
     }
 
@@ -163,7 +172,7 @@ class StrangerDisplayView @JvmOverloads constructor(
             setTextColor(Color.parseColor("#BDBDBD"))
             gravity = Gravity.CENTER
             setPadding(0, 18, 0, 0)
-            text = "Scan to download TapProve"
+            text = "Scan or tap to collect points"
         }
         section3.addView(qrView)
         section3.addView(qrCaption)
@@ -200,6 +209,27 @@ class StrangerDisplayView @JvmOverloads constructor(
     fun start(businessId: Int) {
         if (businessId <= 0) return
         this.businessId = businessId
+
+        // Regenerate the QR with the tap-collect URL that mirrors
+        // HceBroadcaster.kt:129's NDEF payload. Both the NFC tap and
+        // the QR scan now produce the same https://<host>/tap?node=…
+        // &business=… URL, so customer phones without NFC (or with
+        // NFC disabled / failing verification) can still complete the
+        // tap-to-collect flow by scanning instead. The customer
+        // app's App-Links intent filter (app/app.json) catches the
+        // URL the same way it does an NFC tap.
+        //
+        // The init-block QR pointed at the bare brand host as a
+        // placeholder; this overwrites it once businessId is known.
+        // Re-pairing the kiosk re-fires start() and updates the QR
+        // accordingly.
+        val prefs    = Prefs(context)
+        val deviceId = prefs.resolveDeviceId()
+        val tapUrl   = "${BuildConfig.APP_BASE_URL}/tap" +
+                       "?node=" + java.net.URLEncoder.encode(deviceId, "UTF-8") +
+                       "&business=" + businessId
+        qrView.setImageBitmap(generateQr(tapUrl, QR_PX))
+
         refreshRunnable?.let { ui.removeCallbacks(it) }
         refreshRunnable = object : Runnable {
             override fun run() {

@@ -3,8 +3,16 @@
   command   = "npm run build"
   publish   = "dist"
 
-[build.environment]
-  VITE_API_URL = "https://api.tapprove.io"
+# VITE_API_URL intentionally NOT set here. It used to live in a
+# [build.environment] block, but that caused per-Netlify-site UI
+# env vars to be silently ignored during the staging buildup
+# (Netlify's UI vars and toml [build.environment] both populate
+# process.env, and the toml value was winning, defeating the
+# whole point of separate staging vs prod sites). VITE_API_URL
+# is now set per-site in the Netlify UI: prod site has the prod
+# URL, staging site has the staging URL. src/config.js's
+# 'http://localhost:4000' fallback is the backstop if neither is
+# set.
 
 [[redirects]]
   from   = "/*"

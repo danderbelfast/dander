@@ -16,7 +16,7 @@ import ReactDOM from 'react-dom/client';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV || import.meta.env.VITE_UNLOCK_APP === 'true') {
   // Lazy-import App + provider tree so production builds never pull
   // them into the build graph at all.
   Promise.all([

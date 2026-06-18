@@ -26,7 +26,7 @@ object VersionChecker {
     fun checkAppVersion(
         prefs: Prefs,
         currentVersion: String,
-        baseUrl: String = "https://api.tapprove.io",
+        baseUrl: String = BuildConfig.API_BASE_URL,
         onResult: ((latest: String, behind: Boolean) -> Unit)? = null,
     ) {
         io.execute {

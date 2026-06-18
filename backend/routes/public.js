@@ -206,11 +206,17 @@ router.get('/tap', async (req, res) => {
     return res.redirect(config.USER_APP_URL);
   }
 
-  // Fire the stranger display command — best-effort, never blocks redirect.
+  // Fire the stranger display command — best-effort, never blocks render.
   fireStrangerDisplay({ nodeDeviceId, businessId }).catch(() => {});
 
-  // Redirect to the stranger landing page (served at /join below).
-  return res.redirect(`/join?business=${encodeURIComponent(businessId)}&node=${encodeURIComponent(nodeDeviceId)}`);
+  // Render the join HTML inline. A 302 → /join would break when this
+  // endpoint is reached via the Netlify proxy from staging.tapprove.io
+  // /tap → here: the browser would resolve the relative Location
+  // against the SPA host (no /join route there) and fall through to
+  // the SPA catch-all redirect to /. Single-hop render avoids that.
+  const ctx = await loadJoinContext(businessId);
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  return res.send(renderJoinHtml(ctx));
 });
 
 // ---------------------------------------------------------------------------
@@ -277,8 +283,7 @@ async function fireStrangerDisplay({ nodeDeviceId, businessId }) {
 // GET /join   — stranger landing page (no auth)
 // ---------------------------------------------------------------------------
 
-router.get('/join', async (req, res) => {
-  const businessId = parseInt(req.query.business, 10);
+async function loadJoinContext(businessId) {
   let business = null, offer = null, visitorCount = 0;
   if (Number.isFinite(businessId)) {
     try {
@@ -300,12 +305,17 @@ router.get('/join', async (req, res) => {
       );
       visitorCount = countRows.rows[0]?.visitors ?? 0;
     } catch (err) {
-      console.warn('[public/join]', err.message);
+      console.warn('[public/loadJoinContext]', err.message);
     }
   }
+  return { business, offer, visitorCount };
+}
 
+router.get('/join', async (req, res) => {
+  const businessId = parseInt(req.query.business, 10);
+  const ctx = await loadJoinContext(businessId);
   res.set('Content-Type', 'text/html; charset=utf-8');
-  res.send(renderJoinHtml({ business, offer, visitorCount }));
+  res.send(renderJoinHtml(ctx));
 });
 
 function esc(s) {
@@ -326,7 +336,7 @@ function renderJoinHtml({ business, offer, visitorCount }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Join Dander — ${bizName}</title>
+<title>Get TapProve at ${bizName}</title>
 <style>
   :root { color-scheme: dark; }
   *{box-sizing:border-box}
@@ -362,9 +372,8 @@ function renderJoinHtml({ business, offer, visitorCount }) {
   </ul>
   ${offerHtml}
   <div class="cta">
-    <a class="android" href="https://play.google.com/store/apps/details?id=io.dander.app">Get Dander — Android</a>
-    <a class="ios"     href="https://apps.apple.com/app/dander">Get Dander — iOS</a>
-    <div class="already">Already have Dander? Open the app and tap again.</div>
+    <a class="android" href="https://play.google.com/store/apps/details?id=io.tapprove.app">Get TapProve — Android</a>
+    <div class="already">Already have TapProve? Open the app and tap again.</div>
   </div>
 </body></html>`;
 }

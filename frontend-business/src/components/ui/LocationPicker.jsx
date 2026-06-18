@@ -88,7 +88,12 @@ export function LocationPicker({ lat, lng, onChange, onAddressFound }) {
     if (!search.trim()) return;
     setSearching(true); setSearchErr(''); setResults([]);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=${encodeURIComponent(search)}`;
+      // countrycodes=gb constrains results to United Kingdom so a
+      // postcode like "BT5 5AW" doesn't match a fuzzy locality in
+      // Vietnam (Nominatim's global ranker picks the highest-relevance
+      // hit worldwide otherwise). Drop this clause when we expand
+      // outside the UK.
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&countrycodes=gb&q=${encodeURIComponent(search)}`;
       const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
       if (data.length === 0) setSearchErr('No results found. Try adding a postcode or country.');
