@@ -1,14 +1,19 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'expo-module-gradle-plugin'
 
 group = 'expo.modules.applinks'
 version = '0.1.0'
 
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+useExpoPublishing()
+
 android {
-  namespace 'expo.modules.applinks'
+  namespace "expo.modules.applinks"
   defaultConfig {
-    minSdkVersion safeExtGet('minSdkVersion', 24)
-    compileSdkVersion safeExtGet('compileSdkVersion', 34)
+    versionCode 1
+    versionName '0.1.0'
   }
 }

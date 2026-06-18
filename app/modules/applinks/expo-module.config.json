@@ -1,4 +1,5 @@
 {
+  "name": "applinks",
   "platforms": ["android"],
   "android": {
     "modules": ["expo.modules.applinks.AppLinksModule"]
