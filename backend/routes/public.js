@@ -326,7 +326,7 @@ function renderJoinHtml({ business, offer, visitorCount }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Join Dander — ${bizName}</title>
+<title>Get TapProve at ${bizName}</title>
 <style>
   :root { color-scheme: dark; }
   *{box-sizing:border-box}
@@ -362,9 +362,8 @@ function renderJoinHtml({ business, offer, visitorCount }) {
   </ul>
   ${offerHtml}
   <div class="cta">
-    <a class="android" href="https://play.google.com/store/apps/details?id=io.dander.app">Get Dander — Android</a>
-    <a class="ios"     href="https://apps.apple.com/app/dander">Get Dander — iOS</a>
-    <div class="already">Already have Dander? Open the app and tap again.</div>
+    <a class="android" href="https://play.google.com/store/apps/details?id=io.tapprove.app">Get TapProve — Android</a>
+    <div class="already">Already have TapProve? Open the app and tap again.</div>
   </div>
 </body></html>`;
 }

@@ -28,6 +28,27 @@
   [headers.values]
     Cache-Control = "no-cache"
 
+# NFC tap fallback — see root netlify.toml for the prod equivalent.
+# Android App Links route /tap into the installed customer app; a
+# no-app phone follows the link to this SPA host and the SPA has no
+# /tap route, so without this proxy the catch-all below redirects to
+# /. Proxy to the staging backend's join page.
+[[redirects]]
+  from   = "/tap"
+  to     = "https://staging-api.tapprove.io/api/public/tap"
+  status = 200
+  force  = true
+
+# Till sticker fallback — till taps come from logged-in customers
+# with the app installed, so a no-app /till on staging means the
+# sticker was scanned before installing the staging APK. Proxy to
+# the generic install page.
+[[redirects]]
+  from   = "/till"
+  to     = "https://staging-api.tapprove.io/api/public/join"
+  status = 200
+  force  = true
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
