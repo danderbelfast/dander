@@ -225,11 +225,16 @@ export default function Analytics() {
   const alerts = rt.alerts || [];
 
   // Pro-gated views: real data when Pro, blurred sample data otherwise.
+  // demo can be null when the dashboard is node-sourced (nodes don't do
+  // face detection), so coerce to {} before the per-field reads below.
   const zonesView = isPro ? zones : SAMPLE_ZONES;
-  const demoView  = isPro ? demo  : SAMPLE_DEMO;
+  const demoView  = isPro ? (demo || {}) : SAMPLE_DEMO;
 
   const totalVisitors = parseInt(s.total_entries) || 0;
-  const convRate = parseFloat(s.conversion_rate) || 0;
+  // conversion_rate is intentionally null for node-only setups (no
+  // passersby signal). Keep null instead of coercing to 0 so the UI
+  // can render "—" rather than misleading "0%".
+  const convRate = s.conversion_rate != null ? parseFloat(s.conversion_rate) : null;
   const avgDwell = parseFloat(s.avg_dwell_seconds) || 0;
   const daysTracked = s.days_tracked || 0;
 
@@ -250,7 +255,7 @@ export default function Analytics() {
   if (peaks.length > 0) {
     insights.push(`Busiest hour: ${peaks[0].hour}:00 with ${peaks[0].total_entries} visitors`);
   }
-  if (convRate > 0) {
+  if (convRate != null && convRate > 0) {
     insights.push(`${convRate}% of passersby convert to visitors`);
   }
 
@@ -341,7 +346,12 @@ export default function Analytics() {
       <div className="stats-grid">
         <MetricCard icon="👣" label="Total visitors" value={totalVisitors.toLocaleString()} sub={`${daysTracked} days tracked`} accent />
         <MetricCard icon="📊" label="Avg occupancy" value={s.avg_occupancy || 0} sub={`Peak: ${s.peak_occupancy || 0}`} />
-        <MetricCard icon="🔄" label="Conversion rate" value={`${convRate}%`} sub="Passersby → visitors" />
+        <MetricCard
+          icon="🔄"
+          label="Conversion rate"
+          value={convRate != null ? `${convRate}%` : '—'}
+          sub={convRate != null ? 'Passersby → visitors' : 'Not measurable from node data'}
+        />
         <ProGate locked={!isPro} label="Dwell Time" compact>
           <MetricCard icon="⏱" label="Avg dwell time"
             value={isPro
@@ -467,15 +477,15 @@ export default function Analytics() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {zonesView.map(z => (
-                  <div key={z.zone_number} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--c-border)' }}>
+                  <div key={z.zone_name || `kilo-${z.zone_number}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--c-border)' }}>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{z.zone_name}</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{z.zone_name || `Zone ${z.zone_number}`}</div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>{z.zone_type}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{z.entries}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>
-                        {z.avg_dwell > 0 ? `${(z.avg_dwell / 60).toFixed(1)}m dwell` : `occ: ${z.avg_occupancy}`}
+                        {z.avg_dwell > 0 ? `${(z.avg_dwell / 60).toFixed(1)}m dwell` : (z.avg_occupancy != null ? `occ: ${z.avg_occupancy}` : '—')}
                       </div>
                     </div>
                   </div>
@@ -492,7 +502,9 @@ export default function Analytics() {
           <div className="card-header"><span className="card-title">Demographics</span></div>
           <div className="card-body">
             {!demoView.male && !demoView.female ? (
-              <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.88rem' }}>No demographic data.</div>
+              <div style={{ textAlign: 'center', color: 'var(--c-text-muted)', padding: 24, fontSize: '0.88rem' }}>
+                No demographic data. Requires camera-based footfall.
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[

@@ -2,9 +2,159 @@
 
 const pool = require('../db/pool');
 
+// Node-data source for the Overview dashboard. Mirrors the response
+// shape of the kilo path so the Analytics page consumes both without
+// branching. Zones come keyed by zone_name (no zone_number for nodes
+// since 'zone' is a per-device label, not a per-zone index inside one
+// device). Two summary fields stay null and the frontend renders them
+// as "—":
+//   - total_passersby / conversion_rate: needs a passersby count
+//     (people who walked past but didn't enter). Nodes can't separate
+//     "approached and entered" from "walked by" via BT/WiFi probes —
+//     that's a camera + line-crossing measurement.
+// Demographics is null too — it requires face detection, which the
+// nodes don't do (the frontend already gates this behind Pro and
+// shows an empty state).
+async function getDashboardFromNodes(businessId, { from, to } = {}) {
+  const dateFrom = from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const dateTo   = to   || new Date().toISOString().slice(0, 10);
+  const params = [businessId, dateFrom, dateTo];
+
+  const [summaryRes, dailyRes, hourlyRes, zonesRes, topHoursRes, dwellRes] = await Promise.all([
+    // Summary — per-day aggregates for occupancy stats, plus totals.
+    // GREATEST(0, in - out) clamps negative net flow (which would
+    // mean count_out outran count_in across the day — a counter
+    // calibration glitch rather than negative occupancy).
+    pool.query(
+      `WITH per_day AS (
+         SELECT DATE(timestamp) AS day,
+                SUM(count_in)  AS day_in,
+                SUM(count_out) AS day_out
+           FROM phone_counter_readings
+          WHERE business_id = $1
+            AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+            AND zone_name IS NOT NULL
+          GROUP BY day
+       )
+       SELECT
+         COALESCE(SUM(day_in),  0)::int AS total_entries,
+         COALESCE(SUM(day_out), 0)::int AS total_exits,
+         COALESCE(ROUND(AVG(GREATEST(0, day_in - day_out))::numeric, 1)::float, 0) AS avg_occupancy,
+         COALESCE(MAX(GREATEST(0, day_in - day_out))::int, 0) AS peak_occupancy,
+         COUNT(*)::int AS days_tracked
+       FROM per_day`,
+      params
+    ),
+    // Daily breakdown — bar-chart input.
+    pool.query(
+      `SELECT DATE(timestamp) AS day,
+              COALESCE(SUM(count_in),  0)::int AS entries,
+              COALESCE(SUM(count_out), 0)::int AS exits
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+          AND zone_name IS NOT NULL
+        GROUP BY day ORDER BY day`,
+      params
+    ),
+    // Hourly pattern — for each hour-of-day, average the daily total
+    // across the period. So hour 12 in a 7-day view = average of 7
+    // lunch-hour totals, not the sum.
+    pool.query(
+      `WITH per_hour_day AS (
+         SELECT DATE(timestamp) AS day,
+                EXTRACT(HOUR FROM timestamp)::int AS hour,
+                SUM(count_in)  AS day_in,
+                SUM(count_out) AS day_out
+           FROM phone_counter_readings
+          WHERE business_id = $1
+            AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+            AND zone_name IS NOT NULL
+          GROUP BY day, hour
+       )
+       SELECT hour,
+              ROUND(AVG(day_in)::numeric,  1)::float AS avg_entries,
+              ROUND(AVG(day_out)::numeric, 1)::float AS avg_exits
+         FROM per_hour_day
+        GROUP BY hour ORDER BY hour`,
+      params
+    ),
+    // Zones — one row per node-name. Same as the Real-Time tab uses
+    // but aggregated over the period instead of the last 30m.
+    pool.query(
+      `SELECT zone_name,
+              (array_agg(zone_type ORDER BY timestamp DESC)
+                 FILTER (WHERE zone_type IS NOT NULL))[1] AS zone_type,
+              COALESCE(SUM(count_in), 0)::int AS entries,
+              ROUND(AVG(avg_dwell_seconds)::numeric, 1)::float AS avg_dwell
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+          AND zone_name IS NOT NULL
+        GROUP BY zone_name
+        ORDER BY zone_name`,
+      params
+    ),
+    // Peak hours — top 3 by total entries.
+    pool.query(
+      `SELECT EXTRACT(HOUR FROM timestamp)::int AS hour,
+              COALESCE(SUM(count_in), 0)::int   AS total_entries
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+          AND zone_name IS NOT NULL
+        GROUP BY hour ORDER BY total_entries DESC LIMIT 3`,
+      params
+    ),
+    // Period-average dwell — averaged across readings that actually
+    // recorded a dwell value (skips closed-hours heartbeat zeros).
+    pool.query(
+      `SELECT ROUND(AVG(avg_dwell_seconds)::numeric, 1)::float AS avg_dwell_seconds
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+          AND avg_dwell_seconds IS NOT NULL
+          AND avg_dwell_seconds > 0`,
+      params
+    ),
+  ]);
+
+  return {
+    period: { from: dateFrom, to: dateTo },
+    summary: {
+      ...summaryRes.rows[0],
+      avg_dwell_seconds: dwellRes.rows[0]?.avg_dwell_seconds ?? null,
+      total_passersby:   null,
+      conversion_rate:   null,
+    },
+    hourly_breakdown: hourlyRes.rows,
+    daily_breakdown:  dailyRes.rows,
+    zones:            zonesRes.rows,
+    demographics:     null,
+    peak_hours:       topHoursRes.rows,
+  };
+}
+
 async function getDashboard(businessId, { from, to, zone } = {}) {
   const dateFrom = from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
   const dateTo = to || new Date().toISOString().slice(0, 10);
+
+  // Source auto-detection (same idea as getCurrentStatus). Probe the
+  // requested period — if any node uploads land in it, this business
+  // is a node-only setup for the period being viewed and we serve from
+  // phone_counter_readings. Otherwise the existing kilo path runs
+  // unchanged for legacy FootfallCam customers.
+  const { rows: nodeProbe } = await pool.query(
+    `SELECT 1 FROM phone_counter_readings
+      WHERE business_id = $1
+        AND timestamp BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+      LIMIT 1`,
+    [businessId, dateFrom, dateTo]
+  );
+  if (nodeProbe.length > 0) {
+    return getDashboardFromNodes(businessId, { from: dateFrom, to: dateTo });
+  }
+
   const zoneFilter = zone ? 'AND zone_number = $4' : '';
   const params = zone ? [businessId, dateFrom, dateTo, zone] : [businessId, dateFrom, dateTo];
 
