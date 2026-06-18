@@ -270,9 +270,17 @@ export default function Analytics() {
             <button key={p} className={`btn btn-sm ${period === p ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPeriod(p)}>{p}</button>
           ))}
-          <button className="btn btn-outline btn-sm dev-button" onClick={generatePlaceholder} disabled={loading} style={{ marginLeft: 8 }}>
-            Generate Test Data
-          </button>
+          {/* Generate Test Data — engineering tool. Hidden in production so a
+              real business owner can't pollute their own analytics. The check
+              keys on VITE_API_URL rather than MODE because each Netlify site
+              sets the API URL per-environment in its UI; staging-api points at
+              staging, prod-api points at prod. Backend rejects the call in
+              prod regardless as a belt + braces. */}
+          {!(import.meta.env.VITE_API_URL || '').match(/^https:\/\/api\.tapprove\.io/) && (
+            <button className="btn btn-outline btn-sm dev-button" onClick={generatePlaceholder} disabled={loading} style={{ marginLeft: 8 }}>
+              Generate Test Data
+            </button>
+          )}
         </div>
       </div>
 

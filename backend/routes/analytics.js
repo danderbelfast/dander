@@ -5,6 +5,7 @@ const { query, body, param, validationResult } = require('express-validator');
 
 const { requireBusiness } = require('../middleware/auth');
 const analytics = require('../services/analyticsService');
+const config = require('../src/config');
 
 const router = Router();
 
@@ -121,10 +122,17 @@ router.get('/realtime', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/analytics/placeholder — always visible for testing
+// POST /api/analytics/placeholder — engineering tool. Disabled in production
+// so a misclick can't pollute a real business's analytics. The frontend gates
+// the button on the same DEPLOY_ENV signal so this 403 should never fire from
+// a normal user action; it's a belt + braces in case someone hits the
+// endpoint directly.
 // ---------------------------------------------------------------------------
 
 router.post('/placeholder', async (req, res) => {
+  if (config.DEPLOY_ENV === 'production') {
+    return fail(res, 403, 'NOT_AVAILABLE', 'Test data generation is disabled in production.');
+  }
   try {
     const result = await analytics.generatePlaceholderData(req.business.id);
     return ok(res, result);
