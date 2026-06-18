@@ -111,7 +111,180 @@ async function getDashboard(businessId, { from, to, zone } = {}) {
   };
 }
 
+// Node-data source for the realtime endpoint. Mirrors the response
+// shape of the kilo path so the dashboard's RealtimeTab consumes both
+// without branching. Each recent_zones row gets zone_name populated;
+// the frontend already prefers zone_name over zone_number when
+// rendering. Capacity / low-footfall alerts are deferred because they
+// need a per-zone baseline that doesn't exist for node uploads yet.
+async function getCurrentStatusFromNodes(businessId) {
+  const [zones, hourly, devices, occupancyRow, queueAlerts] = await Promise.all([
+    // Active zones: one row per node-name, with last 30-min entries/exits
+    // and today's net occupancy (count_in - count_out, clamped to >=0).
+    pool.query(
+      `WITH today AS (
+         SELECT zone_name,
+                COALESCE(SUM(count_in),  0)::int AS entries_today,
+                COALESCE(SUM(count_out), 0)::int AS exits_today
+           FROM phone_counter_readings
+          WHERE business_id = $1
+            AND zone_name IS NOT NULL
+            AND timestamp::date = CURRENT_DATE
+          GROUP BY zone_name
+       ),
+       recent AS (
+         SELECT zone_name,
+                (array_agg(zone_type ORDER BY timestamp DESC)
+                   FILTER (WHERE zone_type IS NOT NULL))[1] AS zone_type,
+                COALESCE(SUM(count_in),  0)::int AS entries,
+                COALESCE(SUM(count_out), 0)::int AS exits,
+                MAX(timestamp)                    AS last_seen
+           FROM phone_counter_readings
+          WHERE business_id = $1
+            AND zone_name IS NOT NULL
+            AND timestamp > NOW() - INTERVAL '30 minutes'
+          GROUP BY zone_name
+       )
+       SELECT r.zone_name,
+              r.zone_type,
+              r.entries,
+              r.exits,
+              GREATEST(0, COALESCE(t.entries_today, 0) - COALESCE(t.exits_today, 0)) AS occupancy,
+              r.last_seen AS timestamp
+         FROM recent r
+         LEFT JOIN today t USING (zone_name)
+        ORDER BY r.zone_name`,
+      [businessId]
+    ),
+    // Today's hourly activity — sum of count_in per hour today.
+    pool.query(
+      `SELECT EXTRACT(HOUR FROM timestamp)::int AS hour,
+              COALESCE(SUM(count_in), 0)::int   AS entries
+         FROM phone_counter_readings
+        WHERE business_id = $1
+          AND timestamp::date = CURRENT_DATE
+        GROUP BY hour ORDER BY hour`,
+      [businessId]
+    ),
+    // Devices: latest reading per device joined to its assigned name.
+    // online = uploaded within last 2 minutes (matches /api/nodes).
+    pool.query(
+      `SELECT DISTINCT ON (r.device_id)
+              r.device_id,
+              COALESCE(c.zone_name, r.zone_name) AS device_name,
+              r.app_version                      AS firmware_version,
+              r.timestamp                        AS last_seen,
+              CASE WHEN r.timestamp > NOW() - INTERVAL '2 minutes'
+                   THEN 'online' ELSE 'offline' END AS network_status
+         FROM phone_counter_readings r
+         LEFT JOIN node_commands c ON c.device_id = r.device_id
+        WHERE r.business_id = $1
+          AND r.device_id IS NOT NULL
+          AND r.timestamp > NOW() - INTERVAL '24 hours'
+        ORDER BY r.device_id, r.timestamp DESC`,
+      [businessId]
+    ),
+    // Current occupancy. Prefer entrance-typed zones if any exist
+    // (counts strangers walking through the door, the canonical
+    // "people inside" question). Fall back to all-zones net flow for
+    // workshop-style setups with no entrance node.
+    pool.query(
+      `SELECT
+         GREATEST(0,
+           COALESCE(SUM(count_in)  FILTER (WHERE zone_type = 'entrance'), 0)
+         - COALESCE(SUM(count_out) FILTER (WHERE zone_type = 'entrance'), 0)
+         )::int AS entrance_occupancy,
+         GREATEST(0,
+           COALESCE(SUM(count_in), 0) - COALESCE(SUM(count_out), 0)
+         )::int AS all_zones_occupancy,
+         COUNT(DISTINCT zone_name) FILTER (WHERE zone_type = 'entrance')::int AS entrance_zone_count
+       FROM phone_counter_readings
+       WHERE business_id = $1
+         AND timestamp::date = CURRENT_DATE`,
+      [businessId]
+    ),
+    // Live queue alerts — fired by the node's queue-depth logic and
+    // debounced 10m by the webhook handler. 15m window so an alert
+    // that fired just before the user opens the tab is still visible.
+    pool.query(
+      `SELECT zone_name, device_id, queue_depth, alerted_at
+         FROM queue_alerts
+        WHERE business_id = $1
+          AND acknowledged_at IS NULL
+          AND alerted_at > NOW() - INTERVAL '15 minutes'
+        ORDER BY alerted_at DESC
+        LIMIT 5`,
+      [businessId]
+    ),
+  ]);
+
+  const occRow = occupancyRow.rows[0] || {};
+  const currentOccupancy = occRow.entrance_zone_count > 0
+    ? occRow.entrance_occupancy
+    : occRow.all_zones_occupancy;
+
+  const alerts = [];
+
+  // Device offline — any node that's been silent >30m but uploaded
+  // earlier today is treated as offline. (A node that never uploaded
+  // today simply isn't returned by the devices query.)
+  for (const dev of devices.rows) {
+    const ago = Date.now() - new Date(dev.last_seen).getTime();
+    if (ago > 30 * 60_000) {
+      alerts.push({ type: 'device_offline', device: dev.device_id, last_seen: dev.last_seen });
+    }
+  }
+
+  // Queue forming — server-driven so the frontend doesn't need to
+  // re-derive from the per-zone occupancy figures.
+  for (const q of queueAlerts.rows) {
+    alerts.push({
+      type: 'queue',
+      message: `Queue forming at ${q.zone_name || 'till'} (${q.queue_depth} waiting)`,
+    });
+  }
+
+  // Out-of-hours activity. Same threshold as the previous client-side
+  // check (7am – 10pm = the "normal" window). Only fires when there
+  // is actual movement, not just an idle node still online.
+  const hour = new Date().getHours();
+  const recentEntries = zones.rows.reduce((s, z) => s + (z.entries || 0), 0);
+  if ((hour < 7 || hour > 22) && recentEntries > 0) {
+    alerts.push({ type: 'after_hours', message: 'Unusual out-of-hours activity detected' });
+  }
+
+  const status = zones.rows.length === 0 && currentOccupancy === 0 ? 'no_data' : 'normal';
+
+  return {
+    status,
+    current_occupancy: currentOccupancy,
+    current_entries: recentEntries,
+    baseline_expected: null,
+    last_reading_at: devices.rows[0]?.last_seen || null,
+    today_activity: hourly.rows,
+    recent_zones: zones.rows,
+    devices: devices.rows,
+    alerts,
+  };
+}
+
 async function getCurrentStatus(businessId) {
+  // Source auto-detection. If any node has uploaded a reading in the
+  // last 24h, we treat this business as a node-only setup and skip the
+  // kilo path entirely — even if stale kilo rows still exist. The user
+  // operating a TapProve Node fleet would otherwise see empty
+  // realtime data because kilo_people_counting isn't being written.
+  const { rows: nodeProbe } = await pool.query(
+    `SELECT 1 FROM phone_counter_readings
+      WHERE business_id = $1
+        AND timestamp > NOW() - INTERVAL '24 hours'
+      LIMIT 1`,
+    [businessId]
+  );
+  if (nodeProbe.length > 0) {
+    return getCurrentStatusFromNodes(businessId);
+  }
+
   const [latest, occupancy, recentActivity, devices] = await Promise.all([
     pool.query(
       `SELECT * FROM kilo_people_counting

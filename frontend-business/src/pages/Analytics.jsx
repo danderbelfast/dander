@@ -888,26 +888,26 @@ function RealtimeTab() {
   const recentEntries = recentZones.reduce((s, z) => s + (z.entries || 0), 0);
   const recentExits = recentZones.reduce((s, z) => s + (z.exits || 0), 0);
 
+  // Node uploads (zone_name) and kilo uploads (zone_number) take different
+  // identity keys. Prefer zone_name when present (node-only setups) and
+  // fall back to zone_number for kilo. Latest reading per zone wins.
   const zoneOccupancy = {};
   for (const z of recentZones) {
-    if (!zoneOccupancy[z.zone_number] || new Date(z.timestamp) > new Date(zoneOccupancy[z.zone_number].timestamp)) {
-      zoneOccupancy[z.zone_number] = z;
+    const key = z.zone_name || `kilo-${z.zone_number}`;
+    if (!zoneOccupancy[key] || new Date(z.timestamp) > new Date(zoneOccupancy[key].timestamp)) {
+      zoneOccupancy[key] = z;
     }
   }
   const liveZones = Object.values(zoneOccupancy);
   const staffDetected = liveZones.reduce((s, z) => s + (z.staff_count || 0), 0);
 
+  // Server now emits queue / device_offline / after_hours alerts directly
+  // for node-only setups, so no client-side derivation. Capacity remains
+  // client-side because it needs the baseline_expected the server already
+  // sends — and that's still kilo-only territory.
   const smartAlerts = [...alerts];
-  const tillZone = liveZones.find(z => z.zone_number === 3);
-  if (tillZone && tillZone.occupancy >= 4) {
-    smartAlerts.push({ type: 'queue', message: 'Queue forming at till (4+ people)' });
-  }
   if (rt.current_occupancy > 0 && rt.baseline_expected && rt.current_occupancy > rt.baseline_expected * 0.9) {
     smartAlerts.push({ type: 'capacity', message: 'Near capacity (90%+ of baseline)' });
-  }
-  const hourNow = new Date().getHours();
-  if ((hourNow < 7 || hourNow > 22) && rt.current_occupancy > 0) {
-    smartAlerts.push({ type: 'after_hours', message: 'Unusual out-of-hours activity detected' });
   }
 
   const alertIcons = { device_offline: '⚠️', low_footfall: '📉', queue: '⚠️', capacity: '📊', after_hours: '🔔' };
@@ -975,8 +975,10 @@ function RealtimeTab() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {liveZones.map(z => (
-                  <div key={z.zone_number} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--c-border)' }}>
-                    <span style={{ fontWeight: 500, fontSize: '0.88rem' }}>Zone {z.zone_number}</span>
+                  <div key={z.zone_name || `kilo-${z.zone_number}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--c-border)' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.88rem' }}>
+                      {z.zone_name || `Zone ${z.zone_number}`}
+                    </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>{z.occupancy || 0}</span>
                       <span style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>people</span>
@@ -1063,9 +1065,12 @@ function RealtimeTab() {
                   {devices.map((d, i) => {
                     const ago = d.last_seen ? Math.round((Date.now() - new Date(d.last_seen).getTime()) / 60000) : null;
                     const online = ago != null && ago < 30;
+                    // Kilo cameras give us device_sn; TapProve Nodes give us
+                    // device_id. Whichever is set is what we render.
+                    const deviceLabel = d.device_sn || d.device_id || '—';
                     return (
                       <tr key={i}>
-                        <td><code style={{ fontSize: '0.8rem' }}>{d.device_sn}</code></td>
+                        <td><code style={{ fontSize: '0.8rem' }}>{deviceLabel}</code></td>
                         <td>{d.device_name || '—'}</td>
                         <td>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 600, color: online ? '#16A34A' : '#DC2626' }}>
