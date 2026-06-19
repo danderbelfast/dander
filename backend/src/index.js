@@ -190,6 +190,7 @@ app.use('/api/coupons',     require('../routes/coupons'));
 // business.js's router.use(requireBusiness) intercepts the request.
 app.use('/api/business',    require('../routes/rewards'));
 app.use('/api/business',    require('../routes/business'));
+app.use('/api/business/compliance', require('../routes/compliance'));
 app.use('/api/admin',       require('../routes/admin'));
 app.use('/api/push',        require('../routes/push'));
 app.use('/api/users',       require('../routes/users'));

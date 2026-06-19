@@ -1,0 +1,31 @@
+=====================================================
+PLACEHOLDER — IRELAND (EU GDPR / Irish DPC)
+NOT FOR ACTUAL STORE DISPLAY
+=====================================================
+
+This file is a placeholder for the print-ready privacy signage
+that businesses operating in Ireland must display where TapProve
+sensors are in operation.
+
+The final version will be drafted with solicitor review against:
+- Regulation (EU) 2016/679 (GDPR), Articles 13 & 14
+- Data Protection Act 2018 (Ireland)
+- Irish Data Protection Commission guidance on CCTV and
+  electronic monitoring in retail
+
+It should cover at minimum:
+- Who is the data controller (the venue) and who is the processor (TapProve)
+- What is being measured (camera-based people counting, BLE / Wi-Fi
+  signal counting, ambient noise level, ambient light)
+- Confirmation that no video, photos, audio, or raw identifiers
+  are recorded or transmitted
+- Legal basis (legitimate interest)
+- Retention periods (aggregate counts up to 13 months, per-device
+  Bluetooth hashes deleted within 24 hours)
+- How to exercise data subject rights
+- Contact details (venue + TapProve support email)
+- Reference to the full privacy notice URL
+
+Replace this file with the final A5 / A4 PDF and bump the
+SIGNAGE.IE.version entry in backend/services/signageVersions.js.
+=====================================================

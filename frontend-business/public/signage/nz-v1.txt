@@ -1,0 +1,34 @@
+=====================================================
+PLACEHOLDER — NEW ZEALAND (Privacy Act 2020 / OPC)
+NOT FOR ACTUAL STORE DISPLAY
+=====================================================
+
+This file is a placeholder for the print-ready privacy signage
+that businesses operating in New Zealand must display where
+TapProve sensors are in operation.
+
+The final version will be drafted with solicitor review against:
+- Privacy Act 2020 (NZ)
+- Information Privacy Principles (IPP), particularly IPP 1, 3
+- Office of the Privacy Commissioner (OPC) guidance on
+  biometric and IoT surveillance in retail (the OPC's 2024
+  biometric processing draft code is particularly relevant)
+
+It should cover at minimum:
+- Name and contact details of the collecting agency (venue)
+- What is being collected and how (visitor counting, BLE / Wi-Fi
+  counting, noise / light)
+- Confirmation that no personal information as defined by IPP 1
+  is being collected (per the data audit)
+- Why it's being collected (footfall analytics)
+- Consequences of the customer choosing not to provide it
+  (none — they can use the venue normally)
+- Recipients of the information (the venue; TapProve as processor;
+  aggregate anonymised analytics may be shared with researchers /
+  local government bodies in future)
+- Right to access and correct
+- Contact for complaints, and reference to OPC (privacy.org.nz)
+
+Replace this file with the final signage PDF and bump the
+SIGNAGE.NZ.version entry in backend/services/signageVersions.js.
+=====================================================

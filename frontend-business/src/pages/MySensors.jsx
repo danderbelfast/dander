@@ -6,6 +6,7 @@ import {
 } from '../api/business';
 import { useToast } from '../context/ToastContext';
 import { Spinner } from '../components/ui/Spinner';
+import ComplianceGate from '../components/ComplianceGate';
 
 // A FootfallCam device is "connected" if it reported within this window.
 const FOOTFALL_ONLINE_MS = 5 * 60 * 1000;
@@ -204,6 +205,13 @@ export default function MySensors() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/*
+        Non-skippable compliance gate. Self-mounts when the business
+        hasn't accepted the current version of the privacy signage for
+        their country. The gate fetches its own status, so this is a
+        no-op for businesses that are up to date.
+      */}
+      <ComplianceGate />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>My Sensors</h2>

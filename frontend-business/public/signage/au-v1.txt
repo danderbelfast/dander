@@ -1,0 +1,32 @@
+=====================================================
+PLACEHOLDER — AUSTRALIA (Privacy Act 1988 / OAIC)
+NOT FOR ACTUAL STORE DISPLAY
+=====================================================
+
+This file is a placeholder for the print-ready privacy signage
+that businesses operating in Australia must display where TapProve
+sensors are in operation.
+
+The final version will be drafted with solicitor review against:
+- Privacy Act 1988 (Cth), including the 2024 amendments
+- Australian Privacy Principles (APPs), particularly APP 1, 3, 5
+- Office of the Australian Information Commissioner (OAIC)
+  guidance on biometric and surveillance technology in retail
+
+It should cover at minimum:
+- Identity and contact details of the APP entity (the venue)
+- Kinds of personal information collected (or, in our case,
+  explicit confirmation that aggregate counts and hashed
+  Bluetooth identifiers are collected — but no personal
+  information as defined by the Act)
+- Purposes of collection
+- Consequences of not collecting (footfall analytics only —
+  no impact on the customer's ability to enter the venue)
+- Whether the information will be disclosed overseas (the
+  TapProve backend is EU-hosted; this is relevant for AU disclosure)
+- How to access, correct, or complain
+- Reference to OAIC (oaic.gov.au) for unresolved complaints
+
+Replace this file with the final signage PDF and bump the
+SIGNAGE.AU.version entry in backend/services/signageVersions.js.
+=====================================================

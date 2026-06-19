@@ -29,6 +29,7 @@ import GifLibrary       from './pages/GifLibrary';
 import Sales            from './pages/Sales';
 import Conversions      from './pages/Conversions';
 import RewardTiers      from './pages/RewardTiers';
+import Compliance       from './pages/Compliance';
 
 // Redirects logged-in users away from public pages
 function PublicRoute({ children }) {
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/api-keys"         element={<ApiKeys />} />
           <Route path="/settings"         element={<Settings />} />
           <Route path="/profile"          element={<BusinessProfile />} />
+          <Route path="/compliance"       element={<Compliance />} />
           <Route path="/guide"            element={<Guide />} />
         </Route>
 

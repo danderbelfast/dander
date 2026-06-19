@@ -1,0 +1,44 @@
+=====================================================
+PLACEHOLDER — UNITED STATES (CCPA-aligned baseline)
+NOT FOR ACTUAL STORE DISPLAY
+=====================================================
+
+This file is a placeholder for the print-ready privacy signage
+that businesses operating in the United States must display where
+TapProve sensors are in operation.
+
+US privacy law is a patchwork of state-level statutes (no federal
+equivalent of GDPR). The baseline placeholder is drafted to satisfy
+the most prescriptive of the major regimes (California CCPA /
+CPRA), on the principle that what satisfies California typically
+satisfies VA / CO / CT / UT.
+
+Final version will be drafted with US privacy counsel review
+against at minimum:
+- California Consumer Privacy Act (CCPA) and CPRA amendments
+- Virginia Consumer Data Protection Act
+- Colorado Privacy Act
+- Connecticut Data Privacy Act
+- Utah Consumer Privacy Act
+- Federal Trade Commission Act §5 (deceptive practices)
+
+It should cover at minimum:
+- Notice at collection ("This venue uses sensors...")
+- Categories of data being collected
+- Purposes of collection
+- Right to know, delete, correct, opt-out (CCPA)
+- Right to limit use of sensitive personal information
+- No sale of personal information (the baseline position; if you
+  ever commercialise aggregate data, the wording changes
+  significantly)
+- Contact details for exercising rights
+- Reference to tapprove.io/privacy
+
+NOTE: California / Illinois may require additional disclosures
+specific to facial recognition (BIPA in IL). TapProve doesn't run
+facial recognition, but the placeholder includes a sentence
+confirming this explicitly to head off ambiguity.
+
+Replace this file with the final signage PDF and bump the
+SIGNAGE.US.version entry in backend/services/signageVersions.js.
+=====================================================

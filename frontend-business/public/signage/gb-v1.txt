@@ -1,0 +1,29 @@
+=====================================================
+PLACEHOLDER — UNITED KINGDOM (UK GDPR / ICO)
+NOT FOR ACTUAL STORE DISPLAY
+=====================================================
+
+This file is a placeholder for the print-ready privacy signage
+that businesses operating in the UK must display where TapProve
+sensors are in operation.
+
+The final version will be drafted with solicitor review against:
+- UK GDPR (Articles 13 & 14)
+- Data Protection Act 2018 (UK)
+- ICO guidance on CCTV, location tracking, and IoT in retail
+
+It should cover at minimum:
+- Who is the data controller (the venue) and who is the processor (TapProve)
+- What is being measured (camera-based people counting, BLE / Wi-Fi
+  signal counting, ambient noise level, ambient light)
+- Confirmation that no video, photos, audio, or raw identifiers
+  are recorded or transmitted
+- Legal basis (legitimate interest)
+- Retention periods
+- How to exercise data subject rights
+- Reference to ICO at ico.org.uk for complaints
+- Contact details and link to tapprove.io/privacy
+
+Replace this file with the final A5 / A4 PDF and bump the
+SIGNAGE.GB.version entry in backend/services/signageVersions.js.
+=====================================================

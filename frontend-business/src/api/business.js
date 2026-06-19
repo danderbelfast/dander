@@ -306,3 +306,10 @@ export const awardTillPoints = (payload) =>
 
 export const listSales = (params = {}) =>
   client.get('/api/till/sales', { params }).then((r) => r.data);
+
+// ── Compliance / privacy signage ────────────────────────────
+export const getComplianceStatus = () =>
+  client.get('/api/business/compliance/status').then((r) => r.data);
+
+export const acceptComplianceSignage = () =>
+  client.post('/api/business/compliance/accept-signage').then((r) => r.data);
