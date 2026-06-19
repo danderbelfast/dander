@@ -278,6 +278,36 @@ router.post('/phone-counter', async (req, res) => {
         }
       }
 
+      // BLE salt — per-business secret used by the node to hash MAC
+      // addresses before transmission. Lazily provisioned: if this
+      // business has never received a node upload before the salt
+      // backfill ran (or if a new business was created during a
+      // multi-deploy window), generate one now and keep going.
+      // Always delivered to the node, so a re-flashed node picks up
+      // the existing salt rather than starting with no anonymisation.
+      const businessIdForSalt = num(p.business_id);
+      if (businessIdForSalt != null) {
+        const { rows: saltRows } = await pool.query(
+          `SELECT bt_salt FROM businesses WHERE id = $1`,
+          [businessIdForSalt]
+        );
+        let salt = saltRows[0]?.bt_salt || null;
+        if (salt == null) {
+          const { rows: gen } = await pool.query(
+            `UPDATE businesses
+                SET bt_salt = encode(gen_random_bytes(32), 'hex')
+              WHERE id = $1 AND bt_salt IS NULL
+              RETURNING bt_salt`,
+            [businessIdForSalt]
+          );
+          salt = gen[0]?.bt_salt || null;
+        }
+        if (salt) {
+          responsePayload.commands = responsePayload.commands || {};
+          responsePayload.commands.bt_salt = salt;
+        }
+      }
+
       // Drain the oldest undelivered display command for this device.
       // We mark it delivered immediately — if the Node never actually
       // renders it (process killed, screen off) we lose that greeting

@@ -50,6 +50,14 @@ class Uploader(
         val openingHoursJson: String?,
         /** When true, MainActivity triggers a GIF cache refresh. */
         val refreshGifs: Boolean?,
+        /**
+         * Per-business secret salt for BLE MAC hashing. Hex-encoded.
+         * Persisted via Prefs.btSalt (EncryptedSharedPreferences) on
+         * receipt and never re-transmitted. See SensorHub.drainBleDevices
+         * for the hashing logic and 059_business_bt_salt.sql for the
+         * server side of this exchange.
+         */
+        val btSalt: String?,
     )
 
     data class Summary(
@@ -222,6 +230,8 @@ class Uploader(
                     cmd.getJSONObject("opening_hours").toString() else null,
                 refreshGifs = if (cmd.has("refresh_gifs") && !cmd.isNull("refresh_gifs"))
                     cmd.getBoolean("refresh_gifs") else null,
+                btSalt = if (cmd.has("bt_salt") && !cmd.isNull("bt_salt"))
+                    cmd.getString("bt_salt") else null,
             )
         } catch (_: Exception) { null }
     }

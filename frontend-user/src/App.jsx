@@ -24,6 +24,7 @@ import SavedOffers  from './pages/SavedOffers';
 import Settings                from './pages/Settings';
 import NotificationPreferences from './pages/NotificationPreferences';
 import Navigation              from './pages/Navigation';
+import Privacy                 from './pages/Privacy';
 
 function PublicRoute({ children }) {
   const { isAuth, loading } = useAuth();
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/"             element={<PublicRoute><SplashScreen /></PublicRoute>} />
         <Route path="/for-users"    element={<PublicRoute><UserExplainer /></PublicRoute>} />
         <Route path="/for-business" element={<BusinessExplainer />} />
+        <Route path="/privacy"      element={<Privacy />} />
         <Route path="/onboarding"   element={<PublicRoute><Onboarding /></PublicRoute>} />
         <Route path="/register"     element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/login"        element={<PublicRoute><Login /></PublicRoute>} />

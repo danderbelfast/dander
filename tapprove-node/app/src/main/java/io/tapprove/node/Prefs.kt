@@ -2,15 +2,53 @@ package io.tapprove.node
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 /**
  * Prefs — typed accessor over SharedPreferences for every operator-tunable
  * value. Defaults sit here so the rest of the codebase never has to think
  * about "what if the user hasn't opened Settings yet."
+ *
+ * The BLE salt is kept in a SEPARATE EncryptedSharedPreferences file
+ * (Android Keystore-backed) — see btSalt below. Everything else lives
+ * in plain SharedPreferences because it's operator-visible config.
  */
 class Prefs(context: Context) {
+    private val ctx = context.applicationContext
     private val sp: SharedPreferences =
-        context.applicationContext.getSharedPreferences("tapprove_node", Context.MODE_PRIVATE)
+        ctx.getSharedPreferences("tapprove_node", Context.MODE_PRIVATE)
+
+    // EncryptedSharedPreferences for the per-business BLE salt. Lazily
+    // created so a misconfigured Keystore (rare; can happen after a
+    // device factory reset) doesn't crash the whole app — we just fall
+    // back to plain SP for the salt and log a warning.
+    private val encryptedSp: SharedPreferences by lazy {
+        try {
+            val masterKey = MasterKey.Builder(ctx)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                ctx,
+                "tapprove_node_secure",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (t: Throwable) {
+            android.util.Log.w("Prefs", "EncryptedSharedPreferences unavailable, falling back to plain SP for salt: ${t.message}")
+            ctx.getSharedPreferences("tapprove_node_secure_fallback", Context.MODE_PRIVATE)
+        }
+    }
+
+    // Per-business BLE salt. Server-provided, persisted across launches.
+    // Empty string ⇒ not yet provisioned (very first upload after a fresh
+    // install). The hashing code in SensorHub treats empty as "skip BT
+    // anonymous IDs this window" — better than emitting hashes derived
+    // from a known-weak salt.
+    var btSalt: String
+        get() = encryptedSp.getString(KEY_BT_SALT, "") ?: ""
+        set(v) = encryptedSp.edit().putString(KEY_BT_SALT, v).apply()
 
     // Per-day weekly opening hours as JSON. See BusinessHours.kt for the
     // schema. The single open/close hour fields used by previous versions
@@ -94,6 +132,7 @@ class Prefs(context: Context) {
         const val KEY_UPDATE_AVAILABLE = "update_available"
         const val KEY_LATEST_VERSION   = "latest_version"
         const val KEY_CAMERA_FAILED    = "camera_failed"
+        const val KEY_BT_SALT          = "bt_salt"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
         val TILL_MODES = listOf("overhead", "walkpast", "approach")

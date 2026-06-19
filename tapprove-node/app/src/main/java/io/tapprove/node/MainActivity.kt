@@ -671,6 +671,16 @@ class MainActivity : AppCompatActivity() {
                 Log.i("TapProveMain", "Refreshing GIF cache (remote command)")
                 gifCache.triggerCacheRefresh(prefs.resolveDeviceId())
             }
+            // Per-business BLE salt. Persisted via EncryptedSharedPreferences
+            // (see Prefs.btSalt). SensorHub picks it up on the next BLE scan
+            // window. We update only on actual change to avoid pointlessly
+            // rewriting the Keystore-backed file every 60s.
+            cmd.btSalt?.let { salt ->
+                if (salt.isNotEmpty() && salt != prefs.btSalt) {
+                    prefs.btSalt = salt
+                    Log.i("TapProveMain", "BLE salt provisioned/rotated from backend (${salt.length} chars)")
+                }
+            }
         }
     }
 

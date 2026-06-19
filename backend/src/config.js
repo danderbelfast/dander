@@ -25,6 +25,15 @@ const NODE_ENV  = process.env.NODE_ENV || 'development';
 // service, DEPLOY_ENV=production on prod, leave unset locally.
 const DEPLOY_ENV = process.env.DEPLOY_ENV || NODE_ENV;
 
+// Retention for phone_counter_readings rows. Default 13 months (395 days)
+// to cover year-over-year seasonal comparisons. Set lower in
+// environments that want tighter GDPR storage-limitation posture, or
+// higher if you're keeping data for a documented analytics horizon.
+// 0 disables the retention cron entirely.
+const PHONE_COUNTER_RETENTION_DAYS = parseInt(
+  process.env.PHONE_COUNTER_RETENTION_DAYS || '395', 10
+);
+
 // External URLs the API hands out in payloads, OG images, and outbound
 // notifications. Pick names carefully — these end up in SMS, push and
 // email so the wrong one in staging would still be visible to users.
@@ -60,6 +69,7 @@ module.exports = {
   PORT,
   NODE_ENV,
   DEPLOY_ENV,
+  PHONE_COUNTER_RETENTION_DAYS,
   USER_APP_URL,
   BUSINESS_APP_URL,
   ADMIN_APP_URL,

@@ -76,6 +76,12 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
+    // EncryptedSharedPreferences (Keystore-backed) for the per-business
+    // BLE salt. Used only by Prefs.encryptedSp — the rest of Prefs stays
+    // on plain SharedPreferences since those settings are operator-visible
+    // anyway.
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // CameraX
     val cameraX = "1.3.4"
     implementation("androidx.camera:camera-core:$cameraX")

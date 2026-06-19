@@ -505,6 +505,7 @@ const { scheduleNotificationReminders, scheduleSmartSpecialsReminder, scheduleWe
 const { scheduleWeatherCollection } = require('../services/weatherService');
 const { scheduleWifiAggregation } = require('../jobs/aggregateWifi');
 const { scheduleTrilateration, schedulePositionLogPrune } = require('../services/positionHeatmap');
+const { scheduleRetention } = require('../services/retentionCron');
 
 scheduleOfferExpiry();              // every 15 minutes — deactivates expired offers + their coupons
 expireCoupons();                    // every 30 minutes — belt-and-suspenders coupon expiry
@@ -515,6 +516,7 @@ scheduleWeeklyReport();             // Monday 8am — notify businesses their we
 scheduleWifiAggregation();          // daily 2am — aggregate wifi_observations → wifi_fingerprints + prune 30-day-old rows
 scheduleTrilateration();            // every 5 minutes — bt_position_log → position_heatmap via weighted centroid
 schedulePositionLogPrune();         // hourly at :17 — prune bt_position_log rows older than 24h
+scheduleRetention();                // daily 03:30 — GDPR storage-limitation for phone_counter_readings (default 13 months)
 
 // ---------------------------------------------------------------------------
 // Start

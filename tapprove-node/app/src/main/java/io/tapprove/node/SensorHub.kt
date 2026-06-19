@@ -257,24 +257,21 @@ class SensorHub(
     // ── BT trilateration: anonymised (id, rssi) list ───────────
     //
     // We can't ship raw MACs off-device. Instead we hash each MAC with a
-    // per-day salt — same device gets a stable ID *within* a day (so we
-    // can correlate sightings across nodes for trilateration), but a
-    // different ID tomorrow, so nothing persists. The salt itself is just
-    // SHA256(UTC date string) — secret-from-no-one but cheap to recompute.
+    // Per-business secret salt — provisioned by the backend on first
+    // upload and stored in EncryptedSharedPreferences via Prefs.btSalt
+    // (Android Keystore-backed). Same physical phone produces the same
+    // anonymous_id across all of one business's nodes (preserves the
+    // position heatmap's cross-node trilateration), but a different
+    // hash at a different business (no cross-business correlation).
+    //
+    // Previously this was SHA256(UTC date) — a public salt that left
+    // bt_position_log entries pseudonymous, not anonymous. Now the
+    // salt is a real secret and re-identification requires either the
+    // backend's businesses.bt_salt column or a compromised kiosk's
+    // Keystore. The change crosses the GDPR pseudonymous/anonymous
+    // boundary.
 
     data class BleDevice(val anonymousId: String, val rssi: Int)
-
-    @Volatile private var saltDate: String = ""
-    @Volatile private var saltHex: String = ""
-
-    private fun currentSaltHex(): String {
-        val today = LocalDate.now(ZoneOffset.UTC).toString()
-        if (today != saltDate) {
-            saltDate = today
-            saltHex = sha256Hex(today)
-        }
-        return saltHex
-    }
 
     private fun sha256Hex(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
@@ -286,22 +283,30 @@ class SensorHub(
         return sb.toString()
     }
 
-    private fun anonymousId(mac: String): String =
-        sha256Hex(mac + currentSaltHex()).substring(0, 8)
+    private fun anonymousId(mac: String, saltHex: String): String =
+        sha256Hex(mac + saltHex).substring(0, 8)
 
     /**
      * Anonymised BLE devices seen this scan window, sorted by signal
      * strength (strongest first) and capped at 20. The trilateration
      * solver wants the closest devices; weak/distant signals add noise.
+     *
+     * If the per-business salt hasn't been provisioned yet (first
+     * upload after a fresh install, before the webhook response
+     * delivers it), returns an empty list — better to skip one
+     * 60s window of BT data than to emit hashes that could be tied
+     * back to a known MAC.
      */
     fun drainBleDevices(): List<BleDevice> {
         if (!bluetoothScanAllowed()) return emptyList()
+        val saltHex = prefs.btSalt
+        if (saltHex.isEmpty()) return emptyList()
         val snapshot: List<Pair<String, Int>> =
             synchronized(btSeen) { btSeen.map { it.key to it.value } }
         return snapshot
             .sortedByDescending { it.second }
             .take(20)
-            .map { (mac, rssi) -> BleDevice(anonymousId(mac), rssi) }
+            .map { (mac, rssi) -> BleDevice(anonymousId(mac, saltHex), rssi) }
     }
 
     // ── BT brand detection (OUI lookup) ─────────────────────────
