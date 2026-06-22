@@ -12,17 +12,7 @@
   status = 200
   force  = true
 
-# NFC tap fallback — Android App Links normally route /tap into the
-# installed customer app, but a no-app phone follows the link to this
-# SPA host instead. The SPA has no /tap route, so without this proxy
-# the catch-all below redirects to /. Proxy to the backend's join page
-# which renders a personalised "Get TapProve at <business>" landing
-# with the business name, today's offer count, and Play Store CTA.
-[[redirects]]
-  from   = "/tap"
-  to     = "https://api.tapprove.io/api/public/tap"
-  status = 200
-  force  = true
+# /tap is served by the SPA (react-router) — see frontend-user/src/pages/Tap.jsx
 
 # Till sticker fallback — till taps always come from logged-in
 # customers with the app installed, so a no-app /till means someone
