@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './vitest.setup.js',
     css: false,
+    passWithNoTests: true,
   },
   server: {
     port: 3000,
