@@ -24,6 +24,7 @@
 .po-coin { position: absolute; top: -40px; font-size: 1.6rem; animation: po-fall 1100ms ease-in forwards; }
 @keyframes po-fall { to { transform: translateY(110vh) rotate(360deg); opacity: 0.2; } }
 @media (prefers-reduced-motion: reduce) {
+  .po-backdrop { animation: none; }
   .po-points { animation: none; }
   .po-coin { display: none; }
 }

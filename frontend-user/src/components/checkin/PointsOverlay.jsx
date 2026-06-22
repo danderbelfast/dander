@@ -49,7 +49,7 @@ export default function PointsOverlay() {
   }
 
   return (
-    <div className={`po-backdrop ${tierClass}`} role="dialog" aria-label="Points earned">
+    <div className={`po-backdrop ${tierClass}`} role="dialog" aria-modal="true" aria-label="Points earned">
       <div className="po-coins" aria-hidden="true">
         {coins.map((c) => (
           <span key={c.id} className="po-coin" style={{ left: c.left, animationDelay: c.delay }}>🪙</span>
