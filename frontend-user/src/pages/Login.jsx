@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login, verifyLogin2FA, forgotPassword, resetPassword, resendOtp } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
+import { postAuthDestination } from '../utils/postAuthDestination';
 import { Spinner } from '../components/ui/Spinner';
 import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
 
@@ -76,7 +77,7 @@ export default function Login() {
           firstName: data.user?.firstName, lastName: data.user?.lastName,
           avatarUrl: data.user?.avatarUrl ?? null,
         });
-        navigate('/home', { replace: true });
+        navigate(postAuthDestination(), { replace: true });
       } else if (data.setupRequired) {
         navigate('/register?step=setup', { state: { email } });
       }
@@ -106,7 +107,7 @@ export default function Login() {
         firstName: data.user?.firstName, lastName: data.user?.lastName,
         avatarUrl: data.user?.avatarUrl ?? null,
       });
-      navigate('/home', { replace: true });
+      navigate(postAuthDestination(), { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid code. Try again.');
       setTotpCode('');
