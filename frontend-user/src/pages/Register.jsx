@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { register, verifySetup2FA, resendOtp } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
 import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
+import { useAuth } from '../context/AuthContext';
+import { postAuthDestination } from '../utils/postAuthDestination';
 
 const SESSION_KEY = 'tapprove_register_otp';
 
+function decodeJWT(token) {
+  try { return JSON.parse(atob(token.split('.')[1])); } catch { return {}; }
+}
+
 export default function Register() {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
 
   const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
@@ -64,10 +71,25 @@ export default function Register() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      await verifySetup2FA(userId, otpCode);
+      const data = await verifySetup2FA(userId, otpCode);
       sessionStorage.removeItem(SESSION_KEY);
-      setStep(3);
-      setTimeout(() => navigate('/login'), 2000);
+
+      // The backend returns full tokens here — log the new user in directly
+      // (no bounce to /login) and replay any pending tap so they earn now.
+      if (data?.accessToken && data?.refreshToken) {
+        const payload = decodeJWT(data.accessToken);
+        authLogin(data.accessToken, data.refreshToken, {
+          id: payload.sub, email: payload.email, role: payload.role,
+          firstName: data.user?.firstName ?? null,
+          lastName: data.user?.lastName ?? null,
+          avatarUrl: data.user?.avatarUrl ?? null,
+        });
+        navigate(postAuthDestination(), { replace: true });
+      } else {
+        // Fallback: backend didn't issue tokens — keep the old behaviour.
+        setStep(3);
+        setTimeout(() => navigate('/login'), 2000);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired code. Please try again.');
       setOtpCode('');
