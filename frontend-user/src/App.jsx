@@ -25,6 +25,9 @@ import Settings                from './pages/Settings';
 import NotificationPreferences from './pages/NotificationPreferences';
 import Navigation              from './pages/Navigation';
 import Privacy                 from './pages/Privacy';
+import Tap from './pages/Tap';
+import { CheckInOverlayProvider } from './context/CheckInOverlayProvider';
+import PointsOverlay from './components/checkin/PointsOverlay';
 
 function PublicRoute({ children }) {
   const { isAuth, loading } = useAuth();
@@ -38,7 +41,7 @@ export default function App() {
   useFcmForeground();
 
   return (
-    <>
+    <CheckInOverlayProvider>
       {hasUpdate && <UpdateBanner onRefresh={applyUpdate} onDismiss={dismiss} />}
       {showBanner && <InstallBanner isIos={isIosDevice} onInstall={promptInstall} onDismiss={dismissBanner} />}
       <ToastContainer />
@@ -63,12 +66,16 @@ export default function App() {
           <Route path="/notification-preferences" element={<NotificationPreferences />} />
         </Route>
 
+        {/* Full-screen — no auth wrapper, no AppShell */}
+        <Route path="/tap" element={<Tap />} />
+
         {/* Full-screen navigation — no bottom nav */}
         <Route path="/navigate" element={<Navigation />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+      <PointsOverlay />
+    </CheckInOverlayProvider>
   );
 }
