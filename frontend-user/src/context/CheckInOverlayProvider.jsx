@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
-const CheckInOverlayContext = createContext(null);
+export const CheckInOverlayContext = createContext(null);
 
 export function CheckInOverlayProvider({ children }) {
   const [result, setResult] = useState(null);

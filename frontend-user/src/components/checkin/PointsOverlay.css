@@ -1,0 +1,29 @@
+.po-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 24px; text-align: center;
+  background: radial-gradient(circle at 50% 30%, #2a2a3d 0%, #11111a 70%);
+  color: #fff; animation: po-fade 220ms ease-out;
+}
+.po-backdrop.tier-bronze { background: radial-gradient(circle at 50% 30%, #4a3526 0%, #11111a 70%); }
+.po-backdrop.tier-silver { background: radial-gradient(circle at 50% 30%, #3a3f4a 0%, #11111a 70%); }
+.po-backdrop.tier-gold   { background: radial-gradient(circle at 50% 30%, #4a4226 0%, #11111a 70%); }
+@keyframes po-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.po-banner { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.9; }
+.po-points { font-size: 4rem; font-weight: 800; line-height: 1; animation: po-pop 420ms cubic-bezier(.2,1.3,.4,1); }
+@keyframes po-pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+.po-business { font-size: 1.1rem; opacity: 0.85; }
+.po-badge { display: inline-block; padding: 6px 14px; border-radius: 999px; background: #FF6B35; font-weight: 700; }
+.po-streak { font-size: 1rem; opacity: 0.9; }
+.po-unlock { font-size: 0.95rem; opacity: 0.9; }
+.po-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; width: 100%; max-width: 320px; }
+
+/* Coin burst — lightweight: a handful of emoji coins falling on a stagger. */
+.po-coins { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.po-coin { position: absolute; top: -40px; font-size: 1.6rem; animation: po-fall 1100ms ease-in forwards; }
+@keyframes po-fall { to { transform: translateY(110vh) rotate(360deg); opacity: 0.2; } }
+@media (prefers-reduced-motion: reduce) {
+  .po-points { animation: none; }
+  .po-coin { display: none; }
+}
