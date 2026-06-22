@@ -21,6 +21,7 @@ export default function Tap() {
   const validParams = !!node && Number.isFinite(business);
 
   const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const fired = useRef(false); // guard against double check-in (StrictMode / re-render)
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function Tap() {
           .catch(() => {});
       })
       .catch(() => { setError(true); });
-  }, [loading, isAuth, validParams, node, business, navigate, trigger, setOffer]);
+  }, [loading, isAuth, validParams, node, business, navigate, trigger, setOffer, retryCount]);
 
   if (loading || !validParams || (isAuth && validParams && !error)) {
     return (
@@ -57,7 +58,7 @@ export default function Tap() {
         <div style={{ fontSize: '2.5rem' }}>&#128543;</div>
         <h2 className="font-head">Couldn&apos;t collect your points</h2>
         <p className="text-muted">Please try tapping again.</p>
-        <button className="btn btn-primary btn-lg" onClick={() => { fired.current = false; setError(false); }}>
+        <button className="btn btn-primary btn-lg" onClick={() => { fired.current = false; setError(false); setRetryCount((c) => c + 1); }}>
           Retry
         </button>
       </div>

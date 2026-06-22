@@ -71,4 +71,22 @@ describe('Tap page', () => {
     expect(nfcCheckin).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
   });
+
+  it('error path: shows retry, and Retry re-attempts the check-in', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    authState = { isAuth: true, loading: false };
+    nfcCheckin.mockRejectedValueOnce(new Error('boom'));
+    renderTap('?node=node-abc&business=42');
+
+    // error UI appears after the failed check-in
+    expect(await screen.findByText(/couldn't collect your points/i)).toBeInTheDocument();
+    expect(nfcCheckin).toHaveBeenCalledTimes(1);
+
+    // second attempt succeeds
+    nfcCheckin.mockResolvedValueOnce({ success: true, points_awarded: 10, business_name: 'Joe' });
+    await userEvent.click(screen.getByRole('button', { name: /retry/i }));
+
+    await waitFor(() => expect(nfcCheckin).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(triggerMock).toHaveBeenCalledWith({ success: true, points_awarded: 10, business_name: 'Joe' }));
+  });
 });
