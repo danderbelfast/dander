@@ -162,3 +162,9 @@ export function useLocation() {
   if (!ctx) throw new Error('useLocation must be used inside <LocationProvider>');
   return ctx;
 }
+
+// Non-throwing variant for components that may render outside a LocationProvider
+// (e.g. the public /offer/:id route). Returns null when no provider is present.
+export function useOptionalLocation() {
+  return useContext(LocationContext);
+}
