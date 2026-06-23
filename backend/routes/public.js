@@ -118,6 +118,48 @@ router.get('/business/:id/stranger-display', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/public/business/:id/offers
+//
+// All active offers for a business (newest first) + business name/logo. No
+// auth — powers the web "see our latest offers" page (window sticker + the
+// post-earning overlay). business_name is returned even when there are no
+// offers so the page can render its empty state.
+// ---------------------------------------------------------------------------
+
+router.get('/business/:id/offers', async (req, res) => {
+  const businessId = parseInt(req.params.id, 10);
+  if (!Number.isFinite(businessId)) {
+    return res.status(400).json({ success: false, code: 'INVALID_ID', message: 'business id must be numeric.' });
+  }
+  try {
+    const { rows: bizRows } = await pool.query(
+      'SELECT id, name, logo_url FROM businesses WHERE id = $1 LIMIT 1',
+      [businessId]
+    );
+    if (bizRows.length === 0) {
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'Business not found.' });
+    }
+    const { rows: offers } = await pool.query(
+      `SELECT id, title, description, image_url, category, offer_type,
+              original_price, offer_price, discount_percent, expires_at
+         FROM offers
+        WHERE business_id = $1 AND is_active = TRUE
+        ORDER BY created_at DESC`,
+      [businessId]
+    );
+    return res.status(200).json({
+      success: true,
+      business_name: bizRows[0].name,
+      business_logo_url: bizRows[0].logo_url,
+      offers,
+    });
+  } catch (err) {
+    console.error('[public/business/:id/offers]', err);
+    return res.status(500).json({ success: false, code: 'SERVER_ERROR', message: 'Failed to load offers.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/public/stranger-milestone
 //
 // Called by a Dander Node when its visitor count crosses a 100-multiple
