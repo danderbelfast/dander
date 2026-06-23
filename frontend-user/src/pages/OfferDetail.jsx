@@ -1,10 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOffer, recordView, saveOffer, unsaveOffer, trackShare } from '../api/offers';
-import { generateCoupon } from '../api/coupons';
-import * as alertService from '../services/alertService';
 import { useOptionalLocation } from '../context/LocationContext';
-import { setReturnPath } from '../services/returnPath';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCountdown } from '../hooks/useCountdown';
@@ -59,15 +56,12 @@ export default function OfferDetail() {
   const location = locationCtx?.location ?? null;
   const { toast }    = useToast();
   const { isAuth }   = useAuth();
-  const { trackOfferView, trackCouponClaim } = usePwa();
+  const { trackOfferView } = usePwa();
 
   const [offer, setOffer]             = useState(null);
   const [loading, setLoading]         = useState(true);
-  const [claiming, setClaiming]       = useState(false);
   const [saved, setSaved]             = useState(false);
   const [savingState, setSavingState] = useState(false);
-  const [error, setError]             = useState('');
-  const [outOfRange, setOutOfRange]   = useState(false);
   const [showDirections, setShowDirections] = useState(false);
 
   const countdown = useCountdown(offer?.expires_at);
@@ -84,47 +78,13 @@ export default function OfferDetail() {
         recordView(id).catch(() => {});
         trackOfferView();
       } catch {
-        if (!cancelled) setError('Offer not found.');
+        // leave offer null → "Offer not found" UI below
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [id]);
-
-  async function handleGetCoupon() {
-    setError(''); setOutOfRange(false); setClaiming(true);
-    try {
-      const data = await generateCoupon({
-        offerId: parseInt(id, 10),
-        lat: location?.lat,
-        lng: location?.lng,
-      });
-      trackCouponClaim();
-      
-      // Play coupon claimed alert
-      await alertService.couponClaimed();
-      
-      navigate('/coupons/claimed', {
-        state: {
-          coupon:      data.coupon,
-          offer:       data.offer,
-          business:    data.business,
-          businessLat: offer.business_lat ?? offer.lat,
-          businessLng: offer.business_lng ?? offer.lng,
-          offerId:     id,
-        },
-      });
-      return;
-    } catch (err) {
-      const code = err.response?.data?.code;
-      const msg  = err.response?.data?.message || 'Could not claim this coupon.';
-      if (code === 'OUT_OF_RADIUS') { setOutOfRange(true); setError(msg); }
-      else { setError(msg); toast({ type: 'error', title: 'Coupon error', message: msg }); }
-    } finally {
-      setClaiming(false);
-    }
-  }
 
   async function toggleSave() {
     if (savingState) return;
@@ -180,18 +140,11 @@ export default function OfferDetail() {
   );
 
   const isUrgent   = countdown && !countdown.expired && countdown.urgent;
-  const capReached = offer.max_redemptions != null && offer.current_redemptions >= offer.max_redemptions;
   const isExpired  = countdown?.expired;
-  const canClaim   = isAuth && !capReached && !isExpired;
 
   const saveAmount = (offer.original_price != null && offer.offer_price != null)
     ? parseFloat(offer.original_price) - parseFloat(offer.offer_price)
     : null;
-
-  const redemptionPct = (offer.max_redemptions > 0)
-    ? Math.min(100, Math.round((offer.current_redemptions / offer.max_redemptions) * 100))
-    : null;
-  const goingFast = redemptionPct != null && redemptionPct >= 60;
 
   const typeLabel = offerTypeLabel(offer.offer_type);
   const distLabel = formatDistance(offer.distance_meters);
@@ -284,14 +237,6 @@ export default function OfferDetail() {
               <div className="detail-stat-value">{isExpired ? 'Expired' : countdown.label}</div>
             </div>
           )}
-          {offer.max_redemptions != null && (
-            <div className="detail-stat">
-              <div className="detail-stat-value" style={{ fontSize: '1.2rem' }}>
-                {capReached ? '0' : `${offer.max_redemptions - offer.current_redemptions}`}
-              </div>
-              <div className="detail-stat-label">Coupons remaining</div>
-            </div>
-          )}
           {distLabel && (
             <div className="detail-stat">
               <div className="detail-stat-icon">📍</div>
@@ -301,47 +246,11 @@ export default function OfferDetail() {
           )}
         </div>
 
-        {/* Redemption progress bar */}
-        {redemptionPct != null && (
-          <div className="detail-progress-wrap">
-            <div className="detail-progress-bar">
-              <div className="detail-progress-fill" style={{ width: `${redemptionPct}%` }} />
-            </div>
-            <div className="detail-progress-label">
-              {goingFast
-                ? <span className="detail-going-fast">🔥 Going fast — {100 - redemptionPct}% remaining</span>
-                : <span>{redemptionPct}% claimed</span>
-              }
-            </div>
-          </div>
-        )}
-
         {/* Description callout */}
         {offer.description && (
           <div className="detail-desc-callout">
             {offer.description}
           </div>
-        )}
-
-        {/* Errors */}
-        {error && (
-          outOfRange ? (
-            <div className="detail-out-of-range">
-              <div className="detail-out-of-range-title">📍 You're out of range</div>
-              <div className="detail-out-of-range-body">
-                {error} Get closer to {offer.business_name} and try again, or use directions to navigate there.
-              </div>
-              <button
-                className="btn btn-sm"
-                style={{ background: 'var(--c-primary)', color: '#fff', border: 'none', width: '100%', marginTop: 10 }}
-                onClick={() => setShowDirections(true)}
-              >
-                📍 Get directions to {offer.business_name}
-              </button>
-            </div>
-          ) : (
-            <div className="form-error" style={{ marginBottom: 16 }}>{error}</div>
-          )
         )}
 
         {/* Directions */}
@@ -367,28 +276,17 @@ export default function OfferDetail() {
 
       </div>
 
-      {/* ── Fixed bottom CTA ── */}
+      {/* ── Fixed bottom CTA — offers redeem at the till (no in-app claim) ── */}
       <div className="detail-cta">
-        {!isAuth ? (
-          <button
-            className="btn btn-primary btn-block btn-lg"
-            onClick={() => { setReturnPath(`/offer/${id}`); navigate('/login'); }}
-          >
-            Sign in to claim
-          </button>
-        ) : capReached ? (
-          <button className="btn btn-primary btn-block btn-lg" disabled>Fully claimed</button>
-        ) : isExpired ? (
-          <button className="btn btn-primary btn-block btn-lg" disabled>Offer expired</button>
-        ) : (
-          <button
-            className="btn btn-primary btn-block btn-lg"
-            onClick={handleGetCoupon}
-            disabled={claiming}
-          >
-            {claiming ? <Spinner size="sm" /> : 'Get coupon'}
-          </button>
-        )}
+        <div style={{ width: '100%' }}>
+          <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>🏪 Redeem in store</div>
+          <div style={{ fontSize: '0.9rem', color: 'var(--c-text-muted)' }}>
+            Visit {offer.business_name} and ask staff for this offer at the till — they'll apply the discount in person.
+          </div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginTop: 6 }}>
+            Tap in with TapProve to earn loyalty points on your spend.
+          </div>
+        </div>
       </div>
 
       {/* ── Directions sheet ── */}
