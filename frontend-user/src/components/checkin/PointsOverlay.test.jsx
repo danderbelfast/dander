@@ -63,4 +63,20 @@ describe('PointsOverlay', () => {
     expect(dismiss).toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith('/home');
   });
+
+  it('shows a friendly already-checked-in message when points_awarded is 0', () => {
+    renderOverlay({ result: { points_awarded: 0, business_name: 'Joe Coffee' } });
+    expect(screen.getByText(/already checked in today/i)).toBeInTheDocument();
+    expect(screen.getByText(/Joe Coffee/)).toBeInTheDocument();
+    // no celebratory "+0"
+    expect(screen.queryByText('+0')).toBeNull();
+  });
+
+  it('still allows Done from the already-checked-in state', async () => {
+    const dismiss = vi.fn();
+    renderOverlay({ result: { points_awarded: 0, business_name: 'X' }, dismiss });
+    await userEvent.click(screen.getByRole('button', { name: /done/i }));
+    expect(dismiss).toHaveBeenCalled();
+    expect(navigateMock).toHaveBeenCalledWith('/home');
+  });
 });
