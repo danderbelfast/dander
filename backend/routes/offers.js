@@ -341,6 +341,23 @@ router.delete(
 );
 
 // ---------------------------------------------------------------------------
+// POST /api/offers/activations/stitch — claim this device's anon activations
+// for the now-authenticated user. Called once on login/register.
+// Body: { anon_id: string }
+// ---------------------------------------------------------------------------
+router.post('/activations/stitch', requireAuth, async (req, res) => {
+  const anonId = typeof req.body?.anon_id === 'string' ? req.body.anon_id.slice(0, 100) : null;
+  if (!anonId) return ok(res, { stitched: 0 });   // nothing to stitch; not an error
+  try {
+    const stitched = await offerActivation.stitchAnonToUser(pool, { anonId, userId: req.user.id });
+    return ok(res, { stitched });
+  } catch (err) {
+    console.error('[offers/activations/stitch POST]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to stitch activations.');
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/offers/:id   — single offer with business details
 // ---------------------------------------------------------------------------
 
