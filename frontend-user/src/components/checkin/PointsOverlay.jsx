@@ -54,7 +54,7 @@ export default function PointsOverlay() {
   }
 
   return (
-    <div className={`po-backdrop ${earned ? tierClass : ''}`} role="dialog" aria-modal="true" aria-label="Points earned">
+    <div className={`po-backdrop ${earned ? tierClass : ''}`} role="dialog" aria-modal="true" aria-label={earned ? 'Points earned' : 'Already checked in today'}>
       {earned && (
         <div className="po-coins" aria-hidden="true">
           {coins.map((c) => (
