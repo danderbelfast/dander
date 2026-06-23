@@ -1,13 +1,18 @@
 import { getPendingTap } from '../services/tapContext';
+import { getReturnPath, clearReturnPath } from '../services/returnPath';
 
-// Where to send a user the moment a session becomes real. If they arrived via an
-// NFC tap before authenticating, replay that tap so earning happens; otherwise
-// fall through to the normal home screen. Does NOT clear the pending tap — the
-// /tap route consumes it after a successful award.
+// Where to send a user the moment a session becomes real. Priority:
+//  1. A pending NFC tap → replay it (the /tap route consumes it after award).
+//  2. A stashed return path (e.g. an offer they tried to claim) → consumed here.
+//  3. Otherwise the home screen.
 export function postAuthDestination() {
   const pending = getPendingTap();
-  if (!pending) return '/home';
-  const node = encodeURIComponent(pending.node);
-  const business = encodeURIComponent(String(pending.business));
-  return `/tap?node=${node}&business=${business}`;
+  if (pending) {
+    const node = encodeURIComponent(pending.node);
+    const business = encodeURIComponent(String(pending.business));
+    return `/tap?node=${node}&business=${business}`;
+  }
+  const ret = getReturnPath();
+  if (ret) { clearReturnPath(); return ret; }
+  return '/home';
 }
