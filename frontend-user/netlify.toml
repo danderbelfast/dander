@@ -28,16 +28,9 @@
   [headers.values]
     Cache-Control = "no-cache"
 
-# NFC tap fallback — see root netlify.toml for the prod equivalent.
-# Android App Links route /tap into the installed customer app; a
-# no-app phone follows the link to this SPA host and the SPA has no
-# /tap route, so without this proxy the catch-all below redirects to
-# /. Proxy to the staging backend's join page.
-[[redirects]]
-  from   = "/tap"
-  to     = "https://staging-api.tapprove.io/api/public/tap"
-  status = 200
-  force  = true
+# /tap is served by the SPA (react-router) — see frontend-user/src/pages/Tap.jsx.
+# The SPA owns /tap so a no-app phone reaches the web check-in/earn flow
+# (login/register → replay → points) instead of a dead-end install page.
 
 # Till sticker fallback — till taps come from logged-in customers
 # with the app installed, so a no-app /till on staging means the
