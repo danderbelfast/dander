@@ -60,3 +60,16 @@ export const getMonthlyLeaderboard = () =>
 
 export const getMyLeaderboard = () =>
   client.get('/api/leaderboard/me').then((r) => r.data);
+
+// ── Offer activation (attribution) ───────────────────────────
+export const activateOffer = (id, { channel, anonId } = {}) =>
+  client.post(`/api/offers/${id}/activate`, { channel, ...(anonId ? { anon_id: anonId } : {}) }).then((r) => r.data);
+
+export const deactivateOffer = (id, { anonId } = {}) =>
+  client.delete(`/api/offers/${id}/activate`, anonId ? { data: { anon_id: anonId } } : undefined).then((r) => r.data);
+
+export const getMyOffers = () =>
+  client.get('/api/offers/activated').then((r) => r.data);
+
+export const stitchActivations = (anonId) =>
+  client.post('/api/offers/activations/stitch', { anon_id: anonId }).then((r) => r.data);
