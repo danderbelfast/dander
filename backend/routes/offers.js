@@ -8,6 +8,8 @@ const pool       = require('../db/pool');
 const geoService = require('../services/geoService');
 const reviewService = require('../services/reviewService');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const offerActivation = require('../services/offerActivation');
+const { normalizeChannel } = require('../utils/offerChannel');
 
 const router = Router();
 
@@ -264,6 +266,76 @@ router.get(
     } catch (err) {
       console.error('[offers/story/:businessId GET]', err);
       return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch story.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/offers/activated — the caller's "My Offers" (non-expired)
+// NOTE: must be registered BEFORE /:id so 'activated' isn't matched as an id.
+// ---------------------------------------------------------------------------
+router.get('/activated', requireAuth, async (req, res) => {
+  try {
+    const offers = await offerActivation.listMyOffers(pool, req.user.id);
+    return ok(res, { count: offers.length, offers });
+  } catch (err) {
+    console.error('[offers/activated GET]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch activated offers.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/offers/:id/activate — record the activate intent event.
+// optionalAuth: logged-in → user_id; logged-out → requires anon_id in body.
+// Body: { channel: 'app'|'web'|'sticker', anon_id?: string }
+// GDPR: anon_id is a device identifier (privacy-flagged) — consent/erasure
+// handled by the GDPR pass; NOT production-ready for real users until then.
+// ---------------------------------------------------------------------------
+router.post(
+  '/:id/activate',
+  optionalAuth,
+  [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    const channel = normalizeChannel(req.body?.channel);
+    if (!channel) return fail(res, 400, 'VALIDATION_ERROR', 'channel must be app, web, or sticker.');
+
+    const userId = req.user?.id ?? null;
+    const anonId = userId ? null : (typeof req.body?.anon_id === 'string' ? req.body.anon_id.slice(0, 100) : null);
+    if (!userId && !anonId) return fail(res, 400, 'VALIDATION_ERROR', 'Sign in or provide anon_id to activate.');
+
+    try {
+      const row = await offerActivation.activate(pool, {
+        offerId: parseInt(req.params.id, 10), channel, userId, anonId,
+      });
+      return ok(res, { activation_id: row.id, status: row.status });
+    } catch (err) {
+      if (err.status === 404) return fail(res, 404, 'NOT_FOUND', err.message);
+      if (err.status === 409) return fail(res, 409, 'OFFER_INACTIVE', err.message);
+      console.error('[offers/:id/activate POST]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to activate offer.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// DELETE /api/offers/:id/activate — remove an activation (My Offers un-activate)
+// ---------------------------------------------------------------------------
+router.delete(
+  '/:id/activate',
+  optionalAuth,
+  [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
+  async (req, res) => {
+    if (!validate(req, res)) return;
+    const userId = req.user?.id ?? null;
+    const anonId = userId ? null : (typeof req.body?.anon_id === 'string' ? req.body.anon_id.slice(0, 100) : null);
+    if (!userId && !anonId) return fail(res, 400, 'VALIDATION_ERROR', 'Sign in or provide anon_id.');
+    try {
+      await offerActivation.deactivate(pool, { offerId: parseInt(req.params.id, 10), userId, anonId });
+      return ok(res, { message: 'Deactivated.' });
+    } catch (err) {
+      console.error('[offers/:id/activate DELETE]', err);
+      return fail(res, 500, 'SERVER_ERROR', 'Failed to deactivate offer.');
     }
   }
 );
