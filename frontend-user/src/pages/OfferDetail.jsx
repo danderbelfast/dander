@@ -10,6 +10,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { PUBLIC_APP_URL } from '../config';
 import { usePwa } from '../context/PwaInstallContext';
 import { resolveImageUrl } from '../utils/imageUrl';
+import ActivateButton from '../components/offers/ActivateButton';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -278,7 +279,8 @@ export default function OfferDetail() {
 
       {/* ── Fixed bottom CTA — offers redeem at the till (no in-app claim) ── */}
       <div className="detail-cta">
-        <div style={{ width: '100%' }}>
+        <ActivateButton offerId={offer.id} className="btn-block btn-lg" returnTo={`/offer/${offer.id}`} initialActivated={offer.is_activated ?? false} />
+        <div style={{ width: '100%', marginTop: 10 }}>
           <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>🏪 Redeem in store</div>
           <div style={{ fontSize: '0.9rem', color: 'var(--c-text-muted)' }}>
             Visit {offer.business_name} and ask staff for this offer at the till — they'll apply the discount in person.

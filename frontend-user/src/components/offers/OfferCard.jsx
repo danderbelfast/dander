@@ -6,6 +6,7 @@ import { saveOffer, unsaveOffer, trackShare } from '../../api/offers';
 import { StoryOverlay } from '../ui/StoryOverlay';
 import { StarDisplay, NewBadge } from '../ui/StarRating';
 import { PUBLIC_APP_URL } from '../../config';
+import ActivateButton from './ActivateButton';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -231,6 +232,9 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
                 <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
               </svg>
             </button>
+          </div>
+          <div style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+            <ActivateButton offerId={offer.id} returnTo={`/offer/${offer.id}`} />
           </div>
         </div>
       </div>

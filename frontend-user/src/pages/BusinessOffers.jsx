@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getBusinessOffers } from '../api/public';
 import { Spinner } from '../components/ui/Spinner';
 import { resolveImageUrl } from '../utils/imageUrl';
+import ActivateButton from '../components/offers/ActivateButton';
 
 function fmt(p) { return p != null ? `£${parseFloat(p).toFixed(2)}` : null; }
 
@@ -90,6 +91,9 @@ export default function BusinessOffers() {
                     {o.offer_price != null ? fmt(o.offer_price) : `${Math.round(o.discount_percent)}% off`}
                   </div>
                 )}
+                <div style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                  <ActivateButton offerId={o.id} returnTo={`/business/${id}/offers`} />
+                </div>
               </div>
             </div>
           ))}

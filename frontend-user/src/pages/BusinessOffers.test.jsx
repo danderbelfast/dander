@@ -10,6 +10,8 @@ vi.mock('react-router-dom', async (orig) => {
 });
 vi.mock('../api/public', () => ({ getBusinessOffers: vi.fn() }));
 vi.mock('../utils/imageUrl', () => ({ resolveImageUrl: (u) => u }));
+// ActivateButton has its own test + needs Auth/Toast context — stub it here.
+vi.mock('../components/offers/ActivateButton', () => ({ default: () => null }));
 
 import { getBusinessOffers } from '../api/public';
 import BusinessOffers from './BusinessOffers';
