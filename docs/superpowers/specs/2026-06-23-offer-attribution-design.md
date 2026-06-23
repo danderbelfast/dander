@@ -110,10 +110,10 @@ Add a `src` channel param to the programmed URLs **now**:
 - No QR/codes/coupon resurrection.
 - No change to footfall (node sensor) or the ad chain.
 
-## Open questions for review
+## Resolved decisions (were open questions)
 
-- **Anon activation depth:** do we let a fully logged-out user activate into a transient anon "My Offers", or require sign-in at the Activate tap (simplest, reuses resume-after-auth)? Recommend: capture the anon intent + prompt sign-in to persist (best of both).
-- **Auto-remove timing:** remove activated offers from My Offers at offer expiry only, or also after the 7-day window with no visit? Recommend: at offer expiry; keep "expired" rows for analytics.
+- **Anon activation depth — RESOLVED:** capture the anon intent at the Activate tap (write the `offer_activations` row against `anon_id` + channel), then **prompt sign-in/create-account to persist into My Offers**, reusing the Phase 1 resume-after-auth machinery to replay the activate, and **stitch `anon_id → user_id`**. **GDPR:** `anon_id` is a device identifier and is the **privacy-flagged** part of this feature — it must be handled under the existing GDPR work (consent/notice, retention, the per-business BLE-salt-style hygiene, and erasure must cover `offer_activations.anon_id` and the stitch mapping). Keep this connected to the GDPR pass, not bolted on later.
+- **Auto-remove timing — RESOLVED:** remove activated offers **from the user's view at offer expiry only**. **Do NOT** add a no-visit window — we explicitly want to retain "activated but didn't convert" rows for analytics. `expired` rows stay in `offer_activations` for the funnel; they're just hidden from My Offers once the offer itself expires.
 
 ## Build phasing (for the plan)
 
