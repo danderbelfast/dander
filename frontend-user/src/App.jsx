@@ -18,7 +18,7 @@ import Register     from './pages/Register';
 import Login        from './pages/Login';
 import Home         from './pages/Home';
 import OfferDetail  from './pages/OfferDetail';
-import MyCoupons      from './pages/MyCoupons';
+import MyOffers      from './pages/MyOffers';
 import CouponClaimed  from './pages/CouponClaimed';
 import SavedOffers  from './pages/SavedOffers';
 import Settings                from './pages/Settings';
@@ -59,7 +59,8 @@ export default function App() {
         {/* Authenticated — wrapped in AppShell (bottom nav + location context) */}
         <Route element={<AppShell />}>
           <Route path="/home"                       element={<Home />} />
-          <Route path="/coupons"                  element={<MyCoupons />} />
+          <Route path="/my-offers"                element={<MyOffers />} />
+          <Route path="/coupons"                  element={<Navigate to="/my-offers" replace />} />
           <Route path="/coupons/claimed"          element={<CouponClaimed />} />
           <Route path="/saved"                    element={<SavedOffers />} />
           <Route path="/settings"                 element={<Settings />} />

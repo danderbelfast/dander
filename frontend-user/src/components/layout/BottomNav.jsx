@@ -12,11 +12,11 @@ const items = [
     ),
   },
   {
-    to: '/coupons',
-    label: 'Coupons',
+    to: '/my-offers',
+    label: 'My Offers',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-4 0v2M12 12v4M10 14h4" />
+        <path d="M20.59 13.41 11 3.83V8H7a4 4 0 0 0-4 4M3 12l9.59 9.59a2 2 0 0 0 2.83 0l6.17-6.17a2 2 0 0 0 0-2.83" /><circle cx="7.5" cy="7.5" r="0.5" fill="currentColor" />
       </svg>
     ),
   },
