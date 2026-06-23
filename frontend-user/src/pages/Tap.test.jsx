@@ -12,17 +12,17 @@ let authState = { isAuth: false, loading: false };
 vi.mock('../context/AuthContext', () => ({ useAuth: () => authState }));
 
 const triggerMock = vi.fn();
-const setOfferMock = vi.fn();
+const setOffersBusinessIdMock = vi.fn();
 vi.mock('../context/CheckInOverlayProvider', () => ({
-  useCheckInOverlay: () => ({ trigger: triggerMock, setOffer: setOfferMock }),
+  useCheckInOverlay: () => ({ trigger: triggerMock, setOffersBusinessId: setOffersBusinessIdMock }),
 }));
 
 vi.mock('../api/proximity', () => ({ nfcCheckin: vi.fn() }));
-vi.mock('../api/public', () => ({ getStrangerDisplay: vi.fn(), fireStrangerVisit: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../api/public', () => ({ getBusinessOffers: vi.fn(), getStrangerDisplay: vi.fn(), fireStrangerVisit: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../services/tapContext', () => ({ setPendingTap: vi.fn(), clearPendingTap: vi.fn() }));
 
 import { nfcCheckin } from '../api/proximity';
-import { getStrangerDisplay } from '../api/public';
+import { getBusinessOffers, getStrangerDisplay } from '../api/public';
 import { clearPendingTap } from '../services/tapContext';
 import Tap from './Tap';
 
@@ -48,12 +48,12 @@ describe('Tap page', () => {
   it('authed: checks in, triggers the overlay, clears the tap, navigates home', async () => {
     authState = { isAuth: true, loading: false };
     nfcCheckin.mockResolvedValue({ success: true, points_awarded: 50, business_name: 'Joe' });
-    getStrangerDisplay.mockResolvedValue({ todays_offer: { id: 9 } });
+    getBusinessOffers.mockResolvedValue({ offers: [{ id: 9 }] });
     renderTap('?node=node-abc&business=42');
 
     await waitFor(() => expect(nfcCheckin).toHaveBeenCalledWith({ node: 'node-abc', business: 42 }));
     await waitFor(() => expect(triggerMock).toHaveBeenCalledWith({ success: true, points_awarded: 50, business_name: 'Joe' }));
-    await waitFor(() => expect(setOfferMock).toHaveBeenCalledWith({ id: 9 }));
+    await waitFor(() => expect(setOffersBusinessIdMock).toHaveBeenCalledWith(42));
     expect(clearPendingTap).toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith('/home', { replace: true });
   });

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCheckInOverlay } from '../context/CheckInOverlayProvider';
 import { nfcCheckin } from '../api/proximity';
-import { getStrangerDisplay } from '../api/public';
+import { getBusinessOffers } from '../api/public';
 import { clearPendingTap } from '../services/tapContext';
 import TapLanding from '../components/checkin/TapLanding';
 import { Spinner } from '../components/ui/Spinner';
@@ -14,7 +14,7 @@ export default function Tap() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { isAuth, loading } = useAuth();
-  const { trigger, setOffer } = useCheckInOverlay();
+  const { trigger, setOffersBusinessId } = useCheckInOverlay();
 
   const node = params.get('node');
   const business = Number(params.get('business'));
@@ -36,13 +36,13 @@ export default function Tap() {
         trigger(result);
         clearPendingTap();
         navigate('/home', { replace: true });
-        // Resolve the conditional "Browse offers" button after the reward shows.
-        getStrangerDisplay(business)
-          .then((info) => { if (info?.todays_offer) setOffer(info.todays_offer); })
+        // Enable the "See our latest offers" CTA only if the business has any.
+        getBusinessOffers(business)
+          .then((d) => { if (d?.offers?.length) setOffersBusinessId(business); })
           .catch(() => {});
       })
       .catch(() => { setError(true); });
-  }, [loading, isAuth, validParams, node, business, navigate, trigger, setOffer, retryCount]);
+  }, [loading, isAuth, validParams, node, business, navigate, trigger, setOffersBusinessId, retryCount]);
 
   if (loading || !validParams || (isAuth && validParams && !error)) {
     return (

@@ -4,23 +4,23 @@ export const CheckInOverlayContext = createContext(null);
 
 export function CheckInOverlayProvider({ children }) {
   const [result, setResult] = useState(null);
-  const [offer, setOfferState] = useState(null);
+  const [offersBusinessId, setOffersBusinessIdState] = useState(null);
 
   const trigger = useCallback((checkinResult) => {
-    setOfferState(null);
+    setOffersBusinessIdState(null);
     setResult(checkinResult);
   }, []);
 
-  const setOffer = useCallback((o) => setOfferState(o), []);
+  const setOffersBusinessId = useCallback((businessId) => setOffersBusinessIdState(businessId), []);
 
   const dismiss = useCallback(() => {
     setResult(null);
-    setOfferState(null);
+    setOffersBusinessIdState(null);
   }, []);
 
   const value = useMemo(
-    () => ({ active: result != null, result, offer, trigger, setOffer, dismiss }),
-    [result, offer, trigger, setOffer, dismiss]
+    () => ({ active: result != null, result, offersBusinessId, trigger, setOffersBusinessId, dismiss }),
+    [result, offersBusinessId, trigger, setOffersBusinessId, dismiss]
   );
 
   return (

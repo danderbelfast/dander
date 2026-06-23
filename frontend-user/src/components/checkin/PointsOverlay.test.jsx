@@ -15,8 +15,8 @@ vi.mock('../../services/soundService', () => ({ couponClaimed: vi.fn(), couponRe
 
 function renderOverlay(ctx) {
   const value = {
-    active: ctx.result != null, result: ctx.result ?? null, offer: ctx.offer ?? null,
-    trigger: vi.fn(), setOffer: vi.fn(), dismiss: ctx.dismiss ?? vi.fn(),
+    active: ctx.result != null, result: ctx.result ?? null, offersBusinessId: ctx.offersBusinessId ?? null,
+    trigger: vi.fn(), setOffersBusinessId: vi.fn(), dismiss: ctx.dismiss ?? vi.fn(),
   };
   return render(
     <MemoryRouter>
@@ -46,14 +46,14 @@ describe('PointsOverlay', () => {
     expect(screen.getByText(/gold/i)).toBeInTheDocument();
   });
 
-  it('shows the Browse offers button only when an offer is attached', async () => {
+  it('shows the offers button only when an offers business id is set', async () => {
     renderOverlay({ result: { points_awarded: 10, business_name: 'X' } });
-    expect(screen.queryByRole('button', { name: /browse our latest offers/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /see our latest offers/i })).toBeNull();
 
-    renderOverlay({ result: { points_awarded: 10, business_name: 'X' }, offer: { id: 9 } });
-    const btn = screen.getByRole('button', { name: /browse our latest offers/i });
+    renderOverlay({ result: { points_awarded: 10, business_name: 'X' }, offersBusinessId: 42 });
+    const btn = screen.getByRole('button', { name: /see our latest offers/i });
     await userEvent.click(btn);
-    expect(navigateMock).toHaveBeenCalledWith('/offer/9');
+    expect(navigateMock).toHaveBeenCalledWith('/business/42/offers');
   });
 
   it('dismiss button navigates home', async () => {

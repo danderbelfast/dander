@@ -13,7 +13,7 @@ const TIER_VARIANTS = {
 };
 
 export default function PointsOverlay() {
-  const { active, result, offer, dismiss } = useCheckInOverlay();
+  const { active, result, offersBusinessId, dismiss } = useCheckInOverlay();
   const navigate = useNavigate();
 
   const variant = TIER_VARIANTS[result?.reward_tier] ?? TIER_VARIANTS.standard;
@@ -46,7 +46,7 @@ export default function PointsOverlay() {
 
   function handleBrowse() {
     dismiss();
-    navigate(`/offer/${offer.id}`);
+    navigate(`/business/${offersBusinessId}/offers`);
   }
   function handleDone() {
     dismiss();
@@ -91,9 +91,9 @@ export default function PointsOverlay() {
       )}
 
       <div className="po-actions">
-        {offer && (
+        {offersBusinessId != null && (
           <button className="btn btn-primary btn-block btn-lg" onClick={handleBrowse}>
-            Browse our latest offers
+            See our latest offers
           </button>
         )}
         <button className="btn btn-ghost btn-block" onClick={handleDone}>Done</button>
