@@ -73,6 +73,7 @@ export default function BusinessOffers() {
               role="button"
               tabIndex={0}
               onClick={() => navigate(`/offer/${o.id}`)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/offer/${o.id}`); } }}
             >
               <div className="offer-card-img">
                 {o.image_url

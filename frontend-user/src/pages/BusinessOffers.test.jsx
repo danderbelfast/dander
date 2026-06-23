@@ -55,4 +55,15 @@ describe('BusinessOffers', () => {
     renderAt();
     expect(await screen.findByText(/couldn't load offers/i)).toBeInTheDocument();
   });
+
+  it('activates an offer row via the keyboard (Enter)', async () => {
+    getBusinessOffers.mockResolvedValue({
+      success: true, business_name: 'Joe Coffee', offers: [{ id: 7, title: '20% off pastries' }],
+    });
+    renderAt();
+    const row = (await screen.findByText('20% off pastries')).closest('.offer-card');
+    row.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(navigateMock).toHaveBeenCalledWith('/offer/7');
+  });
 });

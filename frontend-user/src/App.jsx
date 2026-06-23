@@ -26,6 +26,7 @@ import NotificationPreferences from './pages/NotificationPreferences';
 import Navigation              from './pages/Navigation';
 import Privacy                 from './pages/Privacy';
 import Tap from './pages/Tap';
+import BusinessOffers from './pages/BusinessOffers';
 import { CheckInOverlayProvider } from './context/CheckInOverlayProvider';
 import PointsOverlay from './components/checkin/PointsOverlay';
 
@@ -58,7 +59,6 @@ export default function App() {
         {/* Authenticated — wrapped in AppShell (bottom nav + location context) */}
         <Route element={<AppShell />}>
           <Route path="/home"                       element={<Home />} />
-          <Route path="/offer/:id"                element={<OfferDetail />} />
           <Route path="/coupons"                  element={<MyCoupons />} />
           <Route path="/coupons/claimed"          element={<CouponClaimed />} />
           <Route path="/saved"                    element={<SavedOffers />} />
@@ -68,6 +68,8 @@ export default function App() {
 
         {/* Full-screen — no auth wrapper, no AppShell */}
         <Route path="/tap" element={<Tap />} />
+        <Route path="/offer/:id" element={<OfferDetail />} />
+        <Route path="/business/:id/offers" element={<BusinessOffers />} />
 
         {/* Full-screen navigation — no bottom nav */}
         <Route path="/navigate" element={<Navigation />} />
