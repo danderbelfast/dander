@@ -4,7 +4,7 @@ import { activateOffer, deactivateOffer } from '../../api/offers';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getAnonId } from '../../services/anonId';
-import { setReturnPath } from '../../services/returnPath';
+import { setReturnIntent } from '../../services/postAuthIntent';
 import { resolveActivationChannel } from '../../utils/activationChannel';
 
 // Capture-first activation control. Authed → toggles activation. Anon →
@@ -42,7 +42,7 @@ export default function ActivateButton({ offerId, initialActivated = false, clas
   }
 
   function goSignIn() {
-    setReturnPath(returnTo || '/my-offers');
+    setReturnIntent(returnTo || '/my-offers');
     navigate('/login');
   }
 

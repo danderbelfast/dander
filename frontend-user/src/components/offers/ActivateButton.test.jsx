@@ -10,10 +10,10 @@ const toastMock = vi.fn();
 vi.mock('../../context/ToastContext', () => ({ useToast: () => ({ toast: toastMock }) }));
 vi.mock('../../api/offers', () => ({ activateOffer: vi.fn().mockResolvedValue({ success: true }), deactivateOffer: vi.fn().mockResolvedValue({ success: true }) }));
 vi.mock('../../services/anonId', () => ({ getAnonId: () => 'anon-test' }));
-vi.mock('../../services/returnPath', () => ({ setReturnPath: vi.fn() }));
+vi.mock('../../services/postAuthIntent', () => ({ setReturnIntent: vi.fn() }));
 
 import { activateOffer } from '../../api/offers';
-import { setReturnPath } from '../../services/returnPath';
+import { setReturnIntent } from '../../services/postAuthIntent';
 let authState = { isAuth: true };
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => authState }));
 import ActivateButton from './ActivateButton';
@@ -38,7 +38,7 @@ describe('ActivateButton', () => {
     expect(toastMock).toHaveBeenCalled();
     const signin = await screen.findByRole('button', { name: /sign in to save/i });
     await userEvent.click(signin);
-    expect(setReturnPath).toHaveBeenCalledWith('/my-offers');
+    expect(setReturnIntent).toHaveBeenCalledWith('/my-offers');
     expect(navigateMock).toHaveBeenCalledWith('/login');
   });
 });
