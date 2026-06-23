@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getOffer, recordView, saveOffer, unsaveOffer, trackShare } from '../api/offers';
 import { generateCoupon } from '../api/coupons';
 import * as alertService from '../services/alertService';
-import { useLocation } from '../context/LocationContext';
+import { useOptionalLocation } from '../context/LocationContext';
+import { setReturnPath } from '../services/returnPath';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCountdown } from '../hooks/useCountdown';
@@ -54,7 +55,8 @@ function formatDistance(m) {
 export default function OfferDetail() {
   const { id }       = useParams();
   const navigate     = useNavigate();
-  const { location } = useLocation();
+  const locationCtx = useOptionalLocation();
+  const location = locationCtx?.location ?? null;
   const { toast }    = useToast();
   const { isAuth }   = useAuth();
   const { trackOfferView, trackCouponClaim } = usePwa();
@@ -211,15 +213,17 @@ export default function OfferDetail() {
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
           </svg>
         </button>
-        <button className="detail-save-btn" onClick={toggleSave} aria-label={saved ? 'Unsave' : 'Save'} style={{ position: 'static' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24"
-            fill={saved ? 'var(--c-primary)' : 'none'}
-            stroke={saved ? 'var(--c-primary)' : '#999'}
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          >
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-        </button>
+        {isAuth && (
+          <button className="detail-save-btn" onClick={toggleSave} aria-label={saved ? 'Unsave' : 'Save'} style={{ position: 'static' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24"
+              fill={saved ? 'var(--c-primary)' : 'none'}
+              stroke={saved ? 'var(--c-primary)' : '#999'}
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* ── Hero image ── */}
@@ -368,9 +372,9 @@ export default function OfferDetail() {
         {!isAuth ? (
           <button
             className="btn btn-primary btn-block btn-lg"
-            onClick={() => navigate('/login', { state: { from: `/offer/${id}` } })}
+            onClick={() => { setReturnPath(`/offer/${id}`); navigate('/login'); }}
           >
-            Log in to claim
+            Sign in to claim
           </button>
         ) : capReached ? (
           <button className="btn btn-primary btn-block btn-lg" disabled>Fully claimed</button>
