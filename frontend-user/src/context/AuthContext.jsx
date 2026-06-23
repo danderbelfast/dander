@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { setAccessToken, clearAccessToken } from '../api/client';
 import { refreshAccessToken } from '../api/auth';
+import { getAnonId } from '../services/anonId';
+import { stitchActivations } from '../api/offers';
 
 const AuthContext = createContext(null);
 
@@ -55,6 +57,8 @@ export function AuthProvider({ children }) {
     setAccessToken(accessToken);
     localStorage.setItem('tapprove_refresh', refreshToken);
     setUser(userData);
+    // Claim any anon offer activations made on this device before sign-in.
+    stitchActivations(getAnonId()).catch(() => {});
   }, []);
 
   const logout = useCallback(() => {
