@@ -12,3 +12,8 @@ export const fireStrangerVisit = ({ node, business }) =>
     .post('/api/public/nfc-stranger', { node_device_id: node, business_id: Number(business) })
     .then(() => undefined)
     .catch(() => undefined);
+
+// All active offers for a business (+ name/logo). Unauthenticated — powers the
+// web business offers page.
+export const getBusinessOffers = (businessId) =>
+  client.get(`/api/public/business/${Number(businessId)}/offers`).then((r) => r.data);
