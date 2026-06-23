@@ -36,4 +36,10 @@ describe('postAuthDestination', () => {
     setReturnPath('/offer/3');
     expect(postAuthDestination()).toBe('/tap?node=node-abc&business=42');
   });
+
+  it('consumes (clears) the pending tap after returning the /tap replay', () => {
+    setPendingTap({ node: 'node-abc', business: 42 });
+    expect(postAuthDestination()).toBe('/tap?node=node-abc&business=42');
+    expect(postAuthDestination()).toBe('/home');   // consumed — no replay second time
+  });
 });
