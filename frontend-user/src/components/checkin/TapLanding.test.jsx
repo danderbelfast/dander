@@ -12,10 +12,10 @@ vi.mock('../../api/public', () => ({
   getStrangerDisplay: vi.fn(),
   fireStrangerVisit: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../services/tapContext', () => ({ setPendingTap: vi.fn() }));
+vi.mock('../../services/postAuthIntent', () => ({ setTapIntent: vi.fn() }));
 
 import { getStrangerDisplay, fireStrangerVisit } from '../../api/public';
-import { setPendingTap } from '../../services/tapContext';
+import { setTapIntent } from '../../services/postAuthIntent';
 import TapLanding from './TapLanding';
 
 function renderLanding(props = {}) {
@@ -50,7 +50,7 @@ describe('TapLanding', () => {
     renderLanding();
     await screen.findByText(/X/);
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    expect(setPendingTap).toHaveBeenCalledWith({ node: 'node-abc', business: 42 });
+    expect(setTapIntent).toHaveBeenCalledWith({ node: 'node-abc', business: 42 });
     expect(navigateMock).toHaveBeenCalledWith('/login');
   });
 
@@ -59,7 +59,7 @@ describe('TapLanding', () => {
     renderLanding();
     await screen.findByText(/X/);
     await userEvent.click(screen.getByRole('button', { name: /create account/i }));
-    expect(setPendingTap).toHaveBeenCalledWith({ node: 'node-abc', business: 42 });
+    expect(setTapIntent).toHaveBeenCalledWith({ node: 'node-abc', business: 42 });
     expect(navigateMock).toHaveBeenCalledWith('/register');
   });
 });

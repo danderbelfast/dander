@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStrangerDisplay, fireStrangerVisit } from '../../api/public';
-import { setPendingTap } from '../../services/tapContext';
+import { setTapIntent } from '../../services/postAuthIntent';
 import { Spinner } from '../ui/Spinner';
 import tapproveLogoBlack from '../../assets/TapProve_Logo_Black.png';
 
@@ -25,7 +25,7 @@ export default function TapLanding({ node, business }) {
   }, [node, business]);
 
   function goAuth(path) {
-    setPendingTap({ node, business });
+    setTapIntent({ node, business });
     navigate(path);
   }
 
