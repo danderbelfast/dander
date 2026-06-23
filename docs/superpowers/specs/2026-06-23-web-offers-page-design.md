@@ -60,9 +60,11 @@ export const getBusinessOffers = (businessId) =>
   client.get(`/api/public/business/${Number(businessId)}/offers`).then((r) => r.data);
 ```
 
-### Web — claim flow when logged out (`OfferDetail`)
-- `OfferDetail` already computes `canClaim = isAuth && !capReached && !isExpired`.
-- When `!isAuth`, the primary CTA becomes **"Sign in to claim"** → `navigate('/login')`. (Stashing a return-to-offer path is out of scope; a logged-out claimer signs in and lands on `/home` — acceptable for this iteration.)
+### Web — claim flow when logged out (`OfferDetail`) — returns to the offer after auth
+Reuses the Phase 1 post-auth chokepoint so a logged-out claimer comes **back to the offer** (not `/home`):
+- New tiny module `services/returnPath.js` mirroring `tapContext.js`: `setReturnPath(path)`, `getReturnPath()`, `clearReturnPath()` — sessionStorage, 30-min TTL, and `setReturnPath` only stores **safe internal paths** (must start with a single `/`, reject `//` and absolute URLs).
+- Extend `postAuthDestination()`: pending tap wins (unchanged); else a stored return path (consumed/cleared on read); else `/home`. Because Login (both paths) and Register already call `postAuthDestination()`, this works for sign-in **and** create-account with zero new auth-side wiring.
+- `OfferDetail`: when `!isAuth`, the claim CTA becomes **"Sign in to claim"** → `setReturnPath('/offer/' + id)` then `navigate('/login')`. After auth → back on `/offer/:id`, now logged in, ready to claim.
 - Viewing, image, description, business info, share, directions all work logged-out (directions degrade gracefully with `location == null`).
 
 ### Web — overlay rewire (`PointsOverlay` + `CheckInOverlayProvider` + `Tap.jsx`)
@@ -82,7 +84,6 @@ Mirrors the `/tap` NDEF contract:
 ## Non-goals (this iteration)
 
 - No save/share/story/rating on the public list (those stay on the authed surfaces).
-- No return-to-offer after login from the claim CTA.
 - No changes to the native app, the node sticker programming (only the contract is defined here), or `/till`.
 - No geolocation/distance on the business offers list.
 - Not promoted to `main` — stays on `pre-staging` for the pre-launch promotion.
@@ -93,8 +94,9 @@ Mirrors the `/tap` NDEF contract:
 - **Web unit/component (Vitest + Testing Library):**
   - `getBusinessOffers` client posts to the right URL.
   - `BusinessOffers`: renders list from mocked data; renders the exact empty-state string with the business name; row click navigates to `/offer/:id`; loading + error states.
-  - `OfferDetail` public: renders logged-out (mocked `getOffer`, no `LocationProvider`) without throwing; claim CTA shows "Sign in to claim" when logged out and navigates to `/login`.
+  - `OfferDetail` public: renders logged-out (mocked `getOffer`, no `LocationProvider`) without throwing; claim CTA shows "Sign in to claim" when logged out, stashes the return path, and navigates to `/login`.
   - `useOptionalLocation` returns null with no provider (no throw).
+  - `returnPath`: stash/read/clear, TTL expiry, rejects unsafe paths (`//`, absolute URLs); `postAuthDestination` returns the stashed offer path after auth (and pending-tap still wins over it).
   - Overlay: "See our latest offers" navigates to `/business/:id/offers`; shown only when a businessId target is set.
 - **Manual on staging:** typed `staging.tapprove.io/business/<id>/offers` → list + empty state; tap-earn → overlay → "See our latest offers" → list → open an offer → "Sign in to claim".
 
