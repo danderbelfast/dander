@@ -28,6 +28,7 @@ import Privacy                 from './pages/Privacy';
 import Tap from './pages/Tap';
 import BusinessOffers from './pages/BusinessOffers';
 import { CheckInOverlayProvider } from './context/CheckInOverlayProvider';
+import { ActivatedOffersProvider } from './context/ActivatedOffersContext';
 import PointsOverlay from './components/checkin/PointsOverlay';
 
 function PublicRoute({ children }) {
@@ -46,6 +47,7 @@ export default function App() {
       {hasUpdate && <UpdateBanner onRefresh={applyUpdate} onDismiss={dismiss} />}
       {showBanner && <InstallBanner isIos={isIosDevice} onInstall={promptInstall} onDismiss={dismissBanner} />}
       <ToastContainer />
+      <ActivatedOffersProvider>
       <Routes>
         {/* Public */}
         <Route path="/"             element={<PublicRoute><SplashScreen /></PublicRoute>} />
@@ -79,6 +81,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <PointsOverlay />
+      </ActivatedOffersProvider>
     </CheckInOverlayProvider>
   );
 }
