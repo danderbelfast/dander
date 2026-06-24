@@ -19,10 +19,10 @@
 
 **Definition of done (device-verified on staging):**
 - (a) Activate an offer, then check in via `/tap` at that business → the activation advances to `entry_conversion`;
-- (b) tap at the till → TillPanel shows the customer's activated offers as chips, most-recent pre-selected, with a working "None";
+- (b) tap at the till → TillPanel shows the customer's activated offers as chips (most-recent pre-selected, working "None") front and centre, and the all-business "apply by hand" list collapsed into a "walk-up discounts — not tagged" disclosure;
 - (c) Award with a chip selected → that activation → `qualified_sale` (with `sale_amount`); points still awarded;
 - (d) Award with "None" → points awarded, **no** `qualified_sale`;
-- (e) points and the tag are independent; no activated offers → no chips, award unaffected;
+- (e) points and the tag are independent; **no** activated offers → no chips, the all-business list shows expanded as today, award unaffected;
 - (f) check-in / till never break if the funnel update errors (fails open).
 
 ---
@@ -165,6 +165,8 @@ const offerActivation = require('../services/offerActivation');
 
 **Files:** Modify `frontend-business/src/components/TillPanel.jsx`
 
+**Layout principle:** the activated-offer chips are the *attribution action* — front and centre (prominent, above the amount field) when the customer has activations. The existing all-business "apply by hand" list keeps a *till-operations* purpose (applying a walk-up discount to a customer who didn't activate — correctly NOT a `qualified_sale`), so it stays available but moves out of the way: collapsed into a labelled disclosure when activations exist, shown expanded as today when there are none.
+
 - [ ] **Step 1:** Add selection state (next to the other `useState` hooks):
 ```jsx
   const [selectedOfferId, setSelectedOfferId] = useState(null);
@@ -186,10 +188,15 @@ const offerActivation = require('../services/offerActivation');
       });
 ```
 
-- [ ] **Step 4:** Render the selectable chips. Insert this block in the ARRIVED panel directly ABOVE the `Amount spent` field (after the existing `active_offers` "apply by hand" block, which stays as the full discount reference):
+- [ ] **Step 4:** Just inside the ARRIVED render (before the JSX `return`-area markup for the panel, near `previewPoints`), derive whether the customer has activations:
 ```jsx
-          {Array.isArray(customer.activated_offers) && customer.activated_offers.length > 0 && (
-            <div style={{ marginTop: 16 }}>
+  const hasActivations = Array.isArray(customer?.activated_offers) && customer.activated_offers.length > 0;
+```
+
+- [ ] **Step 5:** Render the chips as the primary attribution control. Insert directly ABOVE the existing `active_offers` block (so chips come first / prominent):
+```jsx
+          {hasActivations && (
+            <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', fontWeight: 600, letterSpacing: 0.5, marginBottom: 6 }}>
                 OFFER APPLIED — tag the one redeemed
               </div>
@@ -211,7 +218,35 @@ const offerActivation = require('../services/offerActivation');
           )}
 ```
 
-- [ ] **Step 5:** Add the `chipStyles` helper next to the other style helpers (e.g. after `tierBadge`):
+- [ ] **Step 6:** Demote the existing all-business list to a walk-up reference. Wrap the existing `active_offers` block so it collapses when there are activations. Replace the existing block's outer guard:
+```jsx
+          {Array.isArray(customer.active_offers) && customer.active_offers.length > 0 && (
+            <div style={activeOffersStyles}>
+              {/* …existing ACTIVE OFFERS header + map + "Apply by hand…" note… */}
+            </div>
+          )}
+```
+with (keep the inner `<div style={activeOffersStyles}>…</div>` exactly as-is — only the wrapper changes):
+```jsx
+          {Array.isArray(customer.active_offers) && customer.active_offers.length > 0 && (
+            hasActivations ? (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: 'pointer', fontSize: '0.78rem', color: 'var(--c-text-muted)', fontWeight: 600 }}>
+                  All offers (walk-up discounts — not tagged)
+                </summary>
+                <div style={activeOffersStyles}>
+                  {/* …existing ACTIVE OFFERS header + map + "Apply by hand…" note (unchanged)… */}
+                </div>
+              </details>
+            ) : (
+              <div style={activeOffersStyles}>
+                {/* …existing ACTIVE OFFERS header + map + "Apply by hand…" note (unchanged)… */}
+              </div>
+            )
+          )}
+```
+
+- [ ] **Step 7:** Add the `chipStyles` helper next to the other style helpers (e.g. after `tierBadge`):
 ```jsx
 function chipStyles(active) {
   return {
@@ -227,8 +262,8 @@ function chipStyles(active) {
 }
 ```
 
-- [ ] **Step 6:** `cd frontend-business && npm run build` → succeeds.
-- [ ] **Step 7:** Commit: `feat: TillPanel applied-offer chips (staff-confirmed qualified_sale tag)`.
+- [ ] **Step 8:** `cd frontend-business && npm run build` → succeeds.
+- [ ] **Step 9:** Commit: `feat: TillPanel applied-offer chips primary; all-offers list collapses for walk-ups`.
 
 ---
 
