@@ -15,4 +15,21 @@ function normalizeChannel(c) {
   return VALID_CHANNELS.has(v) ? v : null;
 }
 
-module.exports = { VALID_CHANNELS, isValidChannel, normalizeChannel };
+// Fine attribution source (e.g. 'sticker_window'): lowercase, [a-z0-9_], <=32.
+function normalizeSource(raw) {
+  if (typeof raw !== 'string') return null;
+  const v = raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 32);
+  return v.length ? v : null;
+}
+
+// Coarse channel derived from the fine source — server-authoritative, so a
+// client can't mis-file a sticker activation under web/app. Returns null for
+// an empty/non-string source (caller falls back to the client channel).
+function channelFromSource(source) {
+  if (typeof source !== 'string' || source.length === 0) return null;
+  if (source.startsWith('sticker')) return 'sticker';
+  if (source === 'app') return 'app';
+  return 'web';
+}
+
+module.exports = { VALID_CHANNELS, isValidChannel, normalizeChannel, normalizeSource, channelFromSource };
