@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { postAuthDestination } from '../utils/postAuthDestination';
 import { Spinner } from '../components/ui/Spinner';
 import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
+import AuthPromptBanner from '../components/auth/AuthPromptBanner';
 
 const SESSION_KEY = 'tapprove_login_otp';
 
@@ -208,6 +209,7 @@ export default function Login() {
       {/* ── Login: step 1 — credentials ── */}
       {mode === 'login' && step === 1 && (
         <>
+          <AuthPromptBanner />
           <h1 className="auth-title">Welcome back.</h1>
           <p className="auth-subtitle">Sign in to see what's near you today.</p>
 

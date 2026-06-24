@@ -5,6 +5,7 @@ import { Spinner } from '../components/ui/Spinner';
 import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
 import { useAuth } from '../context/AuthContext';
 import { postAuthDestination } from '../utils/postAuthDestination';
+import AuthPromptBanner from '../components/auth/AuthPromptBanner';
 
 const SESSION_KEY = 'tapprove_register_otp';
 
@@ -130,6 +131,7 @@ export default function Register() {
 
       {step === 1 && (
         <>
+          <AuthPromptBanner />
           <h1 className="auth-title">Create account.</h1>
           <p className="auth-subtitle">Great deals are waiting near you.</p>
 

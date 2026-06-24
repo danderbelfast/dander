@@ -3,6 +3,7 @@ import { setAccessToken, clearAccessToken } from '../api/client';
 import { refreshAccessToken } from '../api/auth';
 import { getAnonId } from '../services/anonId';
 import { stitchActivations } from '../api/offers';
+import { clearAuthPrompt } from '../services/authPrompt';
 
 const AuthContext = createContext(null);
 
@@ -59,6 +60,7 @@ export function AuthProvider({ children }) {
     setUser(userData);
     // Claim any anon offer activations made on this device before sign-in.
     stitchActivations(getAnonId()).catch(() => {});
+    clearAuthPrompt();
   }, []);
 
   const logout = useCallback(() => {
