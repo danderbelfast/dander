@@ -27,6 +27,7 @@ const {
 } = require('../services/loyaltyMechanics');
 const { pushToUser, pushToBusiness } = require('../lib/wsPush');
 const adAttribution = require('../services/adAttribution');
+const offerActivation = require('../services/offerActivation');
 
 const router = Router();
 
@@ -50,6 +51,10 @@ router.post('/award-points', requireBusiness, async (req, res) => {
     : null;
   const itemDesc     = typeof body.item_description === 'string'
     ? body.item_description.trim().slice(0, 500) || null
+    : null;
+  const appliedOfferIdRaw = parseInt(body.applied_offer_id, 10);
+  const appliedOfferId = Number.isFinite(appliedOfferIdRaw) && appliedOfferIdRaw > 0
+    ? appliedOfferIdRaw
     : null;
 
   if (!Number.isFinite(userId) || userId <= 0) {
@@ -113,6 +118,23 @@ router.post('/award-points', requireBusiness, async (req, res) => {
       });
     } catch (e) {
       console.warn('[ads/qualified-sale] non-fatal:', e.message);
+    }
+
+    // Offer attribution — staff-tagged applied offer → qualified_sale. Strict:
+    // markSaleConversion(offerId) only flips a row the customer genuinely
+    // activated (status activated/entry_conversion, in-window), so a bogus id
+    // matches nothing. 'None' (null) tags nothing. Fails open.
+    if (appliedOfferId) {
+      try {
+        await offerActivation.markSaleConversion(pool, {
+          userId,
+          businessId: req.business.id,
+          offerId: appliedOfferId,
+          saleAmount: amountSpent,
+        });
+      } catch (e) {
+        console.warn('[offers/qualified-sale] non-fatal:', e.message);
+      }
     }
 
     // Next reward AFTER the award, so the user/business get a fresh
