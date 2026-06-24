@@ -43,7 +43,7 @@ describe('ActivateButton', () => {
   it('authed: activates, marks the store, toasts saved, does NOT navigate', async () => {
     renderBtn({ offerTitle: '20% off pastries' });
     await userEvent.click(screen.getByRole('button', { name: /^activate$/i }));
-    expect(activateOffer).toHaveBeenCalledWith(7, { channel: 'web' });
+    expect(activateOffer).toHaveBeenCalledWith(7, { channel: 'web', source: 'web' });
     expect(markActivated).toHaveBeenCalledWith(7);
     expect(await screen.findByRole('button', { name: /activated/i })).toBeInTheDocument();
     expect(toastMock).toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe('ActivateButton', () => {
     authState = { isAuth: false };
     renderBtn({ offerTitle: '20% off pastries' });
     await userEvent.click(screen.getByRole('button', { name: /^activate$/i }));
-    expect(activateOffer).toHaveBeenCalledWith(7, { channel: 'web', anonId: 'anon-test' });
+    expect(activateOffer).toHaveBeenCalledWith(7, { channel: 'web', source: 'web', anonId: 'anon-test' });
     expect(setAuthPrompt).toHaveBeenCalledWith({ offerTitle: '20% off pastries' });
     expect(setReturnIntent).toHaveBeenCalledWith('/my-offers');
     expect(navigateMock).toHaveBeenCalledWith('/register');

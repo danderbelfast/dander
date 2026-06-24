@@ -28,19 +28,19 @@ export default function ActivateButton({ offerId, offerTitle, className = '' }) 
     e.preventDefault(); e.stopPropagation();
     if (busy) return;
     setBusy(true);
-    const channel = resolveActivationChannel(params);
+    const { channel, source } = resolveActivationChannel(params);
     try {
       if (isAuth) {
         if (activated) { await deactivateOffer(offerId); markDeactivated(offerId); }
         else {
-          await activateOffer(offerId, { channel });
+          await activateOffer(offerId, { channel, source });
           markActivated(offerId);
           toast({ type: 'success', title: 'Saved to My Offers', message: 'Show it at the till to redeem.' });
         }
       } else {
         // Capture the anon intent first (funnel signal), then route to the
         // value-framed acquisition journey → register → stitch → My Offers.
-        await activateOffer(offerId, { channel, anonId: getAnonId() });
+        await activateOffer(offerId, { channel, source, anonId: getAnonId() });
         setAuthPrompt({ offerTitle: offerTitle ?? null });
         setReturnIntent('/my-offers');
         navigate('/register');
