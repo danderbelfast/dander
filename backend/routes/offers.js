@@ -9,7 +9,7 @@ const geoService = require('../services/geoService');
 const reviewService = require('../services/reviewService');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const offerActivation = require('../services/offerActivation');
-const { normalizeChannel } = require('../utils/offerChannel');
+const { normalizeChannel, normalizeSource, channelFromSource } = require('../utils/offerChannel');
 
 const router = Router();
 
@@ -297,8 +297,11 @@ router.post(
   [param('id').isInt({ min: 1 }).withMessage('Invalid offer ID.')],
   async (req, res) => {
     if (!validate(req, res)) return;
-    const channel = normalizeChannel(req.body?.channel);
-    if (!channel) return fail(res, 400, 'VALIDATION_ERROR', 'channel must be app, web, or sticker.');
+    // Fine source is the source of truth; coarse channel is derived from it
+    // server-side (ungameable). Fall back to the client channel, then 'web'.
+    const source  = normalizeSource(req.body?.source);
+    const channel = source ? channelFromSource(source)
+                           : (normalizeChannel(req.body?.channel) || 'web');
 
     const userId = req.user?.id ?? null;
     const anonId = userId ? null : (typeof req.body?.anon_id === 'string' ? req.body.anon_id.slice(0, 100) : null);
@@ -306,7 +309,7 @@ router.post(
 
     try {
       const row = await offerActivation.activate(pool, {
-        offerId: parseInt(req.params.id, 10), channel, userId, anonId,
+        offerId: parseInt(req.params.id, 10), channel, source, userId, anonId,
       });
       return ok(res, { activation_id: row.id, status: row.status });
     } catch (err) {
