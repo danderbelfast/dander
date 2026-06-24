@@ -61,6 +61,10 @@ export default function MyOffers() {
               <div className="offer-card-body">
                 <div className="text-muted" style={{ fontSize: '0.8rem' }}>{o.business_name}</div>
                 <div className="offer-card-title">{o.title}</div>
+                <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: '0.8rem', fontWeight: 700, color: '#1f9d55' }}>
+                  Activated ✓
+                </div>
               </div>
             </div>
           ))}

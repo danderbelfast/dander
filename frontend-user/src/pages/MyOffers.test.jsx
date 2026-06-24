@@ -19,6 +19,12 @@ describe('MyOffers', () => {
     expect(await screen.findByText('20% off pastries')).toBeInTheDocument();
   });
 
+  it('shows an Activated badge on each listed offer', async () => {
+    getMyOffers.mockResolvedValue({ success: true, offers: [{ id: 7, title: '20% off pastries', business_name: 'Joe' }] });
+    renderPage();
+    expect(await screen.findByText('Activated ✓')).toBeInTheDocument();
+  });
+
   it('shows an empty state when none', async () => {
     getMyOffers.mockResolvedValue({ success: true, offers: [] });
     renderPage();
