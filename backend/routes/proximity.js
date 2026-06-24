@@ -28,6 +28,7 @@ const {
 const nodeWs = require('../ws/nodes');
 const { pushToBusiness } = require('../lib/wsPush');
 const adAttribution = require('../services/adAttribution');
+const offerActivation = require('../services/offerActivation');
 const rewardTiers = require('../services/rewardTiers');
 
 /**
@@ -398,6 +399,18 @@ router.post('/nfc-checkin', requireAuth, async (req, res) => {
       console.warn('[ads/entry-conversion] non-fatal:', e.message);
     }
 
+    // Offer attribution — promote this user's open activations for the
+    // business to 'entry_conversion' (mirrors the ad funnel above). Fails open:
+    // a funnel error must never break the check-in.
+    try {
+      await offerActivation.markEntryConversion(pool, {
+        userId: req.user.id,
+        businessId,
+      });
+    } catch (e) {
+      console.warn('[offers/entry-conversion] non-fatal:', e.message);
+    }
+
     return res.status(200).json({
       success: true,
       points_awarded:        pointsAwarded,
@@ -498,6 +511,18 @@ router.post('/till-arrive', requireAuth, async (req, res) => {
       [businessId]
     );
 
+    // Strict-activated tag candidates for the TillPanel + last-touch suggestion.
+    const activatedRows = await offerActivation.listActivatedForBusiness(pool, { userId, businessId });
+    const activatedOffers = activatedRows.map((o) => ({
+      id:               o.id,
+      title:            o.title,
+      description:      o.description,
+      offer_type:       o.offer_type,
+      original_price:   o.original_price ? Number(o.original_price) : null,
+      offer_price:      o.offer_price    ? Number(o.offer_price)    : null,
+      discount_percent: o.discount_percent ? Number(o.discount_percent) : null,
+    }));
+
     const payload = {
       user_id:        user.id,
       first_name:     user.first_name || 'Customer',
@@ -519,6 +544,8 @@ router.post('/till-arrive', requireAuth, async (req, res) => {
         image_url:        o.image_url,
         expires_at:       o.expires_at,
       })),
+      activated_offers:   activatedOffers,
+      suggested_offer_id: activatedOffers.length ? activatedOffers[0].id : null,
       arrived_at:     new Date().toISOString(),
     };
 
