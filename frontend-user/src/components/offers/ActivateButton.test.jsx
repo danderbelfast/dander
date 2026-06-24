@@ -11,9 +11,11 @@ vi.mock('../../context/ToastContext', () => ({ useToast: () => ({ toast: toastMo
 vi.mock('../../api/offers', () => ({ activateOffer: vi.fn().mockResolvedValue({ success: true }), deactivateOffer: vi.fn().mockResolvedValue({ success: true }) }));
 vi.mock('../../services/anonId', () => ({ getAnonId: () => 'anon-test' }));
 vi.mock('../../services/postAuthIntent', () => ({ setReturnIntent: vi.fn() }));
+vi.mock('../../services/authPrompt', () => ({ setAuthPrompt: vi.fn() }));
 
 import { activateOffer } from '../../api/offers';
 import { setReturnIntent } from '../../services/postAuthIntent';
+import { setAuthPrompt } from '../../services/authPrompt';
 let authState = { isAuth: true };
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => authState }));
 import ActivateButton from './ActivateButton';
@@ -23,22 +25,22 @@ const renderBtn = (props) => render(<MemoryRouter><ActivateButton offerId={7} {.
 describe('ActivateButton', () => {
   beforeEach(() => { vi.clearAllMocks(); authState = { isAuth: true }; });
 
-  it('authed: activates with channel web, shows Activated state', async () => {
-    renderBtn();
+  it('authed: activates, shows Activated, toasts saved, does NOT navigate', async () => {
+    renderBtn({ offerTitle: '20% off pastries' });
     await userEvent.click(screen.getByRole('button', { name: /^activate$/i }));
     expect(activateOffer).toHaveBeenCalledWith(7, { channel: 'web' });
     expect(await screen.findByRole('button', { name: /activated/i })).toBeInTheDocument();
+    expect(toastMock).toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it('anon: activates with anon_id, toasts, and offers a "Sign in to save" link', async () => {
+  it('anon: captures, stashes auth prompt + return intent to My Offers, routes to register', async () => {
     authState = { isAuth: false };
-    renderBtn();
+    renderBtn({ offerTitle: '20% off pastries' });
     await userEvent.click(screen.getByRole('button', { name: /^activate$/i }));
     expect(activateOffer).toHaveBeenCalledWith(7, { channel: 'web', anonId: 'anon-test' });
-    expect(toastMock).toHaveBeenCalled();
-    const signin = await screen.findByRole('button', { name: /sign in to save/i });
-    await userEvent.click(signin);
+    expect(setAuthPrompt).toHaveBeenCalledWith({ offerTitle: '20% off pastries' });
     expect(setReturnIntent).toHaveBeenCalledWith('/my-offers');
-    expect(navigateMock).toHaveBeenCalledWith('/login');
+    expect(navigateMock).toHaveBeenCalledWith('/register');
   });
 });

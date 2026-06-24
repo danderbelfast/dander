@@ -5,12 +5,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getAnonId } from '../../services/anonId';
 import { setReturnIntent } from '../../services/postAuthIntent';
+import { setAuthPrompt } from '../../services/authPrompt';
 import { resolveActivationChannel } from '../../utils/activationChannel';
 
-// Capture-first activation control. Authed → toggles activation. Anon →
-// captures the intent against anon_id (the funnel signal) then nudges sign-in
-// to persist into My Offers (stitched on login). Channel from the URL (?src).
-export default function ActivateButton({ offerId, initialActivated = false, className = '', returnTo }) {
+// Activate = the attribution intent event. Authed → save to My Offers, stay put.
+// Anon → capture the intent (funnel signal) THEN route to a value-framed register
+// (the acquisition journey); after signup the offer is stitched onto the account
+// and they land on My Offers. Channel from the URL (?src).
+export default function ActivateButton({ offerId, offerTitle, initialActivated = false, className = '' }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { isAuth } = useAuth();
@@ -26,41 +28,35 @@ export default function ActivateButton({ offerId, initialActivated = false, clas
     try {
       if (isAuth) {
         if (activated) { await deactivateOffer(offerId); setActivated(false); }
-        else           { await activateOffer(offerId, { channel }); setActivated(true); }
+        else {
+          await activateOffer(offerId, { channel });
+          setActivated(true);
+          toast({ type: 'success', title: 'Saved to My Offers', message: 'Show it at the till to redeem.' });
+        }
       } else {
+        // Capture the anon intent first (funnel signal), then route to the
+        // value-framed acquisition journey → register → stitch → My Offers.
         await activateOffer(offerId, { channel, anonId: getAnonId() });
-        setActivated(true);
-        // Toast has no action button (see ToastContext) — plain nudge; the
-        // persistent "Sign in to save" link below is the real affordance.
-        toast({ type: 'success', title: 'Activated!', message: 'Sign in to save it to My Offers.' });
+        setAuthPrompt({ offerTitle: offerTitle ?? null });
+        setReturnIntent('/my-offers');
+        navigate('/register');
       }
     } catch {
       toast({ type: 'error', title: 'Something went wrong', message: 'Could not activate this offer.' });
-    } finally {
       setBusy(false);
+      return;
     }
-  }
-
-  function goSignIn() {
-    setReturnIntent(returnTo || '/my-offers');
-    navigate('/login');
+    setBusy(false);
   }
 
   return (
-    <>
-      <button
-        className={`btn ${activated ? 'btn-secondary' : 'btn-primary'} ${className}`.trim()}
-        onClick={onClick}
-        disabled={busy}
-        aria-pressed={activated}
-      >
-        {activated ? 'Activated ✓' : 'Activate'}
-      </button>
-      {!isAuth && activated && (
-        <button type="button" className="btn btn-ghost" style={{ marginTop: 6 }} onClick={goSignIn}>
-          Sign in to save
-        </button>
-      )}
-    </>
+    <button
+      className={`btn ${activated ? 'btn-secondary' : 'btn-primary'} ${className}`.trim()}
+      onClick={onClick}
+      disabled={busy}
+      aria-pressed={activated}
+    >
+      {activated ? 'Activated ✓' : 'Activate'}
+    </button>
   );
 }
