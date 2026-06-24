@@ -7,17 +7,21 @@ import { getAnonId } from '../../services/anonId';
 import { setReturnIntent } from '../../services/postAuthIntent';
 import { setAuthPrompt } from '../../services/authPrompt';
 import { resolveActivationChannel } from '../../utils/activationChannel';
+import { useActivatedOffers } from '../../context/ActivatedOffersContext';
 
 // Activate = the attribution intent event. Authed → save to My Offers, stay put.
 // Anon → capture the intent (funnel signal) THEN route to a value-framed register
 // (the acquisition journey); after signup the offer is stitched onto the account
 // and they land on My Offers. Channel from the URL (?src).
-export default function ActivateButton({ offerId, offerTitle, initialActivated = false, className = '' }) {
+export default function ActivateButton({ offerId, offerTitle, className = '' }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { isAuth } = useAuth();
   const { toast } = useToast();
-  const [activated, setActivated] = useState(initialActivated);
+  // Displayed state comes from the shared store (single source of truth), so an
+  // already-activated offer reads "Activated ✓" everywhere it appears.
+  const { isActivated, markActivated, markDeactivated } = useActivatedOffers();
+  const activated = isActivated(offerId);
   const [busy, setBusy] = useState(false);
 
   async function onClick(e) {
@@ -27,10 +31,10 @@ export default function ActivateButton({ offerId, offerTitle, initialActivated =
     const channel = resolveActivationChannel(params);
     try {
       if (isAuth) {
-        if (activated) { await deactivateOffer(offerId); setActivated(false); }
+        if (activated) { await deactivateOffer(offerId); markDeactivated(offerId); }
         else {
           await activateOffer(offerId, { channel });
-          setActivated(true);
+          markActivated(offerId);
           toast({ type: 'success', title: 'Saved to My Offers', message: 'Show it at the till to redeem.' });
         }
       } else {
