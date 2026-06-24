@@ -62,8 +62,12 @@ export const getMyLeaderboard = () =>
   client.get('/api/leaderboard/me').then((r) => r.data);
 
 // ── Offer activation (attribution) ───────────────────────────
-export const activateOffer = (id, { channel, anonId } = {}) =>
-  client.post(`/api/offers/${id}/activate`, { channel, ...(anonId ? { anon_id: anonId } : {}) }).then((r) => r.data);
+export const activateOffer = (id, { channel, source, anonId } = {}) =>
+  client.post(`/api/offers/${id}/activate`, {
+    channel,
+    ...(source ? { source } : {}),
+    ...(anonId ? { anon_id: anonId } : {}),
+  }).then((r) => r.data);
 
 export const deactivateOffer = (id, { anonId } = {}) =>
   client.delete(`/api/offers/${id}/activate`, anonId ? { data: { anon_id: anonId } } : undefined).then((r) => r.data);
