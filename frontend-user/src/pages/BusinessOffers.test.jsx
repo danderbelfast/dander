@@ -12,6 +12,8 @@ vi.mock('../api/public', () => ({ getBusinessOffers: vi.fn() }));
 vi.mock('../utils/imageUrl', () => ({ resolveImageUrl: (u) => u }));
 // ActivateButton has its own test + needs Auth/Toast context — stub it here.
 vi.mock('../components/offers/ActivateButton', () => ({ default: () => null }));
+let authState = { isAuth: false };
+vi.mock('../context/AuthContext', () => ({ useAuth: () => authState }));
 
 import { getBusinessOffers } from '../api/public';
 import BusinessOffers from './BusinessOffers';
@@ -25,7 +27,7 @@ function renderAt(id = '4') {
 }
 
 describe('BusinessOffers', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => { vi.clearAllMocks(); authState = { isAuth: false }; });
 
   it('renders the business name and its offers', async () => {
     getBusinessOffers.mockResolvedValue({
@@ -56,6 +58,29 @@ describe('BusinessOffers', () => {
     getBusinessOffers.mockRejectedValue(new Error('boom'));
     renderAt();
     expect(await screen.findByText(/couldn't load offers/i)).toBeInTheDocument();
+  });
+
+  it('always offers a back control so the page is never a dead-end', async () => {
+    getBusinessOffers.mockResolvedValue({ success: true, business_name: 'Joe Coffee', offers: [] });
+    renderAt();
+    await screen.findByText(/no offers currently available/i);
+    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+  });
+
+  it('shows the bottom nav for a logged-in user (not trapped)', async () => {
+    authState = { isAuth: true };
+    getBusinessOffers.mockResolvedValue({ success: true, business_name: 'Joe Coffee', offers: [] });
+    renderAt();
+    await screen.findByText(/no offers currently available/i);
+    expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument();
+  });
+
+  it('does not show the bottom nav for a logged-out viewer', async () => {
+    authState = { isAuth: false };
+    getBusinessOffers.mockResolvedValue({ success: true, business_name: 'Joe Coffee', offers: [] });
+    renderAt();
+    await screen.findByText(/no offers currently available/i);
+    expect(screen.queryByRole('navigation', { name: /main navigation/i })).not.toBeInTheDocument();
   });
 
   it('activates an offer row via the keyboard (Enter)', async () => {

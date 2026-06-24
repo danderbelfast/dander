@@ -4,6 +4,8 @@ import { getBusinessOffers } from '../api/public';
 import { Spinner } from '../components/ui/Spinner';
 import { resolveImageUrl } from '../utils/imageUrl';
 import ActivateButton from '../components/offers/ActivateButton';
+import { useAuth } from '../context/AuthContext';
+import { BottomNav } from '../components/layout/BottomNav';
 
 function fmt(p) { return p != null ? `£${parseFloat(p).toFixed(2)}` : null; }
 
@@ -12,9 +14,21 @@ function fmt(p) { return p != null ? `£${parseFloat(p).toFixed(2)}` : null; }
 export default function BusinessOffers() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuth } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Never a dead-end: go back if there's history, otherwise into the app
+  // (authed) or the splash (logged-out). Logged-in users also get the bottom nav.
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(isAuth ? '/home' : '/');
+  };
+  const BackButton = () => (
+    <button className="btn btn-ghost" onClick={goBack} aria-label="Back"
+      style={{ alignSelf: 'flex-start', marginBottom: 8 }}>← Back</button>
+  );
 
   useEffect(() => {
     let alive = true;
@@ -36,11 +50,13 @@ export default function BusinessOffers() {
   if (error || !data) {
     return (
       <div className="page-full" style={{ padding: 24, textAlign: 'center' }}>
+        <BackButton />
         <div className="empty-state">
           <div className="empty-state-icon">😕</div>
           <div className="empty-state-title">Couldn't load offers</div>
           <p className="text-muted">Please try again.</p>
         </div>
+        {isAuth && <BottomNav />}
       </div>
     );
   }
@@ -49,7 +65,8 @@ export default function BusinessOffers() {
   const offers = Array.isArray(data.offers) ? data.offers : [];
 
   return (
-    <div className="page-full" style={{ overflowY: 'auto', padding: 16 }}>
+    <div className="page-full" style={{ overflowY: 'auto', padding: 16, paddingBottom: isAuth ? 88 : 16 }}>
+      <BackButton />
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
         {data.business_logo_url
           ? <img src={resolveImageUrl(data.business_logo_url)} alt={name} style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover' }} />
@@ -99,6 +116,7 @@ export default function BusinessOffers() {
           ))}
         </div>
       )}
+      {isAuth && <BottomNav />}
     </div>
   );
 }
