@@ -26,8 +26,12 @@ function renderAt(id = '4') {
   );
 }
 
+function setHistory(len) {
+  Object.defineProperty(window.history, 'length', { configurable: true, get: () => len });
+}
+
 describe('BusinessOffers', () => {
-  beforeEach(() => { vi.clearAllMocks(); authState = { isAuth: false }; });
+  beforeEach(() => { vi.clearAllMocks(); authState = { isAuth: false }; setHistory(1); });
 
   it('renders the business name and its offers', async () => {
     getBusinessOffers.mockResolvedValue({
@@ -60,11 +64,22 @@ describe('BusinessOffers', () => {
     expect(await screen.findByText(/couldn't load offers/i)).toBeInTheDocument();
   });
 
-  it('always offers a back control so the page is never a dead-end', async () => {
+  it('on a cold arrival (no history) shows a Home affordance, not a dead Back', async () => {
+    setHistory(1);
+    getBusinessOffers.mockResolvedValue({ success: true, business_name: 'Joe Coffee', offers: [] });
+    renderAt();
+    await screen.findByText(/no offers currently available/i);
+    expect(screen.getByRole('button', { name: /home/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /back/i })).not.toBeInTheDocument();
+  });
+
+  it('with browser history shows a Back control', async () => {
+    setHistory(2);
     getBusinessOffers.mockResolvedValue({ success: true, business_name: 'Joe Coffee', offers: [] });
     renderAt();
     await screen.findByText(/no offers currently available/i);
     expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /home/i })).not.toBeInTheDocument();
   });
 
   it('shows the bottom nav for a logged-in user (not trapped)', async () => {

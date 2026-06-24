@@ -6,6 +6,7 @@ import { resolveImageUrl } from '../utils/imageUrl';
 import ActivateButton from '../components/offers/ActivateButton';
 import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/layout/BottomNav';
+import tapproveLogoBlack from '../assets/TapProve_Logo_Black.png';
 
 function fmt(p) { return p != null ? `£${parseFloat(p).toFixed(2)}` : null; }
 
@@ -19,15 +20,21 @@ export default function BusinessOffers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Never a dead-end: go back if there's history, otherwise into the app
-  // (authed) or the splash (logged-out). Logged-in users also get the bottom nav.
-  const goBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate(isAuth ? '/home' : '/');
-  };
-  const BackButton = () => (
-    <button className="btn btn-ghost" onClick={goBack} aria-label="Back"
-      style={{ alignSelf: 'flex-start', marginBottom: 8 }}>← Back</button>
+  // Never a dead-end. With browser history → Back. On a cold arrival (sticker
+  // opened as the first page, no history) "Back" would be dead text, so show a
+  // Home affordance instead — a logged-out cold arrival has no bottom nav, so
+  // this is their only way to navigate. Logged-in users also have the bottom nav.
+  const hasHistory = typeof window !== 'undefined' && window.history.length > 1;
+  const NavControl = () => (
+    hasHistory ? (
+      <button className="btn btn-ghost" onClick={() => navigate(-1)} aria-label="Back"
+        style={{ alignSelf: 'flex-start', marginBottom: 8 }}>← Back</button>
+    ) : (
+      <button className="btn btn-ghost" onClick={() => navigate(isAuth ? '/home' : '/')} aria-label="Home"
+        style={{ alignSelf: 'flex-start', marginBottom: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <img src={tapproveLogoBlack} alt="" style={{ height: 20 }} /> Home
+      </button>
+    )
   );
 
   useEffect(() => {
@@ -50,7 +57,7 @@ export default function BusinessOffers() {
   if (error || !data) {
     return (
       <div className="page-full" style={{ padding: 24, textAlign: 'center' }}>
-        <BackButton />
+        <NavControl />
         <div className="empty-state">
           <div className="empty-state-icon">😕</div>
           <div className="empty-state-title">Couldn't load offers</div>
@@ -66,7 +73,7 @@ export default function BusinessOffers() {
 
   return (
     <div className="page-full" style={{ overflowY: 'auto', padding: 16, paddingBottom: isAuth ? 88 : 16 }}>
-      <BackButton />
+      <NavControl />
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
         {data.business_logo_url
           ? <img src={resolveImageUrl(data.business_logo_url)} alt={name} style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover' }} />
