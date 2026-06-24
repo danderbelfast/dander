@@ -10,7 +10,7 @@ const pool = require('../db/pool');
 const ATTRIBUTION_WINDOW = "INTERVAL '7 days'";
 
 // Upsert an activation. identity is { userId } OR { anonId }. Returns the row.
-async function activate(client, { offerId, channel, userId = null, anonId = null }) {
+async function activate(client, { offerId, channel, source = null, userId = null, anonId = null }) {
   // business_id + offer expiry are derived from the offer so the caller can't spoof them.
   const { rows: offerRows } = await client.query(
     'SELECT business_id, expires_at, is_active FROM offers WHERE id = $1',
@@ -22,24 +22,24 @@ async function activate(client, { offerId, channel, userId = null, anonId = null
 
   if (userId) {
     const { rows } = await client.query(
-      `INSERT INTO offer_activations (offer_id, business_id, user_id, channel, offer_expires_at)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO offer_activations (offer_id, business_id, user_id, channel, source, offer_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (offer_id, user_id) WHERE user_id IS NOT NULL DO UPDATE
-         SET channel = EXCLUDED.channel, activated_at = NOW(),
+         SET channel = EXCLUDED.channel, source = EXCLUDED.source, activated_at = NOW(),
              status = CASE WHEN offer_activations.status = 'expired' THEN 'activated' ELSE offer_activations.status END,
              offer_expires_at = EXCLUDED.offer_expires_at
        RETURNING *`,
-      [offerId, business_id, userId, channel, expires_at]
+      [offerId, business_id, userId, channel, source, expires_at]
     );
     return rows[0];
   }
   const { rows } = await client.query(
-    `INSERT INTO offer_activations (offer_id, business_id, anon_id, channel, offer_expires_at)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO offer_activations (offer_id, business_id, anon_id, channel, source, offer_expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (offer_id, anon_id) WHERE anon_id IS NOT NULL AND user_id IS NULL DO UPDATE
-       SET channel = EXCLUDED.channel, activated_at = NOW(), offer_expires_at = EXCLUDED.offer_expires_at
+       SET channel = EXCLUDED.channel, source = EXCLUDED.source, activated_at = NOW(), offer_expires_at = EXCLUDED.offer_expires_at
      RETURNING *`,
-    [offerId, business_id, anonId, channel, expires_at]
+    [offerId, business_id, anonId, channel, source, expires_at]
   );
   return rows[0];
 }
