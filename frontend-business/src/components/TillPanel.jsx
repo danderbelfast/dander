@@ -34,6 +34,7 @@ export function TillPanel() {
   const [amount, setAmount]     = useState('');
   const [category, setCategory] = useState('');
   const [item, setItem]         = useState('');
+  const [selectedOfferId, setSelectedOfferId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const amountRef = useRef(null);
   const successTimer = useRef(null);
@@ -49,6 +50,7 @@ export function TillPanel() {
       setAmount('');
       setCategory('');
       setItem('');
+      setSelectedOfferId(payload.suggested_offer_id ?? null);
       setState('ARRIVED');
       setTimeout(() => amountRef.current?.focus(), 100);
     });
@@ -81,6 +83,7 @@ export function TillPanel() {
         amount_spent: amt,
         category: category || null,
         item_description: item || null,
+        applied_offer_id: selectedOfferId,
       });
       // till_complete event arrives via WebSocket → switches state.
     } catch (err) {
@@ -105,6 +108,11 @@ export function TillPanel() {
     const n = parseFloat(amount);
     return Number.isFinite(n) && n > 0 ? Math.floor(n * 10) : 0;
   })();
+
+  // Activated offers = the attribution tag candidates (front-and-centre chips).
+  // When present, the all-business "apply by hand" list collapses to a walk-up
+  // reference; when absent, that list shows expanded as before.
+  const hasActivations = Array.isArray(customer?.activated_offers) && customer.activated_offers.length > 0;
 
   return (
     <>
@@ -139,30 +147,62 @@ export function TillPanel() {
             </div>
           )}
 
-          {Array.isArray(customer.active_offers) && customer.active_offers.length > 0 && (
-            <div style={activeOffersStyles}>
+          {hasActivations && (
+            <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', fontWeight: 600, letterSpacing: 0.5, marginBottom: 6 }}>
-                ACTIVE OFFERS
+                OFFER APPLIED — tag the one redeemed
               </div>
-              {customer.active_offers.map((o) => (
-                <div key={o.id} style={offerRowStyles}>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{o.title}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>
-                    {o.discount_percent != null
-                      ? `${Number(o.discount_percent).toFixed(0)}% off`
-                      : o.offer_price != null && o.original_price != null
-                        ? `${fmt(o.offer_price)} (was ${fmt(o.original_price)})`
-                        : o.offer_price != null
-                          ? fmt(o.offer_price)
-                          : o.offer_type || 'Offer'}
-                  </div>
-                </div>
-              ))}
-              <div style={{ fontSize: '0.72rem', color: 'var(--c-text-muted)', marginTop: 6, fontStyle: 'italic' }}>
-                Apply by hand, enter the post-discount amount below.
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {customer.activated_offers.map((o) => (
+                  <button key={o.id} type="button" disabled={submitting}
+                    onClick={() => setSelectedOfferId(o.id)}
+                    style={chipStyles(selectedOfferId === o.id)}>
+                    {o.title}
+                  </button>
+                ))}
+                <button type="button" disabled={submitting}
+                  onClick={() => setSelectedOfferId(null)}
+                  style={chipStyles(selectedOfferId === null)}>
+                  None
+                </button>
               </div>
             </div>
           )}
+
+          {Array.isArray(customer.active_offers) && customer.active_offers.length > 0 && (() => {
+            const list = (
+              <div style={activeOffersStyles}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', fontWeight: 600, letterSpacing: 0.5, marginBottom: 6 }}>
+                  ACTIVE OFFERS
+                </div>
+                {customer.active_offers.map((o) => (
+                  <div key={o.id} style={offerRowStyles}>
+                    <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{o.title}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>
+                      {o.discount_percent != null
+                        ? `${Number(o.discount_percent).toFixed(0)}% off`
+                        : o.offer_price != null && o.original_price != null
+                          ? `${fmt(o.offer_price)} (was ${fmt(o.original_price)})`
+                          : o.offer_price != null
+                            ? fmt(o.offer_price)
+                            : o.offer_type || 'Offer'}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ fontSize: '0.72rem', color: 'var(--c-text-muted)', marginTop: 6, fontStyle: 'italic' }}>
+                  Apply by hand, enter the post-discount amount below.
+                </div>
+              </div>
+            );
+            return hasActivations ? (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: 'pointer', fontSize: '0.78rem', color: 'var(--c-text-muted)', fontWeight: 600 }}>
+                  All offers (walk-up discounts — not tagged)
+                </summary>
+                {list}
+              </details>
+            ) : list;
+          })()}
 
           <div className="field" style={{ marginTop: 16 }}>
             <label className="label">Amount spent ({ccy})</label>
@@ -275,6 +315,19 @@ function tierBadge(tier) {
     fontSize: '0.75rem',
     fontWeight: 700,
     letterSpacing: 0.5,
+  };
+}
+
+function chipStyles(active) {
+  return {
+    padding: '6px 12px',
+    borderRadius: 999,
+    border: active ? '1px solid #84cc16' : '1px solid var(--c-border, rgba(0,0,0,0.15))',
+    background: active ? 'rgba(132, 204, 22, 0.18)' : 'transparent',
+    color: 'inherit',
+    fontWeight: active ? 700 : 500,
+    fontSize: '0.85rem',
+    cursor: 'pointer',
   };
 }
 
