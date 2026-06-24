@@ -72,6 +72,27 @@ async function listMyOffers(client, userId) {
   return rows;
 }
 
+// Till tag candidate set: this user's NON-expired, still-open activations for
+// ONE business, within the attribution window. Most-recent first → row[0] is the
+// deterministic last-touch suggestion for the TillPanel pre-selection.
+async function listActivatedForBusiness(client, { userId, businessId }) {
+  const { rows } = await client.query(
+    `SELECT a.offer_id AS id, a.status, a.activated_at,
+            o.title, o.description, o.offer_type,
+            o.original_price, o.offer_price, o.discount_percent
+       FROM offer_activations a
+       JOIN offers o ON o.id = a.offer_id
+      WHERE a.user_id = $1 AND a.business_id = $2
+        AND a.status IN ('activated', 'entry_conversion')
+        AND a.activated_at > NOW() - ${ATTRIBUTION_WINDOW}
+        AND o.is_active = TRUE
+        AND (o.expires_at IS NULL OR o.expires_at > NOW())
+      ORDER BY a.activated_at DESC`,
+    [userId, businessId]
+  );
+  return rows;
+}
+
 // On check-in: open activations for this user+business → entry_conversion.
 async function markEntryConversion(client, { userId, businessId }) {
   const { rows } = await client.query(
@@ -138,6 +159,6 @@ async function stitchAnonToUser(client, { anonId, userId }) {
 }
 
 module.exports = {
-  activate, deactivate, listMyOffers,
+  activate, deactivate, listMyOffers, listActivatedForBusiness,
   markEntryConversion, markSaleConversion, stitchAnonToUser,
 };
