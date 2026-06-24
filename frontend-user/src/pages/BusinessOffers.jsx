@@ -92,7 +92,7 @@ export default function BusinessOffers() {
                   </div>
                 )}
                 <div style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                  <ActivateButton offerId={o.id} returnTo={`/business/${id}/offers`} />
+                  <ActivateButton offerId={o.id} offerTitle={o.title} />
                 </div>
               </div>
             </div>

@@ -279,7 +279,7 @@ export default function OfferDetail() {
 
       {/* ── Fixed bottom CTA — offers redeem at the till (no in-app claim) ── */}
       <div className="detail-cta">
-        <ActivateButton offerId={offer.id} className="btn-block btn-lg" returnTo={`/offer/${offer.id}`} initialActivated={offer.is_activated ?? false} />
+        <ActivateButton offerId={offer.id} offerTitle={offer.title} className="btn-block btn-lg" initialActivated={offer.is_activated ?? false} />
         <div style={{ width: '100%', marginTop: 10 }}>
           <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>🏪 Redeem in store</div>
           <div style={{ fontSize: '0.9rem', color: 'var(--c-text-muted)' }}>

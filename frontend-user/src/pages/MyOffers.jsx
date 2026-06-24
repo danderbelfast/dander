@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyOffers } from '../api/offers';
+import { getMyOffers, stitchActivations } from '../api/offers';
+import { getAnonId } from '../services/anonId';
 import { Spinner } from '../components/ui/Spinner';
 import { resolveImageUrl } from '../utils/imageUrl';
 
@@ -14,9 +15,16 @@ export default function MyOffers() {
 
   useEffect(() => {
     let alive = true;
-    getMyOffers()
-      .then((d) => { if (alive) setOffers(Array.isArray(d.offers) ? d.offers : []); })
-      .catch(() => { if (alive) setError(true); });
+    (async () => {
+      // Stitch first so an offer just activated anonymously (then signed up for)
+      // is owned by this user before we fetch — guarantees it shows on landing.
+      // Idempotent with the login-time stitch.
+      try { await stitchActivations(getAnonId()); } catch { /* ignore */ }
+      try {
+        const d = await getMyOffers();
+        if (alive) setOffers(Array.isArray(d.offers) ? d.offers : []);
+      } catch { if (alive) setError(true); }
+    })();
     return () => { alive = false; };
   }, []);
 

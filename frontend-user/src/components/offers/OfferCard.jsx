@@ -234,7 +234,7 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
             </button>
           </div>
           <div style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-            <ActivateButton offerId={offer.id} returnTo={`/offer/${offer.id}`} />
+            <ActivateButton offerId={offer.id} offerTitle={offer.title} />
           </div>
         </div>
       </div>
