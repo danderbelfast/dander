@@ -95,7 +95,10 @@ router.get(
       const ogDesc  = offer.title || '';
       const ogImage = `${config.API_PUBLIC_URL}/api/v1/offers/${offer.id}/preview.png`;
       const ogUrl   = `${config.USER_APP_URL}/o/${offer.id}`;
-      const appUrl  = `${config.USER_APP_URL}/offer/${offer.id}`;
+      // Forward the incoming query (e.g. ?src=social_facebook) onto the redirect
+      // target so attribution survives the OG hop to the SPA offer page.
+      const qs = new URLSearchParams(req.query).toString();
+      const appUrl  = `${config.USER_APP_URL}/offer/${offer.id}${qs ? `?${qs}` : ''}`;
 
       const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
