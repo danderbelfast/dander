@@ -2,8 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { isValidChannel, normalizeChannel, VALID_CHANNELS, normalizeSource, channelFromSource } = require('./offerChannel');
 
-test('VALID_CHANNELS are app/web/sticker', () => {
-  assert.deepStrictEqual([...VALID_CHANNELS].sort(), ['app', 'sticker', 'web']);
+test('VALID_CHANNELS are app/web/sticker/social', () => {
+  assert.deepStrictEqual([...VALID_CHANNELS].sort(), ['app', 'social', 'sticker', 'web']);
 });
 
 test('isValidChannel accepts the three channels', () => {
