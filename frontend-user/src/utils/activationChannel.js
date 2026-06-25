@@ -7,6 +7,9 @@ export function resolveActivationChannel(searchParams) {
   const source = typeof raw === 'string'
     ? (raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 32) || 'web')
     : 'web';
-  const channel = source.startsWith('sticker') ? 'sticker' : (source === 'app' ? 'app' : 'web');
+  const channel = source.startsWith('sticker') ? 'sticker'
+    : source.startsWith('social') ? 'social'
+    : source === 'app' ? 'app'
+    : 'web';
   return { channel, source };
 }

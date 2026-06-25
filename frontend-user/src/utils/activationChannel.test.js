@@ -22,4 +22,12 @@ describe('resolveActivationChannel', () => {
     expect(resolveActivationChannel(new URLSearchParams('src=Sticker-Window!')))
       .toEqual({ channel: 'sticker', source: 'stickerwindow' });
   });
+  it('maps a social platform src to { channel: social, source }', () => {
+    expect(resolveActivationChannel(new URLSearchParams('src=social_facebook')))
+      .toEqual({ channel: 'social', source: 'social_facebook' });
+  });
+  it('maps social_other (native fallback) to social', () => {
+    expect(resolveActivationChannel(new URLSearchParams('src=social_other')))
+      .toEqual({ channel: 'social', source: 'social_other' });
+  });
 });
