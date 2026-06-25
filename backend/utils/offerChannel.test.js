@@ -45,3 +45,14 @@ test('channelFromSource derives the coarse bucket (server-authoritative)', () =>
   assert.strictEqual(channelFromSource(null), null);
   assert.strictEqual(channelFromSource(''), null);
 });
+
+test('VALID_CHANNELS includes social', () => {
+  assert.strictEqual(VALID_CHANNELS.has('social'), true);
+});
+
+test('channelFromSource maps social_* to social', () => {
+  assert.strictEqual(channelFromSource('social_facebook'), 'social');
+  assert.strictEqual(channelFromSource('social_instagram'), 'social');
+  assert.strictEqual(channelFromSource('social_other'), 'social');
+  assert.strictEqual(channelFromSource('social'), 'social');
+});

@@ -1,7 +1,7 @@
 'use strict';
 
-// The three attribution channels an offer can be activated from.
-const VALID_CHANNELS = new Set(['app', 'web', 'sticker']);
+// The coarse attribution channels an offer can be activated from.
+const VALID_CHANNELS = new Set(['app', 'web', 'sticker', 'social']);
 
 function isValidChannel(c) {
   return typeof c === 'string' && VALID_CHANNELS.has(c);
@@ -28,6 +28,7 @@ function normalizeSource(raw) {
 function channelFromSource(source) {
   if (typeof source !== 'string' || source.length === 0) return null;
   if (source.startsWith('sticker')) return 'sticker';
+  if (source.startsWith('social'))  return 'social';
   if (source === 'app') return 'app';
   return 'web';
 }
