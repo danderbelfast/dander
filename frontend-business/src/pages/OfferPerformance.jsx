@@ -16,7 +16,7 @@ const RANGES = [
   { key: '90d', label: '90 days' },
   { key: 'all', label: 'All time' },
 ];
-const CHANNEL_LABELS = { sticker: 'Window sticker', web: 'Web', app: 'App' };
+const CHANNEL_LABELS = { sticker: 'Window sticker', web: 'Web', app: 'App', social: 'Social' };
 
 export default function OfferPerformance() {
   const { toast } = useToast();
