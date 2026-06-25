@@ -42,6 +42,17 @@
   status = 200
   force  = true
 
+# Social share OG/preview — /o/:id serves OpenGraph meta (backend) then
+# redirects to /offer/:id, FORWARDING ?src so social attribution survives.
+# Staging targets staging-api so the full recipient→activation chain is
+# verifiable on staging (mirrors root netlify.toml's prod redirect). Must
+# precede the SPA catch-all below (Netlify is first-match).
+[[redirects]]
+  from   = "/o/:id"
+  to     = "https://staging-api.tapprove.io/api/v1/offers/:id/og"
+  status = 200
+  force  = true
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
