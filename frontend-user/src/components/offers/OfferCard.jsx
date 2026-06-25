@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCountdown } from '../../hooks/useCountdown';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import { saveOffer, unsaveOffer, trackShare } from '../../api/offers';
+import { saveOffer, unsaveOffer } from '../../api/offers';
 import { StoryOverlay } from '../ui/StoryOverlay';
 import { StarDisplay, NewBadge } from '../ui/StarRating';
-import { PUBLIC_APP_URL } from '../../config';
 import ActivateButton from './ActivateButton';
+import ShareSheet from './ShareSheet';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -146,6 +146,7 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
   const countdown = useCountdown(offer.expires_at);
   const distLabel = formatDistance(offer.distance_meters);
   const [showStory, setShowStory] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   async function handleSave(e) {
     e.stopPropagation();
@@ -218,14 +219,7 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
 
             <button className="offer-card-share-btn" onClick={(e) => {
               e.stopPropagation();
-              const url = `${PUBLIC_APP_URL}/o/${offer.id}`;
-              const text = `Check out this deal: ${offer.title} at ${offer.business_name}`;
-              trackShare(offer.id).catch(() => {});
-              if (navigator.share) {
-                navigator.share({ title: offer.title, text, url }).catch(() => {});
-              } else {
-                navigator.clipboard.writeText(url).catch(() => {});
-              }
+              setShareOpen(true);
             }} aria-label="Share">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -246,6 +240,10 @@ export function OfferCard({ offer, saved, onSaveToggle }) {
           onClose={() => setShowStory(false)}
         />
       )}
+
+      <ShareSheet offerId={offer.id} title={offer.title}
+        text={`Check out this deal: ${offer.title} at ${offer.business_name}`}
+        open={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );
 }

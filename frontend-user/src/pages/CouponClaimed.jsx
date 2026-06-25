@@ -3,10 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useCountdown } from '../hooks/useCountdown';
 import { useToast } from '../context/ToastContext';
 import { resolveImageUrl } from '../utils/imageUrl';
-import { submitReview, trackShare } from '../api/offers';
+import { submitReview } from '../api/offers';
 import { StarInput } from '../components/ui/StarRating';
 import { QRCodeSVG } from 'qrcode.react';
-import { PUBLIC_APP_URL } from '../config';
+import ShareSheet from '../components/offers/ShareSheet';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -290,6 +290,7 @@ function ReviewPrompt({ couponId, businessName, offerId }) {
   const [comment, setComment]   = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   async function handleSubmit() {
     if (rating === 0) return;
@@ -301,17 +302,7 @@ function ReviewPrompt({ couponId, businessName, offerId }) {
     setSubmitting(false);
   }
 
-  function handleShareReview() {
-    const url = `${PUBLIC_APP_URL}/o/${offerId || ''}`;
-    const stars = '⭐'.repeat(rating);
-    const text = `I just rated ${businessName} ${stars} on TapProve! ${comment ? `"${comment}" ` : ''}Check out their deals:`;
-    trackShare(offerId).catch(() => {});
-    if (navigator.share) {
-      navigator.share({ title: `${businessName} — ${stars}`, text, url }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(`${text} ${url}`).catch(() => {});
-    }
-  }
+  function handleShareReview() { setShareOpen(true); }
 
   if (submitted) {
     return (
@@ -335,6 +326,11 @@ function ReviewPrompt({ couponId, businessName, offerId }) {
             Share your review
           </button>
         </div>
+        <ShareSheet
+          offerId={offerId}
+          title={`${businessName} — ${'⭐'.repeat(rating)}`}
+          text={`I just rated ${businessName} ${'⭐'.repeat(rating)} on TapProve! ${comment ? `"${comment}" ` : ''}Check out their deals:`}
+          open={shareOpen} onClose={() => setShareOpen(false)} />
       </div>
     );
   }

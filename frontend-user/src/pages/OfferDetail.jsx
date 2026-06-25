@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getOffer, recordView, saveOffer, unsaveOffer, trackShare } from '../api/offers';
+import { getOffer, recordView, saveOffer, unsaveOffer } from '../api/offers';
 import { useOptionalLocation } from '../context/LocationContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCountdown } from '../hooks/useCountdown';
 import { ExpandableSection } from '../components/ui/ExpandableSection';
 import { Spinner } from '../components/ui/Spinner';
-import { PUBLIC_APP_URL } from '../config';
 import { usePwa } from '../context/PwaInstallContext';
 import { resolveImageUrl } from '../utils/imageUrl';
 import ActivateButton from '../components/offers/ActivateButton';
+import ShareSheet from '../components/offers/ShareSheet';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -100,19 +100,8 @@ export default function OfferDetail() {
     }
   }
 
-  async function handleShare() {
-    const shareUrl = `${PUBLIC_APP_URL}/o/${id}`;
-    const shareText = `Check out this deal: ${offer.title} at ${offer.business_name}`;
-    trackShare(id).catch(() => {});
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: offer.title, text: shareText, url: shareUrl });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(shareUrl).catch(() => {});
-      toast({ type: 'success', title: 'Link copied', message: 'Share link copied to clipboard.' });
-    }
-  }
+  const [shareOpen, setShareOpen] = useState(false);
+  function handleShare() { setShareOpen(true); }
 
   const openNavigation = useCallback((mode) => {
     const destLat = offer?.business_lat ?? offer?.lat;
@@ -152,6 +141,10 @@ export default function OfferDetail() {
 
   return (
     <div className="page-full" style={{ paddingBottom: 0 }}>
+
+      <ShareSheet offerId={id} title={offer.title}
+        text={`Check out this deal: ${offer.title} at ${offer.business_name}`}
+        open={shareOpen} onClose={() => setShareOpen(false)} />
 
       {/* ── Fixed floating buttons ── */}
       <button className="detail-back" onClick={() => navigate(-1)} aria-label="Back">
