@@ -7,7 +7,7 @@ const { body } = require('express-validator');
 const pool       = require('../db/pool');
 const geoService = require('../services/geoService');
 const reviewService = require('../services/reviewService');
-const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth, requireBusiness } = require('../middleware/auth');
 const offerActivation = require('../services/offerActivation');
 const { normalizeChannel, normalizeSource, channelFromSource } = require('../utils/offerChannel');
 
@@ -281,6 +281,89 @@ router.get('/activated', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[offers/activated GET]', err);
     return fail(res, 500, 'SERVER_ERROR', 'Failed to fetch activated offers.');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/offers/performance?range=7d|30d|90d|all  (requireBusiness)
+// Per-offer + per-channel offer-attribution funnel for the dashboard.
+// Funnel: activated -> visited (entry_conversion|qualified_sale) -> bought
+// (qualified_sale). Attributed sales = gross post-discount sale_amount on
+// qualified_sale rows. Anchored on activated_at. Channel is the coarse rollup
+// (sticker_* -> sticker). Commission intentionally omitted (rate=0).
+// NOTE: must be registered BEFORE /:id so 'performance' isn't matched as an id.
+// ---------------------------------------------------------------------------
+router.get('/performance', requireBusiness, async (req, res) => {
+  const RANGE_DAYS = { '7d': 7, '30d': 30, '90d': 90, 'all': null };
+  const range = Object.prototype.hasOwnProperty.call(RANGE_DAYS, req.query.range) ? req.query.range : '30d';
+  const days = RANGE_DAYS[range];
+  const cutoff = days == null ? null : new Date(Date.now() - days * 86400000).toISOString();
+
+  try {
+    const { rows: offerRows } = await pool.query(
+      `SELECT o.id, o.title, o.is_active,
+              COUNT(a.id)                                                       AS activated,
+              COUNT(*) FILTER (WHERE a.status IN ('entry_conversion','qualified_sale')) AS visited,
+              COUNT(*) FILTER (WHERE a.status = 'qualified_sale')               AS bought,
+              COALESCE(SUM(a.sale_amount) FILTER (WHERE a.status = 'qualified_sale'), 0) AS attributed_sales
+         FROM offers o
+         JOIN offer_activations a ON a.offer_id = o.id
+        WHERE o.business_id = $1
+          AND ($2::timestamptz IS NULL OR a.activated_at >= $2)
+        GROUP BY o.id, o.title, o.is_active
+       HAVING COUNT(a.id) > 0
+        ORDER BY attributed_sales DESC, activated DESC`,
+      [req.business.id, cutoff]
+    );
+
+    const { rows: channelRows } = await pool.query(
+      `SELECT a.channel,
+              COUNT(a.id)                                                       AS activated,
+              COUNT(*) FILTER (WHERE a.status IN ('entry_conversion','qualified_sale')) AS visited,
+              COUNT(*) FILTER (WHERE a.status = 'qualified_sale')               AS bought,
+              COALESCE(SUM(a.sale_amount) FILTER (WHERE a.status = 'qualified_sale'), 0) AS attributed_sales
+         FROM offer_activations a
+        WHERE a.business_id = $1
+          AND ($2::timestamptz IS NULL OR a.activated_at >= $2)
+        GROUP BY a.channel
+        ORDER BY a.channel`,
+      [req.business.id, cutoff]
+    );
+
+    const rate = (n, d) => (d > 0 ? Math.round((n / d) * 10000) / 100 : 0);
+
+    const by_offer = offerRows.map((r) => {
+      const activated = Number(r.activated) || 0;
+      const visited   = Number(r.visited)   || 0;
+      const bought    = Number(r.bought)    || 0;
+      return {
+        offer_id: r.id, title: r.title, is_active: r.is_active,
+        activated, visited, bought,
+        activated_to_visited: rate(visited, activated),
+        visited_to_bought:    rate(bought, visited),
+        attributed_sales:     Number(r.attributed_sales) || 0,
+      };
+    });
+
+    const by_channel = channelRows.map((r) => ({
+      channel: r.channel,
+      activated: Number(r.activated) || 0,
+      visited:   Number(r.visited)   || 0,
+      bought:    Number(r.bought)    || 0,
+      attributed_sales: Number(r.attributed_sales) || 0,
+    }));
+
+    const totals = by_offer.reduce((acc, o) => ({
+      activated: acc.activated + o.activated,
+      visited:   acc.visited   + o.visited,
+      bought:    acc.bought    + o.bought,
+      attributed_sales: acc.attributed_sales + o.attributed_sales,
+    }), { activated: 0, visited: 0, bought: 0, attributed_sales: 0 });
+
+    return ok(res, { range, totals, by_offer, by_channel });
+  } catch (err) {
+    console.error('[offers/performance]', err);
+    return fail(res, 500, 'SERVER_ERROR', 'Failed to load offer performance.');
   }
 });
 
