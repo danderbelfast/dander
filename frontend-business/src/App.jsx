@@ -28,6 +28,7 @@ import AwardPoints      from './pages/AwardPoints';
 import GifLibrary       from './pages/GifLibrary';
 import Sales            from './pages/Sales';
 import Conversions      from './pages/Conversions';
+import OfferPerformance from './pages/OfferPerformance';
 import RewardTiers      from './pages/RewardTiers';
 import Compliance       from './pages/Compliance';
 
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/loyalty/gifs"     element={<GifLibrary />} />
           <Route path="/sales"            element={<Sales />} />
           <Route path="/conversions"      element={<Conversions />} />
+          <Route path="/offer-performance" element={<OfferPerformance />} />
           <Route path="/customers"        element={<Customers />} />
           <Route path="/reports"          element={<Reports />} />
           <Route path="/analytics"       element={<Analytics />} />
