@@ -2,11 +2,13 @@
  * OfferCard — horizontal-scroll card used on the home dashboard.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../constants/colors';
 import { Offer } from '../api/offers';
+import { ActivateButton } from './ActivateButton';
+import { ShareSheet } from './ShareSheet';
 
 interface Props {
   offer:    Offer;
@@ -25,6 +27,7 @@ function offerTypeBadge(type: string | null): { label: string; tint: string } | 
 
 export function OfferCard({ offer, onPress }: Props) {
   const badge = offerTypeBadge(offer.offer_type);
+  const [shareOpen, setShareOpen] = useState(false);
   return (
     <Pressable onPress={onPress} style={styles.card}>
       <View style={styles.head}>
@@ -39,6 +42,19 @@ export function OfferCard({ offer, onPress }: Props) {
       </View>
       <Text style={styles.title} numberOfLines={2}>{offer.title}</Text>
       <Text style={styles.nearby}>Nearby</Text>
+      <View style={styles.actions}>
+        <ActivateButton offerId={offer.id} style={styles.activate} />
+        <Pressable onPress={() => setShareOpen(true)} hitSlop={8} style={styles.share} accessibilityRole="button" accessibilityLabel="Share">
+          <Text style={styles.shareTxt}>Share</Text>
+        </Pressable>
+      </View>
+      <ShareSheet
+        offerId={offer.id}
+        title={offer.title}
+        text={`Check out this deal: ${offer.title} at ${offer.business_name ?? 'a local business'}`}
+        visible={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
     </Pressable>
   );
 }
@@ -84,4 +100,19 @@ const styles = StyleSheet.create({
     color: colors.textDim,
     fontWeight: '500',
   },
+  actions: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activate: { flex: 1, paddingVertical: 8, minHeight: 36 },
+  share: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  shareTxt: { fontSize: 13, fontWeight: '700', color: colors.text },
 });

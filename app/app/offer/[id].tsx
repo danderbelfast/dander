@@ -21,6 +21,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { getOfferById, Offer } from '../../src/api/offers';
 import { extractApiError } from '../../src/api/errors';
+import { ActivateButton } from '../../src/components/ActivateButton';
+import { ShareSheet } from '../../src/components/ShareSheet';
 
 const TYPE_COLOURS: Record<string, string> = {
   percentage: '#008A05',
@@ -55,6 +57,7 @@ export default function OfferDetailScreen() {
   const [offer, setOffer]     = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(offerId)) {
@@ -77,6 +80,7 @@ export default function OfferDetailScreen() {
   const tint = TYPE_COLOURS[(offer?.offer_type ?? '').toLowerCase()] ?? colors.primary;
 
   return (
+    <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.scroll}>
       <Pressable onPress={() => router.back()} style={styles.back}>
         <Text style={styles.backText}>← Back</Text>
@@ -117,6 +121,13 @@ export default function OfferDetailScreen() {
             </>
           ) : null}
 
+          <View style={styles.ctaRow}>
+            <ActivateButton offerId={offerId} style={{ flex: 1 }} />
+            <Pressable onPress={() => setShareOpen(true)} style={styles.shareBtn} accessibilityRole="button" accessibilityLabel="Share">
+              <Text style={styles.shareTxt}>Share</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.redeemCard}>
             <Text style={styles.redeemTitle}>🏪 Redeem in store</Text>
             <Text style={styles.redeemBody}>
@@ -129,6 +140,16 @@ export default function OfferDetailScreen() {
         </>
       )}
     </ScrollView>
+    {offer ? (
+      <ShareSheet
+        offerId={offerId}
+        title={offer.title}
+        text={`Check out this deal: ${offer.title} at ${offer.business_name ?? 'a local business'}`}
+        visible={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -154,6 +175,21 @@ const styles = StyleSheet.create({
   meta:        { fontSize: 13, color: colors.textMuted, marginTop: 6 },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginTop: 24 },
   terms: { fontSize: 13, color: colors.textMuted, marginTop: 6, lineHeight: 19 },
+  ctaRow: {
+    marginTop: 24,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
+  shareBtn: {
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareTxt: { fontSize: 15, fontWeight: '700', color: colors.text },
   redeemCard: {
     marginTop: 32,
     backgroundColor: colors.surface,
