@@ -1,16 +1,16 @@
 /**
  * (tabs)/_layout.tsx — bottom tab bar for the authenticated app.
  *
- * Six tabs: Home, Offers, Scan, Leaderboard, Rewards, Challenges. The Scan
- * tab intercepts its press to show a "Coming soon" alert rather than
- * actually navigating to that screen.
+ * Four tabs: Home, Offers, Leaderboard, My Offers. Scan, Rewards, and
+ * Challenges are kept as routes but hidden from the bar (href: null) — the
+ * route files' deletion is the separate redundant-code-audit task.
  *
  * Auth guard lives here: if the user isn't signed in, redirect to /login.
  * If still bootstrapping the session, show a splash.
  */
 
 import React from 'react';
-import { ActivityIndicator, Alert, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -64,27 +64,19 @@ export default function TabsLayout() {
         options={{ title: 'Offers', tabBarIcon: tabIcon('pricetag', 'pricetag-outline') }}
       />
       <Tabs.Screen
-        name="scan"
-        options={{ title: 'Scan', tabBarIcon: tabIcon('qr-code', 'qr-code-outline') }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            Alert.alert('Coming soon', 'QR scanning is on the way.');
-          },
-        }}
-      />
-      <Tabs.Screen
         name="leaderboard"
         options={{ title: 'Leaderboard', tabBarIcon: tabIcon('trophy', 'trophy-outline') }}
       />
       <Tabs.Screen
-        name="rewards"
-        options={{ title: 'Rewards', tabBarIcon: tabIcon('gift', 'gift-outline') }}
+        name="my-offers"
+        options={{ title: 'My Offers', tabBarIcon: tabIcon('pricetags', 'pricetags-outline') }}
       />
-      <Tabs.Screen
-        name="challenges"
-        options={{ title: 'Challenges', tabBarIcon: tabIcon('flag', 'flag-outline') }}
-      />
+
+      {/* Hidden from the bar (nav removal, Plan 4) — routes kept; file deletion
+          is the separate redundant-code-audit task. */}
+      <Tabs.Screen name="scan"       options={{ href: null }} />
+      <Tabs.Screen name="rewards"    options={{ href: null }} />
+      <Tabs.Screen name="challenges" options={{ href: null }} />
     </Tabs>
   );
 }

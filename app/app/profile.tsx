@@ -149,10 +149,6 @@ export default function ProfileScreen() {
         <ProgressBar progress={tierProgress} target={tierTarget} />
       </View>
 
-      {/* Account */}
-      <Text style={styles.sectionTitle}>Account</Text>
-      <Row label="My coupons" onPress={() => router.push('/my-coupons')} />
-
       {/* Settings */}
       <Text style={styles.sectionTitle}>Settings</Text>
       <Row label="Notification preferences" onPress={stub('Notifications')} />
