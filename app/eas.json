@@ -18,6 +18,7 @@
       "android": { "buildType": "apk" },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://staging-api.tapprove.io",
+        "EXPO_PUBLIC_APP_URL": "https://staging.tapprove.io",
         "EXPO_PUBLIC_UNLOCK_APP": "true"
       }
     },
