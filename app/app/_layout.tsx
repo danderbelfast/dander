@@ -9,6 +9,7 @@ import React, { useEffect } from 'react';
 import { Linking, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
+import { ActivatedOffersProvider } from '../src/context/ActivatedOffersContext';
 import { useDeviceFingerprint } from '../src/hooks/useDeviceFingerprint';
 import { useWifiScanner } from '../src/hooks/useWifiScanner';
 import useStepCounter from '../src/hooks/useStepCounter';
@@ -81,13 +82,15 @@ export default function RootLayout() {
   }
   return (
     <AuthProvider>
-      <SideEffects />
-      <View style={{ flex: 1 }}>
-        <PermissionBanner />
-        <AppLinksBanner />
-        <Stack screenOptions={{ headerShown: false }} />
-        <NfcCheckInScreen />
-      </View>
+      <ActivatedOffersProvider>
+        <SideEffects />
+        <View style={{ flex: 1 }}>
+          <PermissionBanner />
+          <AppLinksBanner />
+          <Stack screenOptions={{ headerShown: false }} />
+          <NfcCheckInScreen />
+        </View>
+      </ActivatedOffersProvider>
     </AuthProvider>
   );
 }
