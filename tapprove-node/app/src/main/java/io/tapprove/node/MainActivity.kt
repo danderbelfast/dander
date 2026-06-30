@@ -135,6 +135,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        // Foundation (Increment 1): bring up the always-on foreground service so
+        // the process stays alive across screen-off / Doze. Sensing still runs
+        // in this Activity for now; Increment 2 migrates it into the service so
+        // monitoring genuinely survives the Activity being stopped.
+        MonitorService.start(this)
+
         applyBrightness()
         deviceId = prefs.resolveDeviceId()
         sensorHub = SensorHub(applicationContext, prefs)
@@ -939,6 +945,12 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.ACCESS_FINE_LOCATION,
         )
+        // Android 13+ needs POST_NOTIFICATIONS granted for the foreground-
+        // service notification to actually display (the service runs either
+        // way, but the operator should see the "node active" notification).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            perms.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // API 31+ (Android 12+) needs every BLE op separately granted:
             //   SCAN      — SensorHub scans for nearby phones / peripherals
