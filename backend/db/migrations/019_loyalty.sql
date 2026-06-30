@@ -61,8 +61,8 @@ CREATE INDEX IF NOT EXISTS idx_milestone_unlocks_user
 -- Seed default milestones
 INSERT INTO loyalty_milestones (threshold_gbp, title, description, reward_type, reward_value, sort_order)
 VALUES
-  (25,  'First Steps',    'You''ve saved £25 with Dander!',  'badge',        '{"badge":"🎉"}', 1),
+  (25,  'First Steps',    'You''ve saved £25 with TapProve!',  'badge',        '{"badge":"🎉"}', 1),
   (50,  'Regular Saver',  'You''ve saved £50 — here''s a treat.', 'discount', '{"percent":10}', 2),
   (100, 'Super Saver',    'You''ve saved £100! Unlock a freebie.', 'freebie', '{"description":"Free item from a participating business"}', 3),
-  (250, 'Dander Champion','You''ve saved £250. Legend status.',     'premium_deal', '{"description":"Exclusive premium deal access"}', 4)
+  (250, 'TapProve Champion','You''ve saved £250. Legend status.',     'premium_deal', '{"description":"Exclusive premium deal access"}', 4)
 ON CONFLICT DO NOTHING;
