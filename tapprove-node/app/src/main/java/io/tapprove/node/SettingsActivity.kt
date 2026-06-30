@@ -1,5 +1,7 @@
 package io.tapprove.node
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -11,8 +13,10 @@ import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 /**
  * SettingsActivity — operator-tunable settings persisted via Prefs.
@@ -41,6 +45,29 @@ class SettingsActivity : AppCompatActivity() {
         // via the existing node_commands channel. A future on-device editor
         // can replace this when offline setup is needed.
         txtHoursSummary.text = BusinessHours.summary(prefs)
+
+        // Belt-and-braces camera diagnostic (headless ImageAnalysis-only vs the
+        // 1×1-surface fallback). Hidden behind a long-press so it's operator-
+        // discoverable but never a customer-facing button. See CameraProbe.
+        txtHoursSummary.setOnLongClickListener {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Grant camera permission first", Toast.LENGTH_SHORT).show()
+                return@setOnLongClickListener true
+            }
+            Toast.makeText(this, "Camera diagnostic running (~10s)…", Toast.LENGTH_SHORT).show()
+            CameraProbe.run(this, this) { r ->
+                AlertDialog.Builder(this)
+                    .setTitle("Camera diagnostic")
+                    .setMessage(
+                        "Headless frames: ${r.headlessFrames}\n" +
+                        "With 1×1 surface: ${r.withSurfaceFrames}\n\n${r.recommendation}"
+                    )
+                    .setPositiveButton("OK", null)
+                    .show()
+            }
+            true
+        }
 
         // Sound toggle. Persists immediately — showLoyaltyGreeting reads
         // prefs.soundEnabled on every greeting so no MainActivity restart
