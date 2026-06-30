@@ -11,7 +11,7 @@ import { colors } from '../constants/colors';
 export function Brand({ tagline }: { tagline?: string }) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.wordmark}>dander</Text>
+      <Text style={styles.wordmark}>TapProve</Text>
       <View style={styles.dot} />
       {tagline ? <Text style={styles.tagline}>{tagline}</Text> : null}
     </View>

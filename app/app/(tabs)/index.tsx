@@ -104,7 +104,7 @@ export default function HomeScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       <View style={styles.header}>
-        <Text style={styles.wordmark}>dander</Text>
+        <Text style={styles.wordmark}>TapProve</Text>
         <ProfileAvatar
           firstName={user?.firstName}
           lastName={user?.lastName}
