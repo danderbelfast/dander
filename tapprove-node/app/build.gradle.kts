@@ -74,6 +74,10 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    // LifecycleService — lets the foreground MonitorService own a Lifecycle so
+    // CameraX (ProcessCameraProvider.bindToLifecycle) and lifecycle-aware
+    // sensing run independent of any Activity (survives screen-off / Doze).
+    implementation("androidx.lifecycle:lifecycle-service:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // EncryptedSharedPreferences (Keystore-backed) for the per-business

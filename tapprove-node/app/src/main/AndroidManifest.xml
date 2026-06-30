@@ -5,6 +5,21 @@
     <!-- Sensors / radios -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Foreground service — the node runs sensing/monitoring as an always-on
+         foreground service so screen-off / Doze / battery-saver can't silently
+         kill out-of-hours monitoring. specialUse type: a dedicated, sideloaded
+         retail kiosk (not Play-distributed). Camera/microphone typed FGS cannot
+         be cold-started from a background scheduled wake — disqualifying for a
+         kiosk whose job IS scheduled wake — so specialUse is the correct type. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Partial wake lock, held only while actively sensing (released in deep
+         sleep), so the CPU keeps the monitor loop alive with the screen off. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- FGS notification (Android 13+ needs the runtime grant to post it). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -98,6 +113,18 @@
             <meta-data
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/apdu_service" />
+        </service>
+
+        <!-- Always-on monitoring/sensing foreground service. Owns the long-lived
+             lifecycle (camera + sensors + uploader + hours/thermal loops) so it
+             survives screen-off / Doze independent of any Activity. -->
+        <service
+            android:name=".MonitorService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Always-on retail sensing kiosk (anonymous people counting + NFC loyalty greeter) that must run continuously during opening hours and wake on a schedule; sideloaded internal distribution, not Play-distributed." />
         </service>
     </application>
 </manifest>

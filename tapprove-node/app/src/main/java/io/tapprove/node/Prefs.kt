@@ -98,6 +98,31 @@ class Prefs(context: Context) {
     // again. Never surfaced on the customer-facing stranger display.
     var cameraFailed:    Boolean get() = sp.getBoolean(KEY_CAMERA_FAILED, false);     set(v) = sp.edit().putBoolean(KEY_CAMERA_FAILED, v).apply()
 
+    // ── Thermal safety (Feature 2) ──────────────────────────────
+    // Configurable + remote-overridable STARTING values — calibrate on real
+    // devices. The OS thermal-status enum (PowerManager, API 29+) is the
+    // PRIMARY staged driver (OEM-normalised); these battery-temp °C thresholds
+    // are the SECONDARY corroborator and the only signal below API 29.
+    var thermalMonitorEnabled: Boolean get() = sp.getBoolean(KEY_THERMAL_ENABLED, true);   set(v) = sp.edit().putBoolean(KEY_THERMAL_ENABLED, v).apply()
+    var warmTempC:   Int get() = sp.getInt(KEY_WARM_TEMP_C, 40);   set(v) = sp.edit().putInt(KEY_WARM_TEMP_C, v).apply()
+    var hotTempC:    Int get() = sp.getInt(KEY_HOT_TEMP_C, 45);    set(v) = sp.edit().putInt(KEY_HOT_TEMP_C, v).apply()
+    var resumeTempC: Int get() = sp.getInt(KEY_RESUME_TEMP_C, 38); set(v) = sp.edit().putInt(KEY_RESUME_TEMP_C, v).apply()
+
+    // ── Node display mode (Feature 4) ───────────────────────────
+    //   "sensing" — counting/sensing node: screen off always (sensing is
+    //               screen-independent once it runs in MonitorService).
+    //   "greeter" — dark until an NFC tap wakes the screen to show an offer,
+    //               then returns to dark.
+    var nodeMode: String get() = sp.getString(KEY_NODE_MODE, "sensing") ?: "sensing"; set(v) = sp.edit().putString(KEY_NODE_MODE, v).apply()
+
+    // ── One-time onboarding (Feature 6) ─────────────────────────
+    // Battery/airflow/charger guidance is shown ONCE at setup, never as a nag.
+    var onboardingGuidanceDone: Boolean get() = sp.getBoolean(KEY_ONBOARDING_GUIDE_DONE, false); set(v) = sp.edit().putBoolean(KEY_ONBOARDING_GUIDE_DONE, v).apply()
+    // Whether we've already prompted the user to exempt the app from battery
+    // optimisation (Doze whitelist). Prompt once; OEM auto-kill settings can't
+    // be toggled programmatically so the rest is onboarding guidance.
+    var batteryOptPrompted: Boolean get() = sp.getBoolean(KEY_BATTERY_OPT_PROMPTED, false); set(v) = sp.edit().putBoolean(KEY_BATTERY_OPT_PROMPTED, v).apply()
+
     // Business pairing — set during the first-launch setup flow.
     var businessCode: String get() = sp.getString(KEY_BUSINESS_CODE, "") ?: ""; set(v) = sp.edit().putString(KEY_BUSINESS_CODE, v).apply()
     var businessId:   Int    get() = sp.getInt(KEY_BUSINESS_ID, 0);             set(v) = sp.edit().putInt(KEY_BUSINESS_ID, v).apply()
@@ -133,6 +158,13 @@ class Prefs(context: Context) {
         const val KEY_LATEST_VERSION   = "latest_version"
         const val KEY_CAMERA_FAILED    = "camera_failed"
         const val KEY_BT_SALT          = "bt_salt"
+        const val KEY_THERMAL_ENABLED  = "thermal_enabled"
+        const val KEY_WARM_TEMP_C      = "warm_temp_c"
+        const val KEY_HOT_TEMP_C       = "hot_temp_c"
+        const val KEY_RESUME_TEMP_C    = "resume_temp_c"
+        const val KEY_NODE_MODE        = "node_mode"
+        const val KEY_ONBOARDING_GUIDE_DONE = "onboarding_guide_done"
+        const val KEY_BATTERY_OPT_PROMPTED  = "battery_opt_prompted"
 
         val ZONE_TYPES = listOf("entrance", "display", "till", "general")
         val TILL_MODES = listOf("overhead", "walkpast", "approach")
