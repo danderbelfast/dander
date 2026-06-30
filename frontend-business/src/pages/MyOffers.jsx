@@ -79,7 +79,7 @@ export default function MyOffers() {
     try {
       const resp = await getShareImage(offer.id);
       const blob = resp.data;
-      const file = new File([blob], `dander-deal-${offer.id}.png`, { type: 'image/png' });
+      const file = new File([blob], `tapprove-deal-${offer.id}.png`, { type: 'image/png' });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({

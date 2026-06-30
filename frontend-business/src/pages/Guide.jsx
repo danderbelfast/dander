@@ -224,7 +224,7 @@ export default function Guide() {
           <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Still need help?</div>
           <div style={{ fontSize: '0.82rem', color: 'var(--c-text-muted)', marginTop: 2 }}>
             Email us at{' '}
-            <a href="mailto:support@dander.app" style={{ color: 'var(--c-primary)' }}>support@dander.app</a>
+            <a href="mailto:support@tapprove.io" style={{ color: 'var(--c-primary)' }}>support@tapprove.io</a>
             {' '}and we'll get back to you within one business day.
           </div>
         </div>

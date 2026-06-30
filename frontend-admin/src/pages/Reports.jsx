@@ -123,10 +123,10 @@ export default function Reports() {
         {/* Export buttons */}
         <div style={{ display: 'flex', gap: 8 }}>
           {[
-            { type: 'users',        label: 'Export users',        file: 'dander-users.csv' },
-            { type: 'businesses',   label: 'Export businesses',   file: 'dander-businesses.csv' },
-            { type: 'redemptions',  label: 'Export redemptions',  file: 'dander-redemptions.csv' },
-          { type: 'profit', label: 'Export profit', file: 'dander-platform-profit.csv' },
+            { type: 'users',        label: 'Export users',        file: 'tapprove-users.csv' },
+            { type: 'businesses',   label: 'Export businesses',   file: 'tapprove-businesses.csv' },
+            { type: 'redemptions',  label: 'Export redemptions',  file: 'tapprove-redemptions.csv' },
+          { type: 'profit', label: 'Export profit', file: 'tapprove-platform-profit.csv' },
           ].map(({ type, label, file }) => (
             <button
               key={type}

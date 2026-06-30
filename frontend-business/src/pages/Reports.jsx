@@ -52,7 +52,7 @@ export default function Reports() {
       const resp = await exportProfitCSV(from, to);
       const url = URL.createObjectURL(new Blob([resp.data], { type: 'text/csv' }));
       const a = document.createElement('a');
-      a.href = url; a.download = `dander-profit-${from}-to-${to}.csv`;
+      a.href = url; a.download = `tapprove-profit-${from}-to-${to}.csv`;
       a.click(); URL.revokeObjectURL(url);
     } catch { /* ignore */ }
     finally { setExporting(false); }
