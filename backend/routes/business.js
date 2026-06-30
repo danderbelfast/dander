@@ -601,7 +601,7 @@ router.get('/reports/profit/csv', async (req, res) => {
       from: req.query.from, to: req.query.to,
     });
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="dander-profit-report.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="tapprove-profit-report.csv"');
     return res.send(csv);
   } catch (err) {
     console.error('[business/reports/profit/csv]', err);
@@ -686,7 +686,7 @@ router.get(
       const pngBuffer = await generateShareImage(rows[0]);
       res.set({
         'Content-Type': 'image/png',
-        'Content-Disposition': `inline; filename="dander-deal-${req.params.id}.png"`,
+        'Content-Disposition': `inline; filename="tapprove-deal-${req.params.id}.png"`,
         'Cache-Control': 'no-cache',
       });
       return res.send(pngBuffer);

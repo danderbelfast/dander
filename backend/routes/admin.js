@@ -790,7 +790,7 @@ router.get('/export/profit', async (req, res) => {
       from: req.query.from, to: req.query.to,
     });
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="dander-platform-profit.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="tapprove-platform-profit.csv"');
     return res.send(csv);
   } catch (err) {
     console.error('[admin/export/profit]', err);
@@ -854,7 +854,7 @@ router.get('/export/:type', async (req, res) => {
     const { rows } = await pool.query(queries[type]);
     if (rows.length === 0) {
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="dander-${type}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="tapprove-${type}.csv"`);
       return res.send('No data');
     }
     const headers = Object.keys(rows[0]).join(',');
@@ -867,7 +867,7 @@ router.get('/export/:type', async (req, res) => {
       ),
     ].join('\n');
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="dander-${type}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="tapprove-${type}.csv"`);
     return res.send(csv);
   } catch (err) {
     console.error('[admin/export]', err);
